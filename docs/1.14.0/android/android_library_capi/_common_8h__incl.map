@@ -1,0 +1,7 @@
+<map id="NativeToolkitC/Common.h" name="NativeToolkitC/Common.h">
+<area shape="rect" id="Node000001" title="What every part of the NativeToolkit C ABI shares: the version, the last system code (always 0 on And..." alt="" coords="5,5,181,31"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="14,79,82,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="88,30,65,68,61,64,83,33"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="106,79,170,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="102,29,125,66,120,66,99,34"/>
+</map>

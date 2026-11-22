@@ -1,0 +1,11 @@
+<map id="NativeToolkitC/Common.h" name="NativeToolkitC/Common.h">
+<area shape="rect" id="Node000001" title="What every part of the NativeToolkit C ABI shares: the version, the last system code (always 0 on iOS..." alt="" coords="297,5,472,31"/>
+<area shape="rect" id="Node000002" href="$_clipboard_8h.html" title="The clipboard: copying, reading, the description of the contents and change events." alt="" coords="5,79,183,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="321,38,144,81,143,76,320,33"/>
+<area shape="rect" id="Node000003" href="$_dialog_8h.html" title="Dialogs: alerts, confirmations, action sheets, text input and login, and cancelling them." alt="" coords="206,79,366,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="358,40,304,81,301,76,353,41"/>
+<area shape="rect" id="Node000004" href="$_notification_8h.html" title="Local notifications: the delegate, the permission, showing and scheduling, categories and events." alt="" coords="389,79,578,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="415,38,469,79,464,78,413,43"/>
+<area shape="rect" id="Node000005" href="$_share_8h.html" title="The share sheet." alt="" coords="601,79,758,105"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="450,33,632,78,627,79,449,38"/>
+</map>

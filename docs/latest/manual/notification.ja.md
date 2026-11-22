@@ -53,30 +53,44 @@
     - [通知のエラー](#通知のエラー)
 - [iOS](#ios)
   - [IosNotificationManager](#iosnotificationmanager)
+  - [1.x からの変更点](#1x-からの変更点-1)
   - [セットアップ](#セットアップ-1)
+    - [delegate のインストール](#delegate-のインストール)
+    - [起動時のリスナー登録](#起動時のリスナー登録)
   - [パーミッション](#パーミッション-1)
     - [通知権限をリクエストする](#通知権限をリクエストする)
     - [権限の確認](#権限の確認)
     - [認証ステータスの取得](#認証ステータスの取得)
     - [通知設定を開く](#通知設定を開く)
-  - [通知の表示](#通知の表示-1)
+  - [通知の表示](#通知の表示)
     - [即時表示](#即時表示)
     - [添付ファイル付き即時表示](#添付ファイル付き即時表示)
     - [時間間隔トリガー](#時間間隔トリガー)
     - [カレンダートリガー](#カレンダートリガー)
     - [位置情報トリガー](#位置情報トリガー)
-  - [添付ファイル](#添付ファイル)
-  - [通知の更新](#通知の更新)
-  - [通知のキャンセル / 削除](#通知のキャンセル--削除)
+  - [更新・キャンセル・削除](#更新キャンセル削除)
   - [スケジュール通知](#スケジュール通知-1)
-    - [スケジュールのキャンセル](#スケジュールのキャンセル)
+    - [スケジュールのキャンセル](#スケジュールのキャンセル-1)
   - [クエリ](#クエリ)
   - [バッジ](#バッジ)
   - [カテゴリとアクション](#カテゴリとアクション)
     - [カテゴリの登録](#カテゴリの登録)
-    - [カテゴリを通知に紐づける](#カテゴリを通知に紐づける)
     - [カテゴリの削除](#カテゴリの削除)
-    - [アクション受信コールバック](#アクション受信コールバック)
+  - [通知イベント](#通知イベント)
+    - [リスナーの追加と削除](#リスナーの追加と削除)
+    - [起動時の応答](#起動時の応答)
+    - [ほかの通知と以前の delegate](#ほかの通知と以前の-delegate)
+  - [エラーと async 形式](#エラーと-async-形式)
+    - [userInfo の確認](#userinfo-の確認)
+    - [フォアグラウンドからの権限と設定](#フォアグラウンドからの権限と設定)
+    - [エラーケース](#エラーケース)
+  - [C ABI](#c-abi-1)
+    - [delegate のインストールとイベントの受け取り](#delegate-のインストールとイベントの受け取り)
+    - [権限と設定](#権限と設定)
+    - [内容のビルダー・表示・スケジュール](#内容のビルダー表示スケジュール)
+    - [削除と一覧](#削除と一覧)
+    - [バッジとカテゴリ](#バッジとカテゴリ)
+    - [エラー値と Swift の API](#エラー値と-swift-の-api)
 - [Windows](#windows)
   - [NativeToolkit::Notification](#nativetoolkitnotification)
   - [セットアップ](#セットアップ-2)
@@ -106,24 +120,24 @@
     - [全削除](#全削除)
   - [活性化ハンドラー](#活性化ハンドラー)
   - [エラーコード](#エラーコード)
-  - [C ABI](#c-abi-1)
+  - [C ABI](#c-abi-2)
     - [ランタイム・マネージャー・活性化](#ランタイムマネージャー活性化)
     - [内容の組み立て・表示・予約](#内容の組み立て表示予約)
     - [進捗・バッジ・OS の設定](#進捗バッジos-の設定)
     - [一覧と削除](#一覧と削除)
 - [macOS](#macos)
   - [MacNotificationManager](#macnotificationmanager)
-  - [セットアップ](#セットアップ-2)
+  - [セットアップ](#セットアップ-3)
   - [パーミッション](#パーミッション-2)
     - [権限のリクエスト](#権限のリクエスト)
     - [パーミッション確認](#パーミッション確認)
-    - [認証ステータスの取得](#認証ステータスの取得)
-    - [通知設定を開く](#通知設定を開く)
+    - [認証ステータスの取得](#認証ステータスの取得-1)
+    - [通知設定を開く](#通知設定を開く-2)
     - [通知権限のリセット（macOS 26.3）](#通知権限のリセットmacos-263)
   - [通知の表示](#通知の表示-2)
-    - [即時表示](#即時表示)
-    - [時間間隔トリガー](#時間間隔トリガー)
-    - [カレンダートリガー](#カレンダートリガー)
+    - [即時表示](#即時表示-1)
+    - [時間間隔トリガー](#時間間隔トリガー-1)
+    - [カレンダートリガー](#カレンダートリガー-1)
   - [更新 / キャンセル / 削除](#更新--キャンセル--削除)
     - [IDで更新](#idで更新)
     - [IDでキャンセル](#idでキャンセル)
@@ -135,14 +149,14 @@
     - [カレンダーでスケジュール](#カレンダーでスケジュール)
     - [IDでキャンセル（スケジュール）](#idでキャンセルスケジュール)
     - [すべてキャンセル（スケジュール）](#すべてキャンセルスケジュール)
-  - [クエリ](#クエリ)
+  - [クエリ](#クエリ-1)
     - [スケジュール済みを取得](#スケジュール済みを取得)
     - [配信済みを取得](#配信済みを取得)
-  - [バッジ](#バッジ-1)
+  - [バッジ](#バッジ-2)
   - [カテゴリ](#カテゴリ)
     - [カテゴリの登録](#カテゴリの登録-1)
     - [カテゴリの削除](#カテゴリの削除-1)
-  - [エラーコード](#エラーコード)
+  - [エラーコード](#エラーコード-1)
 
 ---
 
@@ -1640,23 +1654,133 @@ C ABI にないもの: `createChannels`、`getActive`、`restoreScheduled`、Med
 
 ## iOS
 
+iOS 18.0 以降のローカル通知です。iOS ライブラリ 2.0.0 は、1 つの実装の上に 2 つの公開 API を用意しています。サンプルアプリは Swift の API を使います。
+
+| API | 名前 | モジュール / ヘッダー | 成果物 |
+|---|---|---|---|
+| Swift の API | `IosNotificationManager` | `import IosLibrary` | `ios-native-toolkit-2.0.0.xcframework` |
+| C ABI | `ntk_notification_*` | `<NativeToolkitC/Notification.h>` | `ios-native-toolkit-capi-2.0.0.xcframework`（`ios-native-toolkit-2.0.0.xcframework` と一緒に使います） |
+
+C ABI は、この節の最後の [C ABI](#c-abi-1) で説明します。1.x から移行する場合は、[1.x からの変更点](#1x-からの変更点-1) と [iOS ライブラリを 2.0.0 へ移行する](index.ja.md#ios-ライブラリを-200-へ移行する) を読んでください。
+
 ### IosNotificationManager
 
-`IosNotificationManager` は iOS ローカル通知のすべての操作を提供するシングルトンクラスです。
+- `IosNotificationManager.shared` はプロセスに 1 つのマネージャーです。`Sendable` で、特に記載がない限り、どのメソッドもどのスレッドから呼んでも構いません。
+- イベント（タップ、アクションボタン、返信）と、アプリがフォアグラウンドにある間の通知の表示は、システムの通知 delegate を通じて届きます。そのため、起動時に `IosNotificationManager.installDelegate()` が必要です（[セットアップ](#セットアップ-1) を参照）。表示、スケジュール、一覧、削除、バッジ、カテゴリ、権限は、delegate がなくても動きます。
+- すべての `completion` はメインスレッドで、ちょうど 1 回呼ばれ、呼び出しの中で呼ばれることはありません。completion の型は `@MainActor @Sendable` なので、SwiftUI のビューに書いたクロージャからビューの状態をそのまま使えます。
+- 各操作は、`(isSuccess, errorMessage)` のような 1.x のコールバック形式を保っています。`errorMessage` は `NotificationError` の固定の英語の説明です。各操作には同じ名前の `async` 形式もあります。`show`、`update`、`schedule`、`setBadgeCount`、`requestPermission(options:presenter:)`、`openNotificationSettings(presenter:)` は `async throws` です。`getScheduled`、`getDelivered`、`hasPermission`、`authorizationStatus`、`registerCategory`、`removeCategory` は `async` で、エラーを投げません。
+- ライブラリは、自身が追加するすべての通知の userInfo にキー `com.jonghyunkim.nativetoolkit` を加え、自身の通知をほかの通知と区別します。このキーを使うアプリの userInfo は拒否され（`reservedUserInfoKey`）、ライブラリが返すすべての userInfo からこのキーは取り除かれます。
+- 通知の権限がないと、システムは `show`、`update`、`schedule` に成功を報告しますが、何も保持しません。保留中のリクエストは残らず、権限が許可される前にスケジュールした通知が後で発火することもありません。先に `authorizationStatus` か `hasPermission` を確認してください。サンプルアプリは、これらの呼び出しの前に毎回 `hasPermission` を確認しています。C ABI はこの確認を自身で行います（[C ABI](#c-abi-1) を参照）。
+- `setup()`、`onActionReceived`、`onTextInputActionReceived`、`NotificationPermissionHelper` は動作を変えずに残っていますが、非推奨です。このページでは、それぞれに代わる API を使います。
 
-<p align="center">
-    <img src="images/ios/notification/Example_IosNotificationManager.png" alt="Example_IosNotificationManager" width="400" />
-</p>
+---
+
+### 1.x からの変更点
+
+| 1.x | 2.0.0 |
+|---|---|
+| `IosNotificationManager.setup()` | メインスレッドで、起動が終わる前に `IosNotificationManager.installDelegate()` を呼びます。`setup()` は非推奨で、これを呼びます。ほかのスレッドでは何もインストールしません |
+| マネージャーが `UNUserNotificationCenterDelegate` で、アプリの delegate を置き換えていた | 内部の delegate が、それより前に設定されていた delegate を保持し、ライブラリのものではない通知をその delegate に転送します（[ほかの通知と以前の delegate](#ほかの通知と以前の-delegate) を参照） |
+| `onActionReceived` / `onTextInputActionReceived` | `responses` のリスナー（[通知イベント](#通知イベント) を参照）。古いレシーバーも、リスナーに加えて呼ばれます。どちらか一方を使ってください |
+| `openSettingsFor` が設定アプリにあるアプリのページを開いていた | リクエストは `settingsRequests` に届きます。ライブラリは何も開きません |
+| どの userInfo もそのまま渡されていた | キー `com.jonghyunkim.nativetoolkit` は予約済みで、すべての値はプロパティリストの値でなければなりません（[userInfo の確認](#userinfo-の確認) を参照） |
+| `NotificationError` のケースがシステムの `Error` を持っていた | 安定したケースになりました。システムの失敗は `FailureDetail`（ドメインとコード）を持ちます。`attachmentLoadFailed(_:)` は `attachmentLoadFailed(identifier:detail:)` になり、`addRequestFailed(_:)` と `setBadgeCountFailed(_:)` は `FailureDetail` を持ちます。削除: `permissionNotDetermined`、`attachmentInvalidURL`、`unknown(_:)`。追加: `authorizationFailed(_:)`、`reservedUserInfoKey`、`invalidUserInfo`、`invalidTrigger`、`notForeground`、`openSettingsFailed`、`delegateNotInstalled`（[エラーケース](#エラーケース) を参照） |
+| `registerCategory(_:)` はカテゴリが登録される前に戻っていた | 変更は呼び出しの順に適用され、同じ識別子のカテゴリは置き換えられます。省略可能な `completion` は変更の後に来ます |
+| 1.x がスケジュールまたは表示した通知 | これまでどおり一覧に出てキャンセルでき、userInfo も変わりません。タップは `responses` に届きます。ただし、`installDelegate()` の前に設定されていた delegate が `didReceive` を実装している場合は、その delegate に届きます |
+
+iOS ライブラリの 2.0.0 でのそのほかの変更（`async` のコンテキストで `await` が必要になる呼び出しなど）は、[iOS ライブラリを 2.0.0 へ移行する](index.ja.md#ios-ライブラリを-200-へ移行する) にあります。
+
+---
 
 ### セットアップ
 
-アプリ起動時（例: `AppDelegate.application(_:didFinishLaunchingWithOptions:)`）に `setup()` を一度だけ呼び出します。
+`ios-native-toolkit-2.0.0.xcframework` をアプリのターゲットに追加し（Embed & Sign）、`import IosLibrary` します。Xcode 26.3 以降でビルドしてください。
+
+#### delegate のインストール
+
+`installDelegate()` は、ライブラリの `UNUserNotificationCenter` の delegate をインストールします。ライブラリは、アプリがフォアグラウンドにある間に自身の通知を表示するためと、ユーザーの応答を受け取るために、この delegate を必要とします。
+
+- **メインスレッド専用です。** ほかのスレッドでは `.notMainThread` を返し、何も変更しません。同期的で、待つことはなく、`.installed` を返します（delegate がすでにインストールされていた場合も同じです）。
+- **起動が終わる前に呼びます。** `application(_:didFinishLaunchingWithOptions:)` が戻る前か、`scene(_:willConnectTo:options:)` の中で呼んでください。SwiftUI のアプリでは、`App.init` と、`UIApplicationDelegateAdaptor` の `application(_:didFinishLaunchingWithOptions:)` のどちらでも構いません。システムは、アプリを起動した応答（コールドスタート時のタップ）を、起動処理が戻った時点で設定されている delegate にだけ渡します。後でインストールしてもライブラリは動きますが、その応答は失われます。
+- **インストールしないと、** アプリがフォアグラウンドにある間はライブラリの通知が表示されず、イベントも届きません。`responses.addListener`、`settingsRequests.addListener`、`launchResponse()` は `NotificationError.delegateNotInstalled` を投げます。
+- **それより前に設定されていた delegate**（アプリ自身のもの、またはほかのコンポーネントのもの）は以前の delegate になり、ライブラリのものではない通知を受け取ります（[ほかの通知と以前の delegate](#ほかの通知と以前の-delegate) を参照）。アプリ自身の delegate は、`installDelegate()` を呼ぶ前に設定してください。`UNUserNotificationCenter` が delegate を保持するのと同じく、ライブラリは以前の delegate を弱参照で保持します。アプリでその delegate への強参照を保持してください。保持しないと解放され、その delegate が受け取るはずの通知はライブラリが処理します。
+- **後から `UNUserNotificationCenter.current().delegate` を置き換えないでください。** ライブラリは警告をログに出すだけで、イベントとフォアグラウンドでの表示は止まります。`installDelegate()` をもう一度呼ぶと元に戻り、置き換えたオブジェクトが唯一の以前の delegate になります。これが起動の後に起きると、コールドスタート時のタップは失われます。置き換えたオブジェクトがライブラリへ非同期に転送する場合は、`installDelegate()` をもう一度呼ばないでください（約束の範囲の外です）。
+- `IosNotificationManager.isDelegateInstalled` は、このプロセスで delegate がインストールされたかどうかを示します。
+
+サンプルアプリは、アプリケーション delegate からインストールしています。
 
 ```swift
 import IosLibrary
+import SwiftUI
+import UIKit
 
-IosNotificationManager.setup()
+@main
+struct MyApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    private var responseRegistration: NotificationEventRegistration?
+    private var settingsRegistration: NotificationEventRegistration?
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        // メインスレッドで、起動処理が戻る前に呼びます。
+        IosNotificationManager.installDelegate()   // .installed。メインスレッド以外では .notMainThread
+        // アプリを起動した応答がリスナーに届くよう、リスナーもここで追加します。
+        addListeners()
+        return true
+    }
+}
 ```
+
+#### 起動時のリスナー登録
+
+`responses` は、本体のタップ、アクションボタン、テキスト入力の返信、カスタムの消去アクション（`.customDismissAction` を持つカテゴリ）について `NotificationResponseEvent` を届けます。`settingsRequests` は、システムがアプリ独自の通知設定を表示するよう求めたときに `NotificationSettingsRequest` を届けます（[フォアグラウンドからの権限と設定](#フォアグラウンドからの権限と設定) を参照）。
+
+```swift
+extension AppDelegate {
+    func addListeners() {
+        do {
+            responseRegistration = try IosNotificationManager.shared.responses.addListener { event, _ in
+                // event.notificationIdentifier、event.actionIdentifier、event.categoryIdentifier、
+                // event.userText（返信、または nil）、event.userInfo、event.isLaunchResponse
+                if event.userText != nil {
+                    // テキスト入力の返信。
+                } else if event.actionIdentifier == UNNotificationDefaultActionIdentifier {
+                    // 本体のタップ。
+                } else if event.actionIdentifier == UNNotificationDismissActionIdentifier {
+                    // 消去された（.customDismissAction を持つカテゴリ）。
+                } else {
+                    // アクションボタン: サンプルのカテゴリでは "open" か "delete"。
+                }
+            }
+            settingsRegistration = try IosNotificationManager.shared.settingsRequests.addListener { request, _ in
+                // アプリ独自の通知設定画面を表示します。
+                // 設定アプリからのリクエストでは、request.notificationIdentifier は nil です。
+            }
+        } catch {
+            // NotificationError.delegateNotInstalled: installDelegate() が delegate をインストールしていません。
+        }
+    }
+}
+```
+
+`UNNotificationDefaultActionIdentifier` と `UNNotificationDismissActionIdentifier` は `import UserNotifications` で使えます。
+
+- リスナーの追加と削除はメインアクターで行います。リスナーはメインアクターで呼ばれます。呼ばれるのは、システムの delegate の呼び出しが戻った後、ライブラリがシステムの完了ハンドラーを呼ぶ前です。
+- すべてのリスナーがすべてのイベントを受け取ります。ハブにリスナーがない間、ハブは最大 32 件のイベントを保持し（古いものから捨てます。保持はプロセスが続く間です）、次のリスナーへ `addListener` の中で、届いた順に渡します。そのため、起動時に追加したリスナーは、アプリを起動したタップを受け取ります。
+- `event.userInfo` は、ライブラリのキーを除いた `[String: NotificationUserInfoValue]` のツリーです。イベントの説明には、返信の長さと userInfo のキーの数だけが表示されます。
+
+---
 
 ### パーミッション
 
@@ -1667,7 +1791,8 @@ IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
     if isSuccess {
         // 許可された
     } else {
-        // 拒否された。設定アプリから手動で有効化が必要
+        // 拒否された。errorMessage は "Notification permission was denied." です。ダイアログは
+        // 再び表示されません。ユーザーが設定アプリで通知を有効にします。
     }
 }
 ```
@@ -1676,11 +1801,13 @@ IosNotificationManager.shared.requestPermission { isSuccess, errorMessage in
     <img src="images/ios/notification/Example_IosNotificationManager_RequestPermission.png" alt="Example_IosNotificationManager_RequestPermission" width="400" />
 </p>
 
+この形式は、1.x と同じく、アプリがフォアグラウンドにあるかを確認せずに `[.alert, .sound, .badge]` を求めます。拒否と失敗を区別する結果が必要な場合や、フォアグラウンドを確認したい場合は、[フォアグラウンドからの権限と設定](#フォアグラウンドからの権限と設定) を参照してください。
+
 #### 権限の確認
 
 ```swift
 IosNotificationManager.shared.hasPermission { hasPermission in
-    print(hasPermission) // true / false
+    // authorized と provisional では true、それ以外（ephemeral を含む）では false
 }
 ```
 
@@ -1689,7 +1816,6 @@ IosNotificationManager.shared.hasPermission { hasPermission in
 ```swift
 IosNotificationManager.shared.authorizationStatus { status in
     // .notDetermined / .denied / .authorized / .provisional / .ephemeral / .unknown
-    print(status)
 }
 ```
 
@@ -1699,9 +1825,13 @@ IosNotificationManager.shared.authorizationStatus { status in
 IosNotificationManager.shared.openNotificationSettings()
 ```
 
+設定アプリにあるアプリの通知設定ページを開きます。開いたかどうかは報告しません。報告が必要な場合は `openNotificationSettings(presenter:completion:)` を使います。
+
+---
+
 ### 通知の表示
 
-`NotificationContent` を作成して `show()` を呼び出します。
+`NotificationContent` を作成して `show(content:trigger:completion:)` を呼び出します。トリガーがなければ、通知はすぐに配信されます。リクエストの識別子は `content.id` で、同じ識別子の新しいリクエストは古いものを置き換えます。
 
 #### 即時表示
 
@@ -1715,7 +1845,7 @@ let content = NotificationContent(
 )
 
 IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // errorMessage は nil か、NotificationError の固定の英語のテキスト
 }
 ```
 
@@ -1723,10 +1853,11 @@ IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage i
     <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediate.png" alt="Example_IosNotificationManager_ShowImmediate" width="400" />
 </p>
 
+`content` は `sending` パラメーターです。呼び出しの後に使わない値を渡してください。
+
 #### 添付ファイル付き即時表示
 
-Bundle に含めた画像ファイルを添付として通知を表示します。
-通知を長押し（展開表示）するとサムネイルが表示されます。
+アプリにバンドルした画像ファイルを添付します。通知を展開（長押し）すると表示されます。
 
 ```swift
 guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
@@ -1742,7 +1873,7 @@ let content = NotificationContent(
 )
 
 IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // 存在しないファイルは attachmentLoadFailed で失敗し、何も追加されません。
 }
 ```
 
@@ -1750,37 +1881,63 @@ IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage i
     <img src="images/ios/notification/Example_IosNotificationManager_ShowImmediateWithAttachment.png" alt="Example_IosNotificationManager_ShowImmediateWithAttachment" width="400" />
 </p>
 
+画像、音声、動画を添付できます。ライブラリは、リクエストを追加する前に、ファイル URL のファイルが存在するかを確認します。
+
 #### 時間間隔トリガー
 
 ```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "5s Notification",
+    body: "Will be shown after 5 seconds",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
 IosNotificationManager.shared.show(
     content: content,
     trigger: .timeInterval(5.0, repeats: false)
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
+間隔は 0 より大きく、繰り返す場合は 60 秒以上でなければなりません。それ以外の間隔は `invalidTrigger` で失敗し、何も追加されません（そのまま渡すと、システムがプロセスを終了させるためです）。`NotificationTrigger.isValid` で事前に確かめられます。
+
 #### カレンダートリガー
 
+サンプルアプリは、今から 1 分後に発火させます。
+
 ```swift
-var components = DateComponents()
-components.hour = 9
-components.minute = 0
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Calendar Notification",
+    body: "Will be shown in one minute",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+let nextDate = Calendar.current.date(byAdding: .minute, value: 1, to: Date()) ?? Date()
+let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: nextDate)
 
 IosNotificationManager.shared.show(
     content: content,
-    trigger: .calendar(components, repeats: true)
+    trigger: .calendar(components, repeats: false)
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
 #### 位置情報トリガー
 
-位置情報通知は CoreLocation を使用します。`Info.plist` に位置情報の利用説明文を追加してください。
-
 ```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Location Notification",
+    body: "You arrived at Tokyo Station",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
+)
+
 IosNotificationManager.shared.show(
     content: content,
     trigger: .location(
@@ -1792,76 +1949,62 @@ IosNotificationManager.shared.show(
         notifyOnExit: false
     )
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // 登録された。端末が領域に入ると通知が発火します。
 }
 ```
 
-### 添付ファイル
+位置情報トリガーには、位置情報の権限と、`Info.plist` の位置情報の利用説明文が必要です。ライブラリは位置情報の権限をリクエストしません。
 
-`NotificationAttachment` を使って通知に画像・音声・動画を添付できます。
-通知を長押し（展開表示）するとサムネイルが表示されます。
+---
 
-```swift
-guard let imageURL = Bundle.main.url(forResource: "app-icon-attachment", withExtension: "png") else { return }
-
-let attachment = NotificationAttachment(identifier: "app-icon", fileURL: imageURL)
-let content = NotificationContent(
-    id: "sample-notification",
-    title: "画像付き通知",
-    body: "展開して画像を確認してください",
-    attachments: [attachment]
-)
-
-IosNotificationManager.shared.show(content: content) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
-}
-```
-
-### 通知の更新
-
-保留中の通知の内容やトリガーを更新します。
+### 更新・キャンセル・削除
 
 ```swift
-let updatedContent = NotificationContent(
+let updated = NotificationContent(
     id: "sample-notification",
-    title: "更新されたタイトル",
-    body: "内容が変わりました"
+    title: "Updated Notification",
+    body: "This content was updated",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "sample-notification"]
 )
 
 IosNotificationManager.shared.update(
     identifier: "sample-notification",
-    content: updatedContent,
+    content: updated,
     trigger: nil
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
-```
 
-### 通知のキャンセル / 削除
-
-```swift
-// 特定の保留中通知をキャンセル
+// 保留中（スケジュール済み）の通知をキャンセル
 IosNotificationManager.shared.cancel(identifier: "sample-notification")
 
-// 保留中通知をすべてキャンセル
+// 保留中の通知をすべてキャンセル
 IosNotificationManager.shared.cancelAll()
 
-// 配信済み通知を通知センターから削除
+// 配信済みの通知を通知センターから削除
 IosNotificationManager.shared.removeDelivered(identifier: "sample-notification")
 
-// 配信済み通知をすべて削除
+// 配信済みの通知を通知センターからすべて削除
 IosNotificationManager.shared.removeAllDelivered()
 ```
 
-### スケジュール通知
+- `update` は `identifier` の保留中のリクエストを削除し、新しい内容をその識別子で追加します（何も保留されていなかった場合も同じです）。`content.id` は使われません。検査で拒否された内容（userInfo、トリガー、存在しない添付ファイル）では、保留中のリクエストはそのまま残ります。検査の後でシステムが新しいリクエストを追加しなかった場合（`addRequestFailed`）、古いリクエストはすでに消えています。
+- `cancel` と `cancelScheduled` は同じ操作です。保留中のリクエストを削除し、配信済みの通知はそのまま残します。`cancelAll` と `cancelAllScheduled` も同じです。
+- `cancelAll`、`cancelAllScheduled`、`removeAllDelivered` は、アプリのほかの部分（ほかのコンポーネントやアプリ自身のコード）が追加したものも削除します。
+- 削除は非同期に行われます。`removeDelivered`、`removeAllDelivered`、`cancelScheduled`、`cancelAllScheduled` は省略可能な `completion` を受け取ります。削除の後に通知を追加するには、その `completion` から追加してください。
 
-特定の ID で将来の通知をスケジュールします。
+---
+
+### スケジュール通知
 
 ```swift
 let content = NotificationContent(
     id: "scheduled-notification",
-    title: "スケジュール通知",
-    body: "10 秒後に表示されます"
+    title: "Scheduled Notification",
+    body: "Scheduled in 10 seconds",
+    categoryIdentifier: "sample-category",
+    userInfo: ["source": "IosLibraryExample", "id": "scheduled-notification"]
 )
 
 IosNotificationManager.shared.schedule(
@@ -1869,9 +2012,11 @@ IosNotificationManager.shared.schedule(
     trigger: .timeInterval(10.0, repeats: false),
     identifier: "scheduled-notification"
 ) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
+
+トリガーは必須で、[通知の表示](#通知の表示) で示した 3 種類のどれでも使えます。リクエストの識別子は `identifier` で、`content.id` は使われません。
 
 #### スケジュールのキャンセル
 
@@ -1883,36 +2028,45 @@ IosNotificationManager.shared.cancelScheduled(identifier: "scheduled-notificatio
 IosNotificationManager.shared.cancelAllScheduled()
 ```
 
+---
+
 ### クエリ
 
 ```swift
-// 保留中（未配信）の通知リストを取得
+// 保留中（未配信）の通知リクエスト
 IosNotificationManager.shared.getScheduled { requests in
-    requests.forEach { print($0.identifier) }
+    let ids = requests.map { $0.identifier }.joined(separator: ", ")
 }
 
-// 配信済み通知リストを取得
+// 通知センターに表示されている通知
 IosNotificationManager.shared.getDelivered { notifications in
-    notifications.forEach { print($0.identifier) }
+    let ids = notifications.map { $0.identifier }.joined(separator: ", ")
 }
 ```
+
+`ScheduledNotification` と `ActiveNotification` は、識別子、タイトル、サブタイトル、本文、カテゴリの識別子を持ちます（`ActiveNotification` は配信日時の `date` も持ちます）。ライブラリのキーを除いた userInfo はツリーとして `userInfoValues` にあり、`userInfo` はそこから、1.x と同じように読める Foundation の辞書を作ります。
+
+---
 
 ### バッジ
 
 ```swift
-// バッジ数を設定（0 でクリア）
+// バッジ数を設定
 IosNotificationManager.shared.setBadgeCount(1) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 
+// 0 でバッジを消去
 IosNotificationManager.shared.setBadgeCount(0) { isSuccess, errorMessage in
-    print(isSuccess, errorMessage ?? "")
+    // ...
 }
 ```
 
+---
+
 ### カテゴリとアクション
 
-通知にアクションボタンやテキスト入力を追加します。
+カテゴリは、`categoryIdentifier` でそのカテゴリを指定した通知に、アクションボタンとテキスト入力を加えます。
 
 #### カテゴリの登録
 
@@ -1922,41 +2076,45 @@ let category = NotificationCategory(
     actions: [
         NotificationAction(
             identifier: "open",
-            title: "開く",
+            title: "Open",
             options: [.foreground]
         ),
         NotificationAction(
             identifier: "delete",
-            title: "削除",
+            title: "Delete",
             options: [.destructive]
         )
     ],
     textInputActions: [
         TextInputNotificationAction(
             identifier: "reply",
-            title: "返信",
-            buttonTitle: "送信",
-            textInputPlaceholder: "メッセージを入力"
+            title: "Reply",
+            buttonTitle: "Send",
+            textInputPlaceholder: "IosLibraryExample reply"
         )
     ],
-    options: [.customDismissAction, .allowAnnouncement]
+    options: [.customDismissAction]
 )
 
 IosNotificationManager.shared.registerCategory(category)
 ```
 
-#### カテゴリを通知に紐づける
+`categoryIdentifier: "sample-category"` を指定した通知を表示し、長押しするとアクションが表示されます。
 
-`NotificationContent` の `categoryIdentifier` にカテゴリ ID を指定します。
-通知を長押しするとアクションボタンが表示されます。
+<p align="center">
+    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
+</p>
+
+- アクションのタップと返信はイベントとして届きます（[起動時のリスナー登録](#起動時のリスナー登録) を参照）。`actionIdentifier` は `"open"`、`"delete"`、`"reply"` のいずれかで、返信は `userText` を持ちます。
+- カテゴリの変更は、呼び出しの順に 1 つずつ適用されます。カテゴリを登録すると、同じ識別子のカテゴリが置き換えられます。
+- `NotificationCategoryOptions.allowAnnouncement` は非推奨で、効果はありません（iOS 15 以降、システムが無視します）。
+
+登録した直後にそのカテゴリを使う通知を送るには、カテゴリが登録された後に呼ばれる `completion` から送ってください。
 
 ```swift
-let content = NotificationContent(
-    id: "sample-notification",
-    title: "アクション付き通知",
-    body: "長押ししてアクションを確認",
-    categoryIdentifier: "sample-category"
-)
+IosNotificationManager.shared.registerCategory(category) {
+    // 登録された。これ以降に送る通知にはアクションが表示されます。
+}
 ```
 
 #### カテゴリの削除
@@ -1965,23 +2123,579 @@ let content = NotificationContent(
 IosNotificationManager.shared.removeCategory(identifier: "sample-category")
 ```
 
-<p align="center">
-    <img src="images/ios/notification/Example_IosNotificationManager_Category.png" alt="Example_IosNotificationManager_Category" width="400" />
-</p>
+`removeCategory` も省略可能な `completion` を受け取ります。
 
-#### アクション受信コールバック
+---
+
+### 通知イベント
+
+サンプルアプリの「Swift API (2.0.0)」セクションで、イベントハブを試せます。リスナー自体は起動時に追加します（[起動時のリスナー登録](#起動時のリスナー登録) を参照）。
+
+#### リスナーの追加と削除
+
+ハブには任意の数のリスナーを登録できます。後でリスナーを削除するために `NotificationEventRegistration` を保持してください。手放してもリスナーは削除されません。
 
 ```swift
-// アクションボタンのタップを受け取る
-IosNotificationManager.shared.onActionReceived = { notificationId, actionId, userInfo in
-    print("notification: \(notificationId), action: \(actionId)")
+// メインアクターで。
+do {
+    secondRegistration = try IosNotificationManager.shared.responses.addListener { event, registration in
+        // 最初のリスナーと同じく、すべての応答で呼ばれます。
+        // ここで registration.remove() を呼ぶと、このリスナーをその中から止められます。
+    }
+} catch {
+    // NotificationError.delegateNotInstalled
 }
 
-// テキスト入力アクションの送信を受け取る
-IosNotificationManager.shared.onTextInputActionReceived = { notificationId, actionId, userText, userInfo in
-    print("notification: \(notificationId), action: \(actionId), text: \(userText)")
+// 後で:
+secondRegistration?.remove()   // すぐに削除されます。2 回目の呼び出しは何もしません
+secondRegistration = nil
+```
+
+保持されたイベントは、リスナーがない間に最初に追加されたリスナーへ、1 回だけ渡されます。ほかのリスナーが登録されている間に追加したリスナーは、追加の後に届いたイベントだけを受け取ります。
+
+#### 起動時の応答
+
+`launchResponse()` は、アプリを起動した応答を `isLaunchResponse` を設定して返します。ない場合は `nil` を返します。
+
+```swift
+// メインアクターで。
+do {
+    if let event = try IosNotificationManager.shared.launchResponse() {
+        // event.notificationIdentifier、event.actionIdentifier、event.isLaunchResponse == true
+    } else {
+        // （まだ）ない
+    }
+} catch {
+    // NotificationError.delegateNotInstalled
 }
 ```
+
+- 起動時の応答とは、アプリをフォアグラウンドに出す、プロセスで最初の応答（本体のタップ、または `.foreground` を持つアクション）のうち、アプリが初めてアクティブになる前に届き、ライブラリが処理したものです。以前の delegate に転送された応答が、起動時の応答になることはありません。
+- アプリが初めてアクティブになるまでは、`nil` が後で応答に変わることがあります。その後は、結果は変わりません。アプリがすでにアクティブな状態で delegate が初めてインストールされた場合は `nil` です。
+- 同じ応答は、`isLaunchResponse` が設定された状態で `responses` のリスナーにも届きます。処理は 1 か所だけで行ってください。確実なのはリスナーのほうです。
+- バックグラウンドのアクションでアプリが起動した直後にユーザーがアプリをフォアグラウンドに出すと、そのアクションが起動時の応答として扱われることがあります。
+
+#### ほかの通知と以前の delegate
+
+ライブラリは自身の通知（userInfo にライブラリのキーがあるもの）を自身で処理し、以前の delegate に見せることはありません。キーのない通知（アプリ自身のもの、ほかのコンポーネントのもの、プッシュ通知、ライブラリの 1.x が追加したもの）は、以前の delegate がその delegate メソッドを実装していれば、その delegate に送られます。実装していなければ、ライブラリが自身の通知と同じように処理します。
+
+| delegate メソッド | 以前の delegate が実装している | 以前の delegate がない、または実装していない |
+|---|---|---|
+| `willPresent` | 表示方法は以前の delegate が決めます | `foregroundPresentationOptions`（既定値は `[.banner, .list, .sound, .badge]`）で表示されます |
+| `didReceive` | 以前の delegate に送られます。ライブラリのイベントはありません | `responses` に届きます |
+| `openSettingsFor` | 以前の delegate に送られます（設定アプリからのリクエストも同じです） | `settingsRequests` に届きます |
+
+そのため、独自の delegate を持たないアプリでは、更新前に 1.x がスケジュールした通知とアプリ自身の通知は、1.x と同じく、フォアグラウンドで表示され、そのタップは `responses` に届きます。独自の delegate が `didReceive` を実装しているアプリでは、それらのタップはその delegate に届きます。
+
+`IosNotificationManager.shared.foregroundPresentationOptions` は、ライブラリが処理する通知を、アプリがフォアグラウンドにある間にどう表示するかを設定します。
+
+---
+
+### エラーと async 形式
+
+#### userInfo の確認
+
+`show`、`update`、`schedule` は最初に userInfo を確認します。予約済みのキーを使っているか、プロパティリストの値（文字列、数値、ブール値、日付、データ、配列、文字列をキーとする辞書）ではない値を含んでいる場合は、何も追加しません（`update` は何も削除しません）。サンプルアプリは `async` 形式でこれを示しています。
+
+```swift
+let content = NotificationContent(
+    id: "sample-notification",
+    title: "Reserved Key",
+    body: "Never shown",
+    categoryIdentifier: "sample-category",
+    userInfo: ["com.jonghyunkim.nativetoolkit": 1]
+)
+
+Task {
+    do {
+        try await IosNotificationManager.shared.show(content: content, trigger: nil)
+    } catch let error as NotificationError {
+        // ここでは .reservedUserInfoKey。URL(string: "https://example.com")! のような値は
+        // .invalidUserInfo で失敗します。
+    } catch {
+        // ここには来ません。IosNotificationManager が投げるのは NotificationError だけです。型を指定しない
+        // throws なのは、ユースケースがアプリ独自の NotificationRepository も受け取るためです。
+    }
+}
+```
+
+`async` 形式は、投げるエラーの型を指定せずに `async throws` と宣言されていますが、ライブラリが投げるのは `NotificationError` だけです。トリガーなしで `async` 形式を選ぶには `trigger: nil` と書きます。`show(content:)` だけでは、コールバック形式になります。
+
+#### フォアグラウンドからの権限と設定
+
+`requestPermission(options:presenter:completion:)` と `openNotificationSettings(presenter:completion:)` は `PresenterSelection` を受け取り、型付きの結果を報告します。
+
+| `presenter` | `requestPermission` | `openNotificationSettings` |
+|---|---|---|
+| `.firstActiveScene` | 1.x の形式と同じく、すぐに求めます | 1.x の形式と同じく、すぐに開きます |
+| `.foreground`、`.viewController(_:)` | 先に状態を読みます。状態が決まっていれば何も求めず、その状態で答えます（`authorized`、`provisional`、`ephemeral` は `true`）。`notDetermined` の場合、アプリがフォアグラウンドにない間は `notForeground` で失敗し（ダイアログは表示されません）、それ以外では求めます | アプリがフォアグラウンドにない間は `notForeground` で失敗し、それ以外では開きます |
+
+```swift
+// async 形式: 許可されると true、拒否されると false（拒否はエラーではありません）。
+Task {
+    do {
+        let granted = try await IosNotificationManager.shared.requestPermission(
+            options: [.alert, .sound, .badge, .providesAppNotificationSettings],
+            presenter: .foreground
+        )
+    } catch let error as NotificationError {
+        // .notForeground、またはリクエスト自体が失敗したときは .authorizationFailed(detail)
+    } catch {
+    }
+}
+
+// C ABI が使うのと同じコールバック形式。
+IosNotificationManager.shared.openNotificationSettings(presenter: .foreground) { result in
+    // システムがページを開くと .success(())。それ以外は .failure(.notForeground) か
+    // .failure(.openSettingsFailed)。通常は、アプリがバックグラウンドに移った後に届きます。
+}
+```
+
+- システムがアプリ独自の通知設定を表示するリクエスト（`settingsRequests`）を送るのは、`.providesAppNotificationSettings` を求めたアプリだけです。そのとき設定アプリは、通知のページにアプリの設定へのリンクを表示します。
+- `.foreground` か `.viewController(_:)` では、権限がすでに決まっているアプリには再び求めないため、後から加えたオプション（`.providesAppNotificationSettings` など）は求められません。すべてのオプションを最初のリクエストに入れるか、`.firstActiveScene` で求めてください。
+- `.viewController { [weak self] in self }` は、フォアグラウンドのシーンを探す代わりに、アプリのビューコントローラーを確認します。
+
+#### エラーケース
+
+`NotificationError` のケースです。`errorDescription` は固定の英語の文で、コールバック形式の `errorMessage` としても渡されます。
+
+| ケース | 条件 |
+|---|---|
+| `permissionDenied` | `requestPermission` の 1.x のコールバック形式が、拒否をこのテキストで報告します。投げるのは非推奨の `NotificationPermissionHelper` だけです |
+| `attachmentLoadFailed(identifier:detail:)` | 添付ファイルを作れなかった、またはそのファイルが存在しない（`NSCocoaErrorDomain`、`NSFileReadNoSuchFileError`） |
+| `addRequestFailed(_:)` | システムがリクエストを追加しなかった（`show`、`update`、`schedule`） |
+| `setBadgeCountFailed(_:)` | システムがバッジ数を設定しなかった |
+| `authorizationFailed(_:)` | 権限のリクエスト自体が失敗した（拒否ではない） |
+| `reservedUserInfoKey` | userInfo がキー `com.jonghyunkim.nativetoolkit` を使っている |
+| `invalidUserInfo` | userInfo にプロパティリストの値ではない値がある |
+| `invalidTrigger` | 時間間隔が 0 以下、または繰り返しで 60 未満 |
+| `notForeground` | アプリがフォアグラウンドにない間の `.foreground` か `.viewController(_:)` |
+| `openSettingsFailed` | システムが設定ページを開かなかった |
+| `delegateNotInstalled` | `installDelegate()` の前のリスナーか `launchResponse()` |
+
+`FailureDetail` は、システムが報告した `NSError` のドメインとコードを持ちます。ライブラリはライブラリエボリューションを有効にしてビルドされており、ケースが追加されることがあります。`NotificationError` を `switch` で分岐するときは `@unknown default` を書いてください。
+
+---
+
+### C ABI
+
+- C から、そして C のライブラリを呼べる言語（C#、Rust、Dart、Go など）から同じ通知を使うための API です。関数は `ios-native-toolkit-capi-2.0.0.xcframework` の `IosLibraryCApi.framework` にあり、Swift の API を呼び出します。`ios-native-toolkit-capi-2.0.0.xcframework` と `ios-native-toolkit-2.0.0.xcframework` の両方をアプリのターゲットに追加してください（Embed & Sign）。ヘッダーは `<NativeToolkitC/Common.h>` と `<NativeToolkitC/Notification.h>` です（フレームワークからは `<IosLibraryCApi/NativeToolkitC/Notification.h>`。`dist/1.14.0/ios/include/NativeToolkitC/` にもあります）。Objective-C は `@import IosLibraryCApi;` でフレームワークのモジュールをインポートできます。要件と XCFramework を追加する手順はマニュアルトップの [対応プラットフォーム: iOS](index.ja.md#対応プラットフォーム-ios実機-arm64--simulator-arm64-x86_64) に、すべての機能に共通する規則は同じくマニュアルトップの [C ABI](index.ja.md#c-abi-1) にあります。
+- **delegate。** イベントとフォアグラウンドでの表示には `ntk_notification_install` が必要です。[delegate のインストール](#delegate-のインストール) の `installDelegate()` と同じく、ホストのネイティブコード（アプリケーション delegate、または `scene:willConnectToSession:options:` のシーン delegate）が、起動が終わる前にメインスレッドで呼びます。メインスレッドで呼ぶ必要があるのはこの関数だけです。ほかのスレッドでは、すぐに `NTK_NOTIFICATION_ERROR_WRONG_THREAD` を返し、何もしません。`UIApplicationMain` の前に呼ぶことは契約の範囲外です。C ABI と Swift の API は同じ delegate をインストールするため、どちらを呼んでも、両方を呼んでも構いません。インストールされるまでは、2 つの `_add_*_listener` 関数と `ntk_notification_get_launch_response_async` は `NTK_NOTIFICATION_ERROR_NOT_INITIALIZED` を返します。ほかの関数は動きます。以前の delegate の規則は [ほかの通知と以前の delegate](#ほかの通知と以前の-delegate) と同じです。
+- **スレッド。** ほかのすべての関数はどのスレッドからでも呼べ、メインスレッドを待つものはありません。完了、イベント、受け付けられた呼び出しの `release` はメインスレッドで呼ばれ、呼び出しをメインスレッドから行った場合、その呼び出しの中で呼ばれることはありません。別のスレッドから呼んだ場合は、完了が関数の戻る前に来ることがあるため、完了は `user_data` で対応付けてください。
+- **`release`。** コールバックを取る関数が `NTK_NOTIFICATION_ERROR_NONE` を返したら、受け付けられたことを意味します。その場合、コールバックはプロセスが続く間にちょうど 1 回来て、その後に `release`（`NULL` でなければ）が来ます。それ以外の値は拒否を意味します。コールバックは呼ばれず、`release` は関数が戻る前に呼び出し元のスレッドですでに呼ばれています。`NULL` のコールバックは拒否されます。
+- **内容のビルダー**（`ntk_notification_content`）は Swift の API の既定値（既定のサウンド、バッジなし）から始まり、セッターが受け取ったものをコピーします。スレッドセーフではありません。セッターに `NULL` の文字列を渡すと既定値に戻ります。操作は内容をコピーするため、呼び出しが戻った後に内容を解放したり変更したりして構いません。`_free(NULL)` は何もしません。
+- **構造体。** 0 で埋めて `struct_size` に構造体の `sizeof` を設定したものが既定値で、`reserved` フィールドは 0 でなければなりません。`ntk_notification_trigger` では、0 は繰り返さない `TIME_INTERVAL` トリガーで、領域に入ったときに通知し（`not_notify_on_entry` が 0）、出たときには通知しません（`notify_on_exit` が 0）。ただし `interval_seconds` の 0 は拒否されるため、使う種類のフィールドを設定してください。`ntk_notification_action` では、0 は SF Symbol なし、オプションなしです。`ntk_notification_category` では、オプションなし、アクションなし、テキスト入力アクションなしです。識別子とタイトル、テキスト入力アクションのボタンタイトルとプレースホルダーは必須です。`NULL` は拒否されますが、タイトルは空文字列でも構いません。範囲外の値、未知のビット、必要な場所での空の識別子、誤った `struct_size` は `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER` を返します。ブール値は `int32_t` です。
+- **文字列** は NUL 終端の UTF-8 で、厳密に確認されます。不正な UTF-8 は `INVALID_PARAMETER` です。返されるテキストは UTF-8 で、不正なサロゲートと U+0000 は U+FFFD に置き換えられ、ハンドルが解放されるまで有効です。`out_size` は `NULL` でも構いません。
+- **権限の確認。** Swift の API と異なり、`ntk_notification_show_async`、`_update_async`、`_schedule_async` は先に権限を読みます。状態が authorized、provisional、ephemeral のいずれでもなければ、`NTK_NOTIFICATION_ERROR_PERMISSION_DENIED` で完了し、何も追加しません。確認の直後に変わった状態は捉えません。
+- **フォアグラウンド。** `ntk_notification_request_permission_async`（状態が未決定の間）と `ntk_notification_open_settings_async` は、アプリがフォアグラウンドにある必要があります。バックグラウンドから呼ぶと受け付けられ、`NTK_NOTIFICATION_ERROR_NOT_FOREGROUND` で完了します。これらは [フォアグラウンドからの権限と設定](#フォアグラウンドからの権限と設定) の `.foreground` 形式と同じように動きます。
+- **`system_code`** と `ntk_last_system_code()` は、iOS では常に 0 です。
+- **コールバックは例外を投げてはいけません**（C++ や C# の例外、Rust の panic がコールバックから抜けてはいけません）。また、メインスレッドを長くブロックしてはいけません。列挙型は値が増えることがあるため、`default` の分岐を書いてください。
+
+#### delegate のインストールとイベントの受け取り
+
+```c
+static void NTK_CALL on_interaction(void* user_data, ntk_notification_interaction* event)
+{
+    /* メインスレッドで呼ばれます。イベントは受け取った側のものです。今でも後でもよいので解放します。 */
+    ntk_notification_event_kind kind = ntk_notification_interaction_kind(event);
+    size_t id_size = 0;
+    const char* notification_id = ntk_notification_interaction_notification_id(event, &id_size);
+    const char* action_id = ntk_notification_interaction_action_id(event, NULL);
+    const char* category_id = ntk_notification_interaction_category_id(event, NULL);   /* カテゴリがなければ "" */
+    const char* user_text = ntk_notification_interaction_user_text(event, NULL);       /* TEXT_INPUT 以外では NULL */
+    const char* user_info = ntk_notification_interaction_user_info_json(event, NULL);  /* JSON オブジェクト */
+    int32_t launched_the_app = ntk_notification_interaction_is_launch(event);
+    switch (kind) {
+    case NTK_NOTIFICATION_EVENT_KIND_BODY_TAP:
+        break;   /* action_id はシステムの既定のアクション識別子 */
+    case NTK_NOTIFICATION_EVENT_KIND_ACTION:
+        break;   /* カテゴリのボタン: "open" か "delete" */
+    case NTK_NOTIFICATION_EVENT_KIND_DISMISS:
+        break;   /* 消去された（CUSTOM_DISMISS_ACTION を持つカテゴリ） */
+    case NTK_NOTIFICATION_EVENT_KIND_TEXT_INPUT:
+        break;   /* 返信: user_text（空の返信では ""） */
+    default:
+        break;
+    }
+    (void)user_data; (void)notification_id; (void)action_id; (void)category_id;
+    (void)user_text; (void)user_info; (void)launched_the_app;
+    ntk_notification_interaction_free(event);
+}
+
+static void NTK_CALL on_settings_request(void* user_data, ntk_notification_settings_request* request)
+{
+    /* システムが、アプリ独自の通知設定を表示するよう求めた。 */
+    const char* notification_id = ntk_notification_settings_request_notification_id(request, NULL);
+    if (notification_id == NULL) {
+        /* 設定アプリからのリクエスト。 */
+    }
+    (void)user_data;
+    ntk_notification_settings_request_free(request);
+}
+
+static void NTK_CALL on_launch_response(void* user_data, ntk_notification_error error, uint32_t system_code,
+                                        ntk_notification_interaction* response)
+{
+    /* 今のところない場合は NULL。アプリが初めてアクティブになるまでは、後で現れることがあります。 */
+    if (error == NTK_NOTIFICATION_ERROR_NONE && response != NULL) {
+        /* 同じ応答は、is_launch が設定された状態でインタラクションのリスナーにも届きます。 */
+    }
+    (void)user_data; (void)system_code;
+    ntk_notification_interaction_free(response);   /* NULL では何もしません */
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    /* 受け付けられた登録ごとに、最後のコールバックの後にちょうど 1 回呼ばれます。 */
+    (void)user_data;
+}
+
+/* ホストの起動コードで、メインスレッドで呼びます: application:willFinishLaunchingWithOptions:、
+   または戻る前の application:didFinishLaunchingWithOptions:。 */
+ntk_notification_error error = ntk_notification_install();
+if (error == NTK_NOTIFICATION_ERROR_WRONG_THREAD) {
+    return;   /* メインスレッドではない。何もインストールされていません。 */
+}
+
+/* リスナーも起動中に追加します。リスナーがない間に届いた最大 32 件のイベント（アプリを
+   起動したタップを含む）は、次に追加されたリスナーに渡されます。 */
+ntk_notification_listener* interactions = NULL;
+error = ntk_notification_add_interaction_listener(&on_interaction, NULL, &release_user_data, &interactions);
+ntk_notification_listener* settings_requests = NULL;
+error = ntk_notification_add_settings_request_listener(&on_settings_request, NULL, &release_user_data,
+                                                       &settings_requests);
+if (error == NTK_NOTIFICATION_ERROR_NOT_INITIALIZED) {
+    /* ntk_notification_install が delegate をインストールしていない。 */
+}
+
+/* まだリスナーを登録できない場所では、代わりに起動時の応答を求めます。 */
+error = ntk_notification_get_launch_response_async(&on_launch_response, NULL, &release_user_data);
+
+/* 不要になった場合。メインスレッドからなら、以後イベントはコールバックに届きません。別の
+   スレッドからなら、release_user_data まではイベントが来ることがあります。ハンドルはこれで無効です。 */
+ntk_notification_listener_remove(interactions);
+ntk_notification_listener_remove(settings_requests);
+```
+
+`action_id` は生の識別子です。カテゴリのアクションの識別子か、`BODY_TAP` と `DISMISS` ではシステムの `com.apple.UNNotificationDefaultActionIdentifier` と `com.apple.UNNotificationDismissActionIdentifier` です。userInfo の JSON は、日付を ISO 8601 の文字列、データを Base64、有限でない値を `null` として持ちます。ライブラリのキーは取り除かれます。
+
+#### 権限と設定
+
+```c
+static void NTK_CALL on_permission(void* user_data, ntk_notification_error error, uint32_t system_code,
+                                   int32_t granted)
+{
+    if (error == NTK_NOTIFICATION_ERROR_NONE) {
+        /* granted は 1 か 0。拒否は NONE で 0 です。 */
+    } else if (error == NTK_NOTIFICATION_ERROR_NOT_FOREGROUND) {
+        /* まだ未決定で、アプリがフォアグラウンドになかった。何も表示されていません。 */
+    } else if (error == NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED) {
+        /* リクエスト自体が失敗した。 */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL on_status(void* user_data, ntk_notification_error error, uint32_t system_code,
+                               ntk_notification_authorization_status status)
+{
+    switch (status) {
+    case NTK_NOTIFICATION_STATUS_NOT_DETERMINED:
+    case NTK_NOTIFICATION_STATUS_DENIED:
+    case NTK_NOTIFICATION_STATUS_AUTHORIZED:
+    case NTK_NOTIFICATION_STATUS_PROVISIONAL:
+    case NTK_NOTIFICATION_STATUS_EPHEMERAL:
+    case NTK_NOTIFICATION_STATUS_UNKNOWN:
+    default:
+        break;
+    }
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL on_settings_opened(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED) {
+        /* システムがページを開かなかった。 */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 0 は ALERT、SOUND、BADGE を求めます。すべてのオプションを最初のリクエストに入れてください。
+   状態が決まると、システムには再び求めず、リクエストは現在の状態を報告します
+   （authorized、provisional、ephemeral は 1）。 */
+uint32_t options = NTK_NOTIFICATION_AUTH_ALERT | NTK_NOTIFICATION_AUTH_SOUND | NTK_NOTIFICATION_AUTH_BADGE
+                 | NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS;
+ntk_notification_error error = ntk_notification_request_permission_async(options, &on_permission, NULL,
+                                                                         &release_user_data);
+if (error != NTK_NOTIFICATION_ERROR_NONE) {
+    /* 拒否された（未知のビット）。on_permission は呼ばれず、release_user_data はすでに呼ばれています。 */
+}
+
+/* authorized と provisional では 1、それ以外（ephemeral を含む）では 0。 */
+error = ntk_notification_has_permission_async(&on_permission, NULL, &release_user_data);
+error = ntk_notification_get_authorization_status_async(&on_status, NULL, &release_user_data);
+
+/* 設定アプリにあるアプリのページ。フォアグラウンドが必要です。 */
+error = ntk_notification_open_settings_async(&on_settings_opened, NULL, &release_user_data);
+
+uint32_t system_code = ntk_last_system_code();   /* iOS では常に 0 */
+```
+
+設定リクエストのリスナーがリクエストを受け取るのは、アプリが `NTK_NOTIFICATION_AUTH_PROVIDES_APP_SETTINGS` を求めた場合だけです。状態がすでに決まっているアプリ（1.x から更新したアプリなど）は、この関数でこのオプションを加えることはできません。その場合は、アプリのネイティブコードが `UNUserNotificationCenter` の `requestAuthorization` を自分で呼びます。
+
+#### 内容のビルダー・表示・スケジュール
+
+```c
+static void NTK_CALL on_done(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_PERMISSION_DENIED) {
+        /* 権限がない。何も追加されていません（update は何も削除していません）。 */
+    } else if (error == NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED) {
+        /* 添付ファイルを作れなかった、またはそのファイルが存在しない。 */
+    } else if (error == NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED) {
+        /* システムがリクエストを追加しなかった。update の後では、以前のリクエストは消えています。 */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 内容: id（空ではないもの）とタイトルは必須です。 */
+ntk_notification_content* content = NULL;
+if (ntk_notification_content_create("sample-notification", "Immediate Notification", &content)
+        != NTK_NOTIFICATION_ERROR_NONE) {
+    return;
+}
+ntk_notification_content_set_body(content, "Displayed now");
+ntk_notification_content_set_subtitle(content, NULL);               /* NULL: 既定値（なし） */
+ntk_notification_content_set_category(content, "sample-category");
+/* null もキー "com.jonghyunkim.nativetoolkit" も含まない JSON オブジェクト。 */
+ntk_notification_content_set_user_info_json(content, "{\"source\":\"IosLibraryExample\",\"id\":\"sample-notification\"}");
+ntk_notification_content_set_badge(content, -1);                    /* 0 以上。-1: 設定しない */
+ntk_notification_content_set_sound(content, NTK_NOTIFICATION_SOUND_DEFAULT, NULL);  /* NAMED は名前を取ります */
+ntk_notification_content_set_interruption_level(content, NTK_NOTIFICATION_INTERRUPTION_ACTIVE);
+ntk_notification_content_set_thread(content, NULL);
+ntk_notification_content_set_target_content(content, NULL);
+ntk_notification_content_set_relevance_score(content, 0.5);         /* 0.0〜1.0 */
+ntk_notification_content_set_filter_criteria(content, NULL);
+
+/* 今すぐ: トリガーなし。リクエストの識別子は内容の id です。 */
+ntk_notification_error error = ntk_notification_show_async(content, NULL, &on_done, NULL, &release_user_data);
+
+/* 5 秒後。0 より大きく、繰り返す場合は 60 以上。 */
+ntk_notification_trigger trigger;
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_TIME_INTERVAL;
+trigger.interval_seconds = 5.0;
+error = ntk_notification_show_async(content, &trigger, &on_done, NULL, &release_user_data);
+
+/* 毎日 9:00。ビットが設定されたフィールドだけが読まれます。 */
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_CALENDAR;
+trigger.calendar_fields = NTK_NOTIFICATION_CALENDAR_HOUR | NTK_NOTIFICATION_CALENDAR_MINUTE;
+trigger.hour = 9;
+trigger.minute = 0;
+trigger.repeats = 1;
+/* schedule: 識別子は最初の引数で（内容の id は使われません）、トリガーは必須です。 */
+error = ntk_notification_schedule_async("scheduled-notification", content, &trigger, &on_done, NULL,
+                                        &release_user_data);
+
+/* 領域に入ったとき。位置情報の権限と、Info.plist のその説明文が必要です。 */
+memset(&trigger, 0, sizeof trigger);
+trigger.struct_size = (uint32_t)sizeof trigger;
+trigger.kind = NTK_NOTIFICATION_TRIGGER_LOCATION;
+trigger.location_identifier = "tokyo-station";
+trigger.latitude = 35.6812;
+trigger.longitude = 139.7671;
+trigger.radius = 100.0;
+trigger.not_notify_on_entry = 0;   /* 0: 入ったときに通知 */
+trigger.notify_on_exit = 0;
+/* 別の識別子にします。同じ識別子のリクエストは、保留中のもの（上のカレンダーのもの）を置き換えます。 */
+error = ntk_notification_schedule_async("scheduled-location", content, &trigger, &on_done, NULL,
+                                        &release_user_data);
+ntk_notification_content_free(content);
+
+/* 保留中のリクエスト "sample-notification" を置き換えます（なければ追加します）。NULL のトリガーは今すぐ。 */
+ntk_notification_content* updated = NULL;
+if (ntk_notification_content_create("sample-notification", "Updated Notification", &updated)
+        == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_set_body(updated, "This content was updated");
+    error = ntk_notification_update_async("sample-notification", updated, NULL, &on_done, NULL,
+                                          &release_user_data);
+    ntk_notification_content_free(updated);
+}
+
+/* 添付ファイル: file:// の URL。通知が追加されるとシステムがファイルを移動するため、
+   添付ファイルを持つビルダーは 1 回の操作にしか使えません。2 回目は
+   ATTACHMENT_LOAD_FAILED で失敗します。 */
+ntk_notification_content* with_image = NULL;
+if (ntk_notification_content_create("sample-notification", "Immediate Notification with Attachment", &with_image)
+        == NTK_NOTIFICATION_ERROR_NONE) {
+    ntk_notification_content_add_attachment(with_image, "app-icon", "file:///path/to/app-icon-attachment.png");
+    error = ntk_notification_show_async(with_image, NULL, &on_done, NULL, &release_user_data);
+    ntk_notification_content_free(with_image);
+}
+```
+
+Swift の API の検査は、入口での確認になります。予約済みのキー、JSON の `null`、範囲外の時間間隔、フィールドのないカレンダートリガー、不正な位置、`file://` ではない添付ファイルの URL は `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER` を返します。存在しないファイルは `NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED` で完了します。
+
+#### 削除と一覧
+
+```c
+static void NTK_CALL on_list(void* user_data, ntk_notification_error error, uint32_t system_code,
+                             ntk_notification_list* list)
+{
+    /* error が NONE でなければ list は NULL。リストは受け取った側のものです。解放します。 */
+    size_t count = (error == NTK_NOTIFICATION_ERROR_NONE) ? ntk_notification_list_count(list) : 0;
+    size_t i;
+    for (i = 0; i < count; ++i) {
+        const char* identifier = ntk_notification_list_identifier_at(list, i, NULL);
+        const char* title = ntk_notification_list_title_at(list, i, NULL);        /* "" のことがある */
+        const char* subtitle = ntk_notification_list_subtitle_at(list, i, NULL);  /* NULL: なし */
+        const char* body = ntk_notification_list_body_at(list, i, NULL);          /* NULL: なし */
+        const char* category = ntk_notification_list_category_at(list, i, NULL);  /* "" のことがある */
+        int64_t delivered_at = ntk_notification_list_date_millis_at(list, i);     /* スケジュール済みでは 0 */
+        (void)identifier; (void)title; (void)subtitle; (void)body; (void)category; (void)delivered_at;
+    }
+    (void)user_data; (void)system_code;
+    ntk_notification_list_free(list);
+}
+
+static void NTK_CALL on_removed(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    /* 削除には失敗の値がありません。削除の後にリクエストを追加するには、ここから追加します。 */
+    (void)user_data; (void)error; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 保留中のリクエストと配信済みの通知。userInfo とトリガーは含みません。 */
+ntk_notification_error error = ntk_notification_get_scheduled_async(&on_list, NULL, &release_user_data);
+error = ntk_notification_get_delivered_async(&on_list, NULL, &release_user_data);
+
+/* "" は何も削除せず、NONE で完了します。 */
+error = ntk_notification_cancel_scheduled_async("scheduled-notification", &on_removed, NULL, &release_user_data);
+error = ntk_notification_remove_async("sample-notification", &on_removed, NULL, &release_user_data);
+
+/* これらは、ホストアプリ自身がスケジュールまたは配信したものも削除します。 */
+error = ntk_notification_cancel_all_scheduled_async(&on_removed, NULL, &release_user_data);
+error = ntk_notification_remove_all_async(&on_removed, NULL, &release_user_data);
+```
+
+#### バッジとカテゴリ
+
+```c
+static void NTK_CALL on_done(void* user_data, ntk_notification_error error, uint32_t system_code)
+{
+    if (error == NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED) {
+        /* システムがバッジ数を設定しなかった。 */
+    }
+    (void)user_data; (void)system_code;
+}
+
+static void NTK_CALL release_user_data(void* user_data)
+{
+    (void)user_data;
+}
+
+/* 0 でバッジを消去。負の数は INVALID_PARAMETER。 */
+ntk_notification_error error = ntk_notification_set_badge_count_async(1, &on_done, NULL, &release_user_data);
+
+/* サンプルのカテゴリ: Open（フォアグラウンド）、Delete（破壊的）、Reply（テキスト入力）と
+   カスタムの消去アクション。配列のすべての要素は同じ struct_size を持ちます。 */
+ntk_notification_action actions[2];
+memset(actions, 0, sizeof actions);
+actions[0].struct_size = (uint32_t)sizeof actions[0];
+actions[0].identifier = "open";
+actions[0].title = "Open";
+actions[0].options = NTK_NOTIFICATION_ACTION_FOREGROUND;
+actions[1].struct_size = (uint32_t)sizeof actions[1];
+actions[1].identifier = "delete";
+actions[1].title = "Delete";
+actions[1].sf_symbol_name = NULL;                 /* SF Symbol の名前、または NULL */
+actions[1].options = NTK_NOTIFICATION_ACTION_DESTRUCTIVE;
+
+ntk_notification_text_input_action reply;
+memset(&reply, 0, sizeof reply);
+reply.struct_size = (uint32_t)sizeof reply;
+reply.identifier = "reply";
+reply.title = "Reply";
+reply.button_title = "Send";
+reply.placeholder = "IosLibraryExample reply";
+
+ntk_notification_category category;
+memset(&category, 0, sizeof category);
+category.struct_size = (uint32_t)sizeof category;
+category.identifier = "sample-category";
+category.options = NTK_NOTIFICATION_CATEGORY_CUSTOM_DISMISS_ACTION;
+category.actions = actions;
+category.action_count = 2;
+category.text_input_actions = &reply;
+category.text_input_action_count = 1;
+
+/* 呼び出しの順に適用され、同じ識別子のカテゴリを置き換えます。コールバックは登録の後に
+   来ます。そのカテゴリを使う通知は、そこから送ります。 */
+error = ntk_notification_register_category_async(&category, &on_done, NULL, &release_user_data);
+
+/* "" は何も削除せず、NONE で完了します。 */
+error = ntk_notification_remove_category_async("sample-category", &on_done, NULL, &release_user_data);
+```
+
+`NTK_NOTIFICATION_CATEGORY_ALLOW_ANNOUNCEMENT` は受け付けられますが、Swift の API の `allowAnnouncement` と同じく効果はありません。
+
+#### エラー値と Swift の API
+
+`ntk_notification_error` です。値 0〜5 は、iOS の C ABI のすべての機能で同じ意味です。表にない番号は、iOS では宣言されていません。
+
+| 値 | 名前 | 条件 |
+|---|---|---|
+| 0 | `NTK_NOTIFICATION_ERROR_NONE` | 成功。コールバックを取る関数では、受け付けられた |
+| 1 | `NTK_NOTIFICATION_ERROR_INVALID_PARAMETER` | 不正な引数: `NULL`、不正な UTF-8、空の識別子、範囲外の値、未知のビット、誤った `struct_size` か 0 以外の `reserved`、JSON の `null` か予約済みのキー、`file://` ではない添付ファイルの URL、不正なトリガー |
+| 2 | `NTK_NOTIFICATION_ERROR_NOT_INITIALIZED` | `ntk_notification_install`（または `installDelegate()`）の前のリスナーか起動時の応答 |
+| 3 | `NTK_NOTIFICATION_ERROR_NOT_SUPPORTED` | このバージョンが知らない部分に、構造体が 0 以外の値を持っている |
+| 4 | `NTK_NOTIFICATION_ERROR_UNKNOWN` | その他の失敗（詳細はログにあります） |
+| 5 | `NTK_NOTIFICATION_ERROR_OUT_OF_MEMORY` | すべての OS で宣言されている。iOS では返されない |
+| 8 | `NTK_NOTIFICATION_ERROR_NOT_FOREGROUND` | アプリがフォアグラウンドにない間の、権限のリクエスト（未決定の間）か設定ページ |
+| 10 | `NTK_NOTIFICATION_ERROR_PERMISSION_DENIED` | 権限がない状態での `show`、`update`、`schedule` |
+| 15 | `NTK_NOTIFICATION_ERROR_SETTINGS_NOT_OPENED` | システムが設定ページを開かなかった |
+| 16 | `NTK_NOTIFICATION_ERROR_WRONG_THREAD` | メインスレッド以外での `ntk_notification_install`（その戻り値でのみ） |
+| 17 | `NTK_NOTIFICATION_ERROR_ATTACHMENT_LOAD_FAILED` | 添付ファイルを作れなかった、またはそのファイルが存在しない |
+| 18 | `NTK_NOTIFICATION_ERROR_ADD_REQUEST_FAILED` | システムがリクエストを追加しなかった |
+| 19 | `NTK_NOTIFICATION_ERROR_SET_BADGE_COUNT_FAILED` | システムがバッジ数を設定しなかった |
+| 20 | `NTK_NOTIFICATION_ERROR_AUTHORIZATION_FAILED` | 権限のリクエスト自体が失敗した（拒否ではない） |
+
+| Swift の API | C ABI |
+|---|---|
+| `IosNotificationManager.shared` | -（関数はマネージャーを必要としません） |
+| `installDelegate()` / `isDelegateInstalled` | `ntk_notification_install` / - |
+| `NotificationContent` | `ntk_notification_content_create` とそのセッター |
+| `NotificationTrigger` | `ntk_notification_trigger` |
+| `show` / `update` / `schedule` | `ntk_notification_show_async` / `_update_async` / `_schedule_async` |
+| `cancel`、`cancelScheduled` / `cancelAll`、`cancelAllScheduled` | `ntk_notification_cancel_scheduled_async` / `_cancel_all_scheduled_async` |
+| `removeDelivered` / `removeAllDelivered` | `ntk_notification_remove_async` / `_remove_all_async` |
+| `getScheduled` / `getDelivered` | `ntk_notification_get_scheduled_async` / `_get_delivered_async`（userInfo なし） |
+| `hasPermission` / `authorizationStatus` | `ntk_notification_has_permission_async` / `_get_authorization_status_async` |
+| `requestPermission(options:presenter: .foreground)` | `ntk_notification_request_permission_async` |
+| `openNotificationSettings(presenter: .foreground)` | `ntk_notification_open_settings_async` |
+| `setBadgeCount` | `ntk_notification_set_badge_count_async` |
+| `registerCategory` / `removeCategory` | `ntk_notification_register_category_async` / `_remove_category_async` |
+| `responses` / `settingsRequests` | `ntk_notification_add_interaction_listener` / `_add_settings_request_listener` |
+| `NotificationEventRegistration.remove()` | `ntk_notification_listener_remove` |
+| `launchResponse()` | `ntk_notification_get_launch_response_async` |
+
+C ABI にないもの: `foregroundPresentationOptions`、認可オプションの `.provisional`（と、`NTK_NOTIFICATION_AUTH_*` のビットにないそのほかの `UNAuthorizationOptions`）、年・月・日・時・分・秒以外の `DateComponents` のフィールド（`weekday` や `timeZone` など）を使うカレンダートリガー、権限のリクエストと設定ページの 1.x のコールバック形式、`.firstActiveScene` と `.viewController(_:)`、一覧で得た通知の userInfo、非推奨のレシーバーです。
 
 ---
 

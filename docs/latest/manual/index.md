@@ -32,13 +32,14 @@ Markdown files in this directory are published as versioned documents under `doc
 
 # Artifact locations (`dist/<version>/`)
 
-- Android (Kotlin API): `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`
-- Android (C ABI): `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`, headers in `dist/1.13.0/android/include/NativeToolkitC/`
-- Android (Maven repository with both AARs, POMs and Gradle Module Metadata): `dist/1.13.0/android/m2/`
-- iOS: `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-- Windows (C++ API): `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`
-- Windows (C ABI): `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
-- macOS: `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
+- Android (Kotlin API): `dist/1.14.0/android/android-native-toolkit-2.0.0.aar`
+- Android (C ABI): `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar`, headers in `dist/1.14.0/android/include/NativeToolkitC/`
+- Android (Maven repository with both AARs, POMs and Gradle Module Metadata): `dist/1.14.0/android/m2/`
+- iOS (Swift API): `dist/1.14.0/ios/ios-native-toolkit-2.0.0.xcframework`
+- iOS (C ABI): `dist/1.14.0/ios/ios-native-toolkit-capi-2.0.0.xcframework`, headers also in `dist/1.14.0/ios/include/NativeToolkitC/`
+- Windows (C++ API): `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg`
+- Windows (C ABI): `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`
+- macOS: `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
 
 # Native Toolkit
 
@@ -46,6 +47,10 @@ Markdown files in this directory are published as versioned documents under `doc
 - The package includes native plugins and samples for Android / iOS / Windows / macOS, and native platform features are available through singleton APIs.
 
 # Version
+
+## 1.14.0
+
+- The iOS library is 2.0.0: Swift 6 concurrency annotations, new error cases, a notification delegate installed at launch, notification events, request cancellation and a C ABI. See [Migrating the iOS library to 2.0.0](#migrating-the-ios-library-to-200).
 
 ## 1.13.0
 
@@ -107,28 +112,36 @@ The Android features above are also available from C, C++ and other languages (C
   - Action sheet
   - Text input dialog
   - Login dialog
+  - One request, one result (`DialogRequest`, async)
+  - Choosing the view controller (presenter)
+  - Canceling a dialog
 - Notification features
-  - Permission
-  - Show / update / cancel notifications
-  - Scheduled notifications
+  - Delegate installed at launch, forwarding to the previous delegate
+  - Permission (check, request, authorization status, open the settings)
+  - Show / update / cancel / remove notifications
+  - Scheduled notifications (time interval, calendar, location)
   - Notifications with attachment
   - Badge
   - Categories and actions
+  - Notification events (taps, actions, text input, the Settings app's link) and the launch notification
 - Share features
   - Text / URL share
   - Rich preview
   - Image / file share (single and multiple)
   - Combined content (subject, exclude activity types)
+  - Presenter and result (how the sheet was closed)
 - Clipboard features
   - Copy (plain text, HTML, URL, image file / data, color, custom data, multiple text, multiple representations)
   - Copy options (localOnly, expiration date)
   - Append
   - Read / data read / metadata snapshot
   - Named and unique pasteboard lifecycle
-  - Asynchronous item loading (text / URL / image / file)
+  - Asynchronous item loading (text / URL / image / file), and canceling one load
   - Pattern detection (11 patterns)
   - Clipboard change observation
   - System paste button (UIPasteControl)
+
+The iOS features above are also available from C, C++, Objective-C and other languages through the C ABI (`ntk_*` functions in `ios-native-toolkit-capi-2.0.0.xcframework`), except the system paste button, canceling all clipboard loads at once, custom clipboard timeouts and limits, choosing the view controller (the C ABI uses the foreground one), the foreground presentation options of notifications, the provisional notification authorization, calendar triggers with date components other than year, month, day, hour, minute and second, and the `userInfo` of listed notifications. Each feature page lists the C functions; see also [C ABI](#c-abi-1) under Library integration.
 
 ## Windows
 
@@ -255,9 +268,9 @@ Requirements:
 
 ##### Option A: the Maven repository (recommended)
 
-`dist/1.13.0/android/m2/` is a Maven repository with both AARs and their dependency information, so Gradle resolves the AndroidX and Kotlin libraries the AARs need.
+`dist/1.14.0/android/m2/` is a Maven repository with both AARs and their dependency information, so Gradle resolves the AndroidX and Kotlin libraries the AARs need.
 
-1. Copy `dist/1.13.0/android/m2/` into your project, for example as `third_party/native-toolkit-m2/`.
+1. Copy `dist/1.14.0/android/m2/` into your project, for example as `third_party/native-toolkit-m2/`.
 2. Add it as a repository in `settings.gradle.kts`.
 3. Add the dependency in `app/build.gradle.kts`.
 4. Run Gradle sync and build.
@@ -423,15 +436,86 @@ The per-operation changes are in each feature page's Android section.
 
 #### Supported platform: iOS (Device: arm64 / Simulator: arm64, x86_64)
 
-1. Copy `ios-native-toolkit-1.3.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project.
-2. Open the target project in Xcode 26.2 and select your app target in **Project Navigator**.
+The iOS library ships as two XCFrameworks:
+
+| XCFramework | For | Contents |
+|---|---|---|
+| `ios-native-toolkit-2.0.0.xcframework` | Swift callers | The Swift API (`IosLibrary.framework`, module `IosLibrary`) and its privacy manifest |
+| `ios-native-toolkit-capi-2.0.0.xcframework` | C, C++, Objective-C and other languages | The C ABI (`IosLibraryCApi.framework`, headers `NativeToolkitC/`). It calls the Swift API and depends on the XCFramework above: embed both |
+
+`dist/1.14.0/ios/include/NativeToolkitC/` holds the same headers as the C ABI XCFramework, for tools that generate bindings from headers.
+
+Requirements:
+
+- The app's minimum deployment target is iOS 18.0 or later
+- Xcode 26.3 or later when the app uses the Swift API (Xcode reads the library's Swift interface). An app that uses only the C ABI can be built with any Xcode 26
+- The library runs inside a UIKit app. App extensions and command-line tools are not supported
+- Both frameworks are dynamic and unsigned. With **Embed & Sign**, Xcode signs them with your app's certificate
+
+Steps:
+
+1. Copy `ios-native-toolkit-2.0.0.xcframework` to the `Frameworks` folder (create it if needed) under your Xcode project. For the C ABI, copy `ios-native-toolkit-capi-2.0.0.xcframework` there too.
+2. Open the target project in Xcode 26.3 or later (any Xcode 26 for an app that uses only the C ABI) and select your app target in **Project Navigator**.
 3. Open the **General** tab and click **+** in **Frameworks, Libraries, and Embedded Content**.
-4. Select **Add Other...** → **Add Files...** and add `Frameworks/ios-native-toolkit-1.3.0.xcframework`.
-5. Set the embed option of `ios-native-toolkit-1.3.0.xcframework` to **Embed & Sign**.
-6. Open **Build Settings** of the same target and add `$(PROJECT_DIR)/Frameworks` to `Framework Search Paths`. (Usually non-recursive)
-7. Verify that Team is correctly configured in **Signing & Capabilities**.
-8. Run **Product** → **Clean Build Folder**, then build and run with **Run**.
-9. Integration is complete if the app launches without errors.
+4. Select **Add Other...** → **Add Files...** and add the XCFramework (or both XCFrameworks) from `Frameworks/`.
+5. Set the embed option of each XCFramework to **Embed & Sign**. Xcode finds the frameworks and headers of an XCFramework added here by itself: `Framework Search Paths` does not need an entry.
+6. Verify that Team is correctly configured in **Signing & Capabilities**.
+7. Run **Product** → **Clean Build Folder**, then build and run with **Run**.
+8. Integration is complete if the app launches without errors.
+
+##### Privacy manifest
+
+`IosLibrary.framework` carries a privacy manifest (`PrivacyInfo.xcprivacy`). It declares the file timestamp API with reason `C617.1` and no collected data or tracking. Xcode merges it into your app's privacy report when you archive.
+
+##### Notification delegate
+
+Notification events (taps, actions, text input, the Settings app's link) and notifications shown while the app is in the foreground need the library's `UNUserNotificationCenter` delegate. Install it on the main thread before launch ends, in `application(_:didFinishLaunchingWithOptions:)` (a SwiftUI app can do it in `App.init`):
+
+- Swift API: `IosNotificationManager.installDelegate()`
+- C ABI: `ntk_notification_install()`, from your app's native code. A runtime that starts its own code after launch (a game engine's scripts, a Dart isolate) is too late: a tap that launched the app would be lost
+
+The library keeps the delegate that was set before and forwards to it: a notification the library did not create goes to that delegate when it implements the method. Do not set another `UNUserNotificationCenter` delegate afterwards, or the library stops receiving events. See the iOS section of [Notification](notification.md).
+
+##### C ABI
+
+The C ABI is for apps that call the library from C, C++, Objective-C or another language. A Swift app calls the Swift API directly.
+
+- Include the headers from the framework, `#include <IosLibraryCApi/NativeToolkitC/Notification.h>`, or put `dist/1.14.0/ios/include` on the header search path and write `#include <NativeToolkitC/Notification.h>`. Objective-C with modules enabled can write `@import IosLibraryCApi;`
+- Every function may be called from any thread, except `ntk_notification_install` (main thread only), and none waits for the main thread. Completions, events and the `release` of an accepted call come asynchronously on the main queue, which may not be a thread your runtime created: in Dart use `NativeCallable.listener`, not `NativeCallable.isolateLocal`. (A call rejected at the entry returns its error and calls `release` on the calling thread before it returns)
+- Dialogs, Share, the notification settings screen and a notification permission request that has not been answered yet need a scene in the foreground; called while the app is in the background they complete with `NOT_FOREGROUND`. On an iPad that shows several windows of the app side by side, which window they appear on is not decided; the Swift API takes a presenter for that
+- Reading what another app put on the clipboard (`ntk_clipboard_read_async`, `ntk_clipboard_read_data_async`) can make iOS ask the user for permission to paste, and the app's main thread stops until the user answers. To keep the main thread running, use `ntk_clipboard_load_item_async`, which does not stop it and can be canceled with `ntk_clipboard_cancel_load`
+- Strings are NUL-terminated UTF-8. `ntk_last_system_code()` is always 0 on iOS
+
+Each feature page's iOS section has a C ABI part with the functions, the threads and the errors.
+
+##### Migrating the iOS library to 2.0.0
+
+2.0.0 is not source compatible with 1.x. The module name stays `IosLibrary`, so `import IosLibrary` does not change. Code written against 1.x has to change where it uses the following:
+
+| 1.x | 2.0.0 |
+|---|---|
+| Framework bundle id `ios.library.IosLibrary` | `com.jonghyunkim.nativetoolkit.IosLibrary` |
+| Completion handlers without isolation | The completions of Dialog, Share and Notification, and the button callbacks and `textFields` of dialogs, are `@MainActor @Sendable` and come on the main thread. `NotificationActionHandler` and `NotificationTextInputActionHandler` are `@Sendable`. The Clipboard completions do not change. The library is built in the Swift 6 language mode |
+| `ShareRepository` and `NotificationRepository` of your own | Both protocols require `Sendable`. `ShareRepository.present(content:)` becomes `present(content:presenter:)`, and `NotificationRepository.openNotificationSettings()` becomes `async -> Bool`: an implementation of the 1.x signatures no longer compiles. `NotificationRepository` adds `enqueueCategoryChange(_:completion:)`, with a default implementation |
+| `NotificationRepositoryImpl(center:)` | `NotificationRepositoryImpl()` (the only value it took was `.current()`) |
+| `IosDialogManager.getRootViewController()` callable from any context | It is `@MainActor`: a synchronous nonisolated context cannot call it |
+| `content` of `show`, `update` and `schedule` of notifications | The parameter is `sending`. In the Swift 6 language mode (or with complete concurrency checking), content that is still used after the call does not compile; build a new `NotificationContent` per call |
+| `NotificationError` and `ShareError` cases that carry any `Error` | Cases with a `FailureDetail`, some cases removed and some added. An exhaustive `switch` over them no longer compiles. Dialogs report `DialogError` |
+| `IosNotificationManager.setup()` | `IosNotificationManager.installDelegate()` before launch ends (see Notification delegate above). `setup()` is deprecated |
+| `onActionReceived`, `onTextInputActionReceived` | `IosNotificationManager.shared.responses.addListener`, with several listeners and events kept until one registers. `launchResponse()` returns the notification that launched the app. The two properties are deprecated |
+| `IosNotificationManager` conforms to `UNUserNotificationCenterDelegate` | It does not; the library's delegate is internal |
+| `userNotificationCenter(_:openSettingsFor:)` (the Settings app's link to your app's notification settings) opened the Settings app | The library does not open anything; the request reaches `IosNotificationManager.shared.settingsRequests` as an event, and your app shows its own settings screen |
+| Calls without a completion from an `async` context | `async` versions with the same names now exist, so such calls need `await` (and `try`) |
+| Any `userInfo` value | Values must be property-list types (`NSNull` and `NSURL` are rejected). The key `com.jonghyunkim.nativetoolkit` is reserved: the library adds it to its notifications and removes it from the `userInfo` it returns |
+| Registering a category with an identifier already registered could keep both | The new category replaces the old one |
+| `Log` | Deprecated. The library logs through `os.Logger` and keeps secret values private |
+| `NotificationPermissionHelper`, `NotificationCategoryOptions.allowAnnouncement` | Deprecated. In place of `NotificationPermissionHelper`, use `IosNotificationManager.requestPermission(options:presenter:)`. `allowAnnouncement` has no effect (iOS ignores it since iOS 15) |
+| `errorMessage` of notification operations, of a dialog or a share sheet that fails to show, and of a failed share activity | A fixed English text, for example `"Notification permission was denied."`. Branch on the error case or the error code, not on the text |
+| Swift API only | A C ABI in a second XCFramework (see C ABI above) |
+
+Notifications scheduled or shown by 1.x, and the categories it registered, stay after the update: they are listed and can be canceled or removed by identifier, and their taps and actions reach the library's listener when no previous delegate handles them.
+
+New in 2.0.0: a presenter argument for dialogs, Share, the notification permission request and the notification settings screen; a request box to cancel a dialog or an asynchronous clipboard load; `IosDialogManager.show(_:)` with a `DialogRequest`. The per-operation changes are in each feature page's iOS section.
 
 ### Windows
 

@@ -20,10 +20,10 @@
 2. 연동 절차는 `docs/<version>/manual/index.ko.md` 를 확인합니다.
 3. API 참조는 `docs/<version>/` 또는 `docs/latest/` 를 사용합니다.
 
-예시 (`1.13.0`):
+예시 (`1.14.0`):
 
-- 매뉴얼: `docs/1.13.0/manual/index.ko.md`
-- 배포 문서: `docs/1.13.0/manual/`
+- 매뉴얼: `docs/1.14.0/manual/index.ko.md`
+- 배포 문서: `docs/1.14.0/manual/`
 
 ## 상세 문서
 
@@ -33,30 +33,30 @@
 
 ## 버전
 
-- 현재 릴리스: 1.13.0
+- 현재 릴리스: 1.14.0
 - 최신 공개 문서 버전: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## 지원 OS (1.13.0)
+## 지원 OS (1.14.0)
 
 - Android 12 이상
 - iOS 18 이상
 - Windows 11 이상
 - macOS 15 이상
 
-## 배포 산출물 (1.13.0)
+## 배포 산출물 (1.14.0)
 
 - Android:
-  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar`(Kotlin API)
-  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar`(C ABI)
+  - `dist/1.14.0/android/android-native-toolkit-2.0.0.aar`(Kotlin API)
+  - `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar`(C ABI)
 - iOS:
-  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/ios/ios-native-toolkit-2.0.0.xcframework`(Swift API)
+  - `dist/1.14.0/ios/ios-native-toolkit-capi-2.0.0.xcframework`(C ABI), 헤더는 `dist/1.14.0/ios/include/NativeToolkitC/`
 - macOS:
-  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg`(C++ API)
-  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`(C ABI)
+  - `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg`(C++ API)
+  - `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg`(C ABI)
 
 ## 포함 모듈(개요)
 
@@ -151,7 +151,7 @@ docs/
 
 ```bash
 # Android AAR (전체 모듈)
-./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.14.0 --m2
 
 # iOS XCFramework (전체 모듈)
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
@@ -205,13 +205,13 @@ doxygen Doxyfile
 `docs/<version>/` 를 생성하고, `docs/latest/` 는 `docs/` 내 가장 높은 버전으로 갱신됩니다.
 
 ```bash
-./scripts/publish_docs.sh 1.13.0
+./scripts/publish_docs.sh 1.14.0
 ```
 
 생성 없이 복사만 할 경우:
 
 ```bash
-./scripts/publish_docs.sh 1.13.0 --skip-build
+./scripts/publish_docs.sh 1.14.0 --skip-build
 ```
 
 manual 복사 원본은 `manual/<version>/` 입니다.

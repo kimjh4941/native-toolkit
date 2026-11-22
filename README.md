@@ -20,10 +20,10 @@ Other languages:
 2. For integration steps, read `docs/<version>/manual/index.md`.
 3. For API references, use `docs/<version>/` (or `docs/latest/`).
 
-Example (`1.13.0`):
+Example (`1.14.0`):
 
-- Manual: `docs/1.13.0/manual/index.md`
-- Published docs: `docs/1.13.0/manual/`
+- Manual: `docs/1.14.0/manual/index.md`
+- Published docs: `docs/1.14.0/manual/`
 
 ## Detailed Documentation
 
@@ -33,30 +33,30 @@ Example (`1.13.0`):
 
 ## Version
 
-- Current release: 1.13.0
+- Current release: 1.14.0
 - Latest published docs version: [docs/latest/VERSION.txt](docs/latest/VERSION.txt)
 
-## Supported OS (1.13.0)
+## Supported OS (1.14.0)
 
 - Android 12+
 - iOS 18+
 - Windows 11+
 - macOS 15+
 
-## Distributables (1.13.0)
+## Distributables (1.14.0)
 
 - Android:
-  - `dist/1.13.0/android/android-native-toolkit-2.0.0.aar` (Kotlin API)
-  - `dist/1.13.0/android/android-native-toolkit-capi-2.0.0.aar` (C ABI)
+  - `dist/1.14.0/android/android-native-toolkit-2.0.0.aar` (Kotlin API)
+  - `dist/1.14.0/android/android-native-toolkit-capi-2.0.0.aar` (C ABI)
 - iOS:
-  - `dist/1.13.0/ios/ios-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/ios/unity-ios-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/ios/ios-native-toolkit-2.0.0.xcframework` (Swift API)
+  - `dist/1.14.0/ios/ios-native-toolkit-capi-2.0.0.xcframework` (C ABI), headers in `dist/1.14.0/ios/include/NativeToolkitC/`
 - macOS:
-  - `dist/1.13.0/mac/mac-native-toolkit-1.3.0.xcframework`
-  - `dist/1.13.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/mac-native-toolkit-1.3.0.xcframework`
+  - `dist/1.14.0/mac/unity-mac-native-toolkit-1.3.0.xcframework`
 - Windows:
-  - `dist/1.13.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
-  - `dist/1.13.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
+  - `dist/1.14.0/windows/windows-native-toolkit-2.0.0.nupkg` (C++ API)
+  - `dist/1.14.0/windows/windows-native-toolkit-capi-2.0.0.nupkg` (C ABI)
 
 ## Modules (overview)
 
@@ -151,7 +151,7 @@ docs/
 
 ```bash
 # Android AAR (all modules)
-./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.13.0 --m2
+./scripts/build_android_library_aar.sh -b release -m android_library -m android_library_capi -v 2.0.0 -r 1.14.0 --m2
 
 # iOS XCFramework (all modules)
 ./scripts/build_ios_library_xcframework.sh -c release -m IosLibrary -m IosLibraryCApi -v 2.0.0 --output-dir dist/1.14.0/ios
@@ -205,13 +205,13 @@ doxygen Doxyfile
 Publishes to `docs/<version>/`, and refreshes `docs/latest/` from the highest version under `docs/`.
 
 ```bash
-./scripts/publish_docs.sh 1.13.0
+./scripts/publish_docs.sh 1.14.0
 ```
 
 Copy only (skip generation):
 
 ```bash
-./scripts/publish_docs.sh 1.13.0 --skip-build
+./scripts/publish_docs.sh 1.14.0 --skip-build
 ```
 
 Manual source path is `manual/<version>/`.
