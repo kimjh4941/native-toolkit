@@ -5,7 +5,8 @@
 - 改訂: 2026-11-23 にレビュー v2（`reviews/2026-11-23-macos-c-abi-ui-test-design-review-v2.md`。Claude は A 1・B 10・C 6、Codex は A 4・B 7・C 3）を反映した。主な変更は、`Reply` が通知センターの一覧を開くので N24・NC3 をこの Mac では U-30 の後まで選ばない、押す前の確かめを「押す点を覆う最前面の窓の持ち主」と通知センターの窓の枠で行い固定した Clipboard の操作にも通す、この Mac で通知のテストが途中で落ちたら残りを止める、VM の道に通知の UI の立て直しの段、U-29 の監査をコードのハッシュに結ぶ、強制終了の後は残った書き手を止めてから消す、コールドスタートの時間の予算、適格性の確かめの段（U-30）、決まった語彙の段の符号（`NTK-STEP`）、テストごとの時間切れ
 - 改訂: 2026-11-23 にレビュー v3（`reviews/2026-11-23-macos-c-abi-ui-test-design-review-v3.md`。Claude は A 2・B 3・C 4、Codex は A 2・B 3・C 4）を反映した。主な変更は、`Reply` の適格性の確かめを別の段と別の許可に分けた、押す前の確かめを押す相手ごとの条件にした（後ろにいる間とコールドスタートの通知を押せる形）、強制終了の後に止める相手を PID・開始時刻・実行ファイルの 3 つで確かめる、U-29 の照らしの語を足した
 - 改訂: 2026-11-23 にレビュー v4（`reviews/2026-11-23-macos-c-abi-ui-test-design-review-v4.md`。Claude は A 0・B 3・C 2、Codex は A 1・B 3・C 3）を反映した。押す相手に許可の問い合わせ・貼り付けの確認・ピッカーの項目・`PasteButton`・メニューの項目を足し、持ち主を確かめるまでこの Mac では選ばない形にした。一覧が開いたかの判定を純粋な関数で決めた。前の回の書き手に通知から起こされたサンプルを含めた
-- 状態: **下書き**（レビュー v4 を反映した。8 章の U-n は U-22 のほかは決まっていない）
+- 改訂: 2026-11-23 にレビュー v5（`reviews/2026-11-23-macos-c-abi-ui-test-design-review-v5.md`。2 者とも区分 A が 0。Claude は B 1・C 2、Codex は B 3・C 1）を反映した。`classify_reply_state` の比べる枠と前提、通知のメニューの項目の持ち主をこの Mac の選び方に入れた、同じ持ち主の別の窓の自己テスト、共有で選んで完了する経路を自動では確かめないこと、除外の理由の出力の一覧
+- 状態: **決定（2026-11-23。別のモデル 2 者のレビューを 5 回通し、v5 で区分 A が 0。U-1〜U-33 は利用者の指示「判断は推奨案で」により推奨のとおり決定）**。9.1・9.2 の確かめていないことは 0b・0c の最初と、この Mac の区切りの適格性の段で確かめ、違えばこの文書を直す
 - 対象: 企画（`plans/2026-11-22-macos-c-abi-plan.md`）5 章の段階 0b〜0d、7 章・7.1・7.2・7.5
 - 入力:
   - 企画と決定の文書（`plans/2026-11-22-macos-c-abi-decisions.md` の D-14・D-21・D-23 と、その後の経過）、DoD（`plans/2026-11-22-macos-c-abi-dod.md`）
@@ -155,7 +156,8 @@ macOS で違うのは、許可の要らない場所が「シミュレーター�
 
 | 種類 | 値 |
 |---|---|
-| テスト | キー（`<クラス>/<メソッド>`）、結果の種類（passed / failed / skipped / 区分で除いた / VM だけ / OS だけ / この Mac で保留 / 見張りで止めた / 通知の UI で止めた）、数、時間（秒） |
+| テスト | キー（`<クラス>/<メソッド>`）、結果の種類（passed / failed / skipped / 除いた / 見張りで止めた / 通知の UI で止めた）、除いた理由（下の `ExclusionReason` の値だけ）、数、時間（秒） |
+| 除いた理由 | `ExclusionReason` の 1 つの enum（ランナーの純粋な関数の側に置き、`--dry-run`・結果の分類・基準の `excluded` のすべてがこれを使う）: `category`（区分で除いた）、`vmOnly`、`osOnly`、`macDeferred`（この Mac で保留）、`qualificationOnly`（適格性の段だけ）、`environmentExclusion`（環境ごとの除外。U-33）、`auditExpired`（監査の失効。単体テストだけ）、`ownerUnverified`（持ち主を確かめていない押す相手。5.0） |
 | 理由の符号 | `NTK-GATED:<区分>`、`NTK-PRECONDITION:<名前>`、`NTK-INTERRUPTED`、`NTK-STOP:<名前>`、`NTK-STALE:<名前>`、**`NTK-STEP:<段>`**（テストが投げる失敗に付ける段の符号。語彙は `Support/StepCode.swift` の enum に限り、ランナーは失敗の文から `NTK-STEP:[A-Za-z0-9_-]+` に合う部分だけを取り出し、enum の写しにある値だけを通す。ほかの文字は捨てる） |
 | 環境 | `where`、OS の版とビルド、arch、言語、Xcode の版、署名の形（`team` / `adhoc` の 2 値。ID は出さない） |
 | ソース | `HEAD`、`mac/` の木のハッシュ、宣言の表・除外の表・監査の表のハッシュ、`allowed` |
@@ -230,7 +232,7 @@ VM の道の生のものは合成のデータだけなので VM に残してよ�
   - **サンプルの窓の要素**（ボタン、スクロール）: サンプルが `runningForeground`、押す点を覆う最前面の窓の持ち主がサンプルのプロセス、サンプルの窓より前にある `com.apple.notificationcenterui` の窓と重ならない
   - **パネルの要素**: 押す点を覆う最前面の窓の持ち主が、サンプルか sandbox のパネルの view service。パネルが開いている間にサンプルが `runningForeground` のままかは 9.1 で確かめ、そうでないなら前面の条件をパネルの view service に置き換える
   - **通知のバナーの本文・`Options`**: サンプルの状態は**そのテストの筋書きが求めるもの**（前面のまま、後ろ、`notRunning`）であること（前面を求めない。後ろとコールドスタートを押せるように）。押す点がサンプルのバナーの根（U-5）の枠の中で、点を含む最前面の窓の持ち主が `com.apple.notificationcenterui` であり、かつ**その窓の枠がサンプルの根の枠を含む 1 つの窓**であること（同じ通知センターが持つ別の通知の窓が前に重なっていない）
-  - **通知のメニューの項目**（`Open`・`Reply`）: 押す直前に根と、根の `Options` を押した直後に開いたメニューがちょうど 1 つで消えていないことを取り直し、押す点がその項目（identifier か title で 1 つ）の枠の中で、点を覆う最前面の窓の持ち主が `com.apple.notificationcenterui` であること（項目はバナーの枠の外に出うるので、根の枠の中は求めない）。根の差し替え・別のメニュー・メニューの消失では押さない。Escape でメニューを閉じるときはキー入力の条件
+  - **通知のメニューの項目**（`Open`・`Reply`）: 押す直前に根と、根の `Options` を押した直後に開いたメニューがちょうど 1 つで消えていないことを取り直し、押す点がその項目（identifier か title で 1 つ）の枠の中で、点を覆う最前面の窓の持ち主が `com.apple.notificationcenterui` であること（項目はバナーの枠の外に出うるので、根の枠の中は求めない）。根の差し替え・別のメニュー・メニューの消失では押さない。Escape でメニューを閉じるときはキー入力の条件。持ち主（`com.apple.notificationcenterui`）は 15 の VM で確かめた（9.0 の 4）が、26 ではまだなので、**ほかの押す相手と同じく、U-30 で 26 の持ち主を確かめるまで、メニューの項目を押すテスト（N20・N23・NC2、N24・NC3）をこの Mac では選ばない**（`MAC_DEFERRED_TESTS`。理由 `ownerUnverified`）。N24・NC3 は、持ち主の確かめと `Reply` の適格性の両方を満たしてから解く。押す相手ごとの「確かめ済み」の状態は、ランナーの表（U-30 の結果を写したもの）に持ち、普段の計画はこの表を必ず読み、確かめていない相手を押すテストを選ばない（確かめていない入力で選ばないことを自己テストで確かめる）
   - **通知の許可の問い合わせ**（NP1〜NP3。VM だけ。`NotificationToken` と `NCSettingsToken`、VM の資格）: 問い合わせの根（label が `“MacLibraryExample” Notifications` で始まる group がちょうど 1 つ。0a 4.3）を、通常のバナーの根とは別に取る。前提は `authorized` でなく `notDetermined`（U-7）で、通常の片付けはしない。押す点がその根の `Options`、または直後に開いた許可のメニューの項目（`Allow` / `Don’t Allow` がちょうど 1 つ）で、持ち主は `com.apple.notificationcenterui`。別のアプリの問い合わせ・根の消失・候補が 2 つ以上では押さない
   - **貼り付けの確認**（`action-button--999` / `--998`。CB2〜CB5。VM だけ）・**26 のピッカーの `Copy`**（S2・S4）・**`PasteButton`**（CB1）: 押す点を覆う窓の持ち主が、サンプルか、その操作ごとに確かめた別のプロセス（貼り付けの確認は `com.apple.appkit.xpc.TrustedUIService` の見込み。0a 4.3 の runningboard のログ）であること。**許す持ち主は、VM（9.1）と 26（U-30）で確かめてから表に載せる。確かめるまでは、その相手を押すテストをこの Mac では選ばない**（VM では流してよい。VM でも持ち主が分からなければ押さずに失敗し、確かめを先にする）
   - **キー入力**（パネルの Cmd+Shift+G と道の入力、ピッカーとメニューの Escape、返信の欄の Return、Dialog のキー）: 点の確かめは使えないので、前面のアプリと、キーボードの焦点を持つ要素が、その操作に許したもの（サンプルの窓、パネル、サンプルの根の中の返信の欄）であることを確かめる。ピッカーとメニューの Escape は、そのピッカー（サンプルの木の `Popover`）か、根の `Options` から開いたメニューが開いていて、ほかに開いたメニューが無いときだけ送る
@@ -328,10 +330,10 @@ category の登録・削除は結果の行が先に出て反映は後なので�
 
 | ID | 操作 | 確かめる内容 | 宣言 | 私物 | 流す所 | 自動か人か |
 |---|---|---|---|---|---|---|
-| N20 | RemoveCategory → ShowTimeInterval(10s) → 根を hover（**無いことを観測**）→ 根が消えるのを待ち、RemoveAllDelivered → RegisterCategory → ShowTimeInterval(10s) → 根を hover → 根の `Options`（**有ることを観測**）→ Escape → 最後に RegisterCategory | 1 回目は根の中に `Options` が 2 秒出ない。2 回目は根の中に `Options` が出て、開いたメニューに `Open` と `Reply`（identifier か title）がちょうど 1 つずつある | `notification` | 2・3 | VM・Mac | 自動* |
+| N20 | RemoveCategory → ShowTimeInterval(10s) → 根を hover（**無いことを観測**）→ 根が消えるのを待ち、RemoveAllDelivered → RegisterCategory → ShowTimeInterval(10s) → 根を hover → 根の `Options`（**有ることを観測**）→ Escape → 最後に RegisterCategory | 1 回目は根の中に `Options` が 2 秒出ない。2 回目は根の中に `Options` が出て、開いたメニューに `Open` と `Reply`（identifier か title）がちょうど 1 つずつある | `notification` | 2・3 | VM（この Mac はメニューの項目の持ち主を U-30 で確かめるまで保留） | 自動* |
 | N21 | ShowImmediate → Finder を前に → 根が出てから 1 秒待って本文をクリック | サンプルが 10 秒までに前面に来る。最後のイベントが `#1 kind=action notificationId=mac-sample-notification-<数字> actionId=com.apple.UNNotificationDefaultActionIdentifier userText=- userInfo=id:mac-sample-notification-<数字>,source:MacLibraryExample`。2 秒待っても `#1` | `notification` | 2・3 | VM・Mac | 自動* |
 | N22 | ShowImmediate（前面のまま）→ 根をクリック | N21 と同じ最後のイベント。2 秒待っても `#1` | `notification` | 2・3 | VM・Mac | 自動* |
-| N23 | RegisterCategory → ShowImmediate → Finder を前に → 根の `Options` → `Open` | 前面に来る。`#1 kind=action ... actionId=open ...`。2 秒待っても `#1` | `notification` | 2・3 | VM・Mac | 自動* |
+| N23 | RegisterCategory → ShowImmediate → Finder を前に → 根の `Options` → `Open` | 前面に来る。`#1 kind=action ... actionId=open ...`。2 秒待っても `#1` | `notification` | 2・3 | VM（この Mac はメニューの項目の持ち主を U-30 で確かめるまで保留） | 自動* |
 | N24 | RegisterCategory → ShowImmediate → Finder を前に → 根の `Options` → `Reply` → 根の中の `TextView`（placeholder `MacLibraryExample reply`、焦点あり）に `hello reply` → Return → サンプルの状態を見る → `activate` | Return の後、サンプルは後ろのまま（0a 5.1）。`#1 kind=textInput ... actionId=reply userText=hello reply ...`。2 秒待っても `#1` | `notification` | 2・3 | VM（この Mac は U-30 まで保留。U-5） | 自動* |
 
 #### コールドスタート（`NotificationColdStartUITests`。U-22 で 0c に入れた）
@@ -349,7 +351,7 @@ category の登録・削除は結果の行が先に出て反映は後なので�
 | ID | 操作（4 の後） | 確かめる内容（6） | 宣言 | 私物 | 流す所 | 自動か人か |
 |---|---|---|---|---|---|---|
 | NC1 | 根の本文をクリック | `#1 kind=action notificationId=mac-sample-notification actionId=com.apple.UNNotificationDefaultActionIdentifier userText=- userInfo=id:mac-sample-notification,source:MacLibraryExample` | `notification`、`coldstart` | 2・3 | VM・Mac | 自動*（9.0 の 5。サンプルで 1〜2 回） |
-| NC2 | 根の `Options` → `Open` | 同じ形で `actionId=open` | `notification`、`coldstart` | 2・3 | VM・Mac | 自動*（9.0 の 5。サンプルで 1〜2 回） |
+| NC2 | 根の `Options` → `Open` | 同じ形で `actionId=open` | `notification`、`coldstart` | 2・3 | VM（この Mac はメニューの項目の持ち主を U-30 で確かめるまで保留） | 自動*（9.0 の 5。サンプルで 1〜2 回） |
 | NC3 | 根の `Options` → `Reply` → 根の中の `TextView` に `cold reply` → Return | `kind=textInput actionId=reply userText=cold reply`。止まっている状態からは前面に出る（0a 5.1 の事実。試作） | `notification`、`coldstart` | 2・3 | VM（この Mac は U-30 まで保留。U-5） | 自動*（9.0 の 5。サンプルで 1〜2 回） |
 
 テストに入れないもの: 通知センターでの消去（サンプルは `customDismissAction` を持たない）、通知の音（HC2）、題や本文が空などの検証の失敗（サンプルから起こせない。単体テストか 1b で扱う）、通知の操作のエラーの文（`NotificationDomainError` の文は 1b で変わる）。
@@ -423,7 +425,7 @@ C1（`testEveryButtonReportsAResult`）は範囲 general のまま全ボタン�
 
 置き換えの対応: `testShareExampleCardNavigatesToShareScreen` → M1a、`testShareTextPickerAppearsAndCancelResolves` → S1、`testShareTextPickerCopyServiceCompletes` → S2、`testShareURLPickerResolves` → S3・S4、`testShareImagePickerResolves` → S5、`testShareFilePickerResolves` → S6、`testShareMultipleImagesPickerResolves` → S7、`testShareMultipleFilesPickerResolves` → S8、`testShareTextAndURLPickerResolves` → S9、`testShareExcludingServicesPickerResolves` → S10、`testShareViaMailCompletesWithMailService` → S11、`testCanPerformMailReturnsResult` → S12、`testShareEmptyReturnsNoValidItemsError` → S13、`testShareInvalidURLReturnsInvalidURLError` → S14、`testShareMissingFileReturnsFileNotFoundError` → S15、`testShareMissingImageReturnsImageLoadFailedError` → S16、`testShareUnknownServiceReturnsServiceUnavailableError` → S17。
 
-**0a で落ちた 4 件**: Share の 3 件（`Copy` を待って落ちた）は、置き換え後は 15 で Escape で閉じる S1・S10 になり、`Copy` は 26 だけの S2・S4 になる。15 の「選んで完了する」経路は、副作用の無いサービスが無いので自動では確かめない。C9 は 15 では戻るボタンを押せない（9.0 の 2）ので、26 だけにする。
+**0a で落ちた 4 件**: Share の 3 件（`Copy` を待って落ちた）は、置き換え後は 15 で Escape で閉じる S1・S10 になり、`Copy` は 26 だけの S2・S4 になる。15 の「選んで完了する」経路は、副作用の無いサービスが無いので自動では確かめない。**26 の S2・S4 も U-30 で `Copy` の持ち主を確かめるまで保留なので、それまでは共有のピッカーで選んで完了する経路をどの環境でも自動では確かめない**（0e〜0g の比べに入らない。U-30 の後に S2・S4 を解いてから入る）。C9 は 15 では戻るボタンを押せない（9.0 の 2）ので、26 だけにする。
 
 ### 5.7 全ボタンが押されることの確かめ（iOS の 3.7）
 
@@ -448,10 +450,10 @@ C1（`testEveryButtonReportsAResult`）は範囲 general のまま全ボタン�
 | 私物の区分「3」 | 16 | M1a、M1b、M2、I1a〜I1d、D1〜D6、D16、N1、N17 |
 | 私物の区分「2・3」 | 73 | 上と下のほかすべて |
 | 「1 相当」 | 6 | C12〜C17 |
-| 流す所: VM・Mac | 76 | 下の 19 件のほか |
+| 流す所: VM・Mac | 73 | 下の 22 件のほか |
 | 流す所: VM だけ | 11 | NP1〜NP3、S11、S12、S17、CB2〜CB6 |
 | 流す所: Mac だけ（26） | 5 | M1b、M2、C9、S2、S4（S2・S4 は `Copy` の窓の持ち主を U-30 で確かめるまで保留） |
-| 流す所: VM（この Mac は U-30 まで保留） | 3 | N24、NC3（一覧が開くか）、CB1（`PasteButton` の窓の持ち主） |
+| 流す所: VM（この Mac は U-30 まで保留） | 6 | N20・N23・NC2（メニューの項目の持ち主）、N24・NC3（持ち主と、一覧が開くか）、CB1（`PasteButton` の窓の持ち主） |
 
 宣言の区分ごと（重なりあり）: `notification` 28（NP1〜NP3、N2、N4〜N16 と N14b、N18〜N24、NC1〜NC3）、`ncsettings` 3、`settings` 1、`badge` 2、`clipboard` 19（C1〜C11、CB1〜CB6、S2、S4）、`pasteprivacy` 5、`sharepicker` 14（S1〜S10、S13〜S16）、`realservice` 3、`panels` 10（D7〜D15、D17）、`coldstart` 3。0c で宣言の表から機械で数え直す。
 
@@ -529,7 +531,7 @@ D-14 のとおり、UI テストのターゲットは Swift 5・strict concurren
 | `--skip-unit` | 単体テストを飛ばす |
 | `--allow <区分,...>` | `mac` のときだけ。この Mac で許す区分。既定は空。VM だけの区分を渡すと止まる |
 | `--allow-lsregister` | `mac` のときだけ。`--dry-run` の一覧に固定した余分なコピーを外すことを許す（U-21） |
-| `--dry-run` | `mac` のとき。この Mac で何も起動しない（ビルドもしない）。VM で列挙と照合を行い、流すテストと除くテスト（理由は共通の語彙: 区分、VM だけ、OS だけ、この Mac で保留、適格性の段だけ、環境ごとの除外（U-33）、監査の失効（単体テストだけ）、持ち主を確かめていない押す相手（5.0））、単体テストの名指しの一覧（U-29）、この Mac に起きること、準備、時間の見込み、外すコピーの印を表示し、**許可を求める一覧のファイル**（流すテストの配列、`--allow`、`HEAD`、`mac/` の木のハッシュ、ランナーと共通のモジュール（U-24）のハッシュ、信頼する部分のハッシュ、許可の ID）を書いて止まる。一覧にはこの Mac の名前・ホームのパスを入れない |
+| `--dry-run` | `mac` のとき。この Mac で何も起動しない（ビルドもしない）。VM で列挙と照合を行い、流すテストと除くテスト（理由は 3.4 の `ExclusionReason` の値）、単体テストの名指しの一覧（U-29）、この Mac に起きること、準備、時間の見込み、外すコピーの印を表示し、**許可を求める一覧のファイル**（流すテストの配列、`--allow`、`HEAD`、`mac/` の木のハッシュ、ランナーと共通のモジュール（U-24）のハッシュ、信頼する部分のハッシュ、許可の ID）を書いて止まる。一覧にはこの Mac の名前・ホームのパスを入れない |
 | `--approved <file>` | `mac` で流すときは必須。今の選び方・コミット・木・ランナーと共通のモジュールと完全に同じでなければ流さない。触れる前に許可の ID を台帳（`~/Library/Application Support/native-toolkit/test_mac-approvals.log`）に記録し、台帳にある ID は拒む。**許可を使った後は、読むだけの計画の写しだけを使い、この Mac のどの xcodebuild の前にも、計画の digest・台帳・木・ランナーのファイルを照らす**（iOS の 0d の R-19） |
 | `--baseline` | 基準として保存する（下の「基準」の条件を満たすときだけ） |
 | `--name-each-test` | VM でも 1 回の呼び出しで 1 件ずつ名指しする |
@@ -565,7 +567,7 @@ D-14 のとおり、UI テストのターゲットは Swift 5・strict concurren
 6. `coldstart` を選んだ回だけ、LaunchServices のコピーを数える（U-21）。余分があり `--allow-lsregister` で固定した集合と違えば止まる
 7. fixture を作る（`panels` のとき）
 8. **単体テスト**（`--skip-unit` でなければ）: U-29 の監査した一覧だけを名指しして流す（`-collect-test-diagnostics never`）
-9. **UI テスト**: 1 件ずつ名指しして流す（`TEST_RUNNER_NTK_HOST=mac`、`TEST_RUNNER_NTK_ALLOW=<--allow>`、`-collect-test-diagnostics never`、5.0 の時間切れ）。通知のテストが途中で落ちたら残りを流さない（5.0）。`MAC_DEFERRED_TESTS`（N24・NC3・CB1・S2・S4）は選ばない。結果の配列が名指しと許可の一覧とちょうど同じでなければ止まる。**結果のバンドルが今の実行の一時フォルダーのものであること**（宛先の取り違えが無いこと）も照らす
+9. **UI テスト**: 1 件ずつ名指しして流す（`TEST_RUNNER_NTK_HOST=mac`、`TEST_RUNNER_NTK_ALLOW=<--allow>`、`-collect-test-diagnostics never`、5.0 の時間切れ）。通知のテストが途中で落ちたら残りを流さない（5.0）。`MAC_DEFERRED_TESTS`（N20・N23・NC2・N24・NC3・CB1・S2・S4）は選ばない。結果の配列が名指しと許可の一覧とちょうど同じでなければ止まる。**結果のバンドルが今の実行の一時フォルダーのものであること**（宛先の取り違えが無いこと）も照らす
 10. 結果は `get test-results tests` / `summary` の JSON を一時フォルダーの中で読み、3.4 の一覧に通した値だけを出す。xcresult の Test Case の子は `Failure Message` だけを許し、ほかの種類があれば止まる（iOS の 0d の R-20）。添付を書き出さない。trap で消す。残したもの（貼り付け板がテストの文字のまま、category が登録されたまま、バッジ 0、システム設定・Finder を前に出したこと、組んだコピーの登録を外したこと）を表示する
 
 `-collect-test-diagnostics` は Xcode 26.3 の `xcodebuild -help` で「失敗のときに sysdiagnose のような詳しい診断を集めるか」と説明されている（事実）。画面の動画を止めるものとは書かれていないので、動画は止まらない前提で 3.4 の境界を守る。動画を止める方法は 9.3。
@@ -657,6 +659,7 @@ macOS の自己テストの fixture は、VM で取った実物（列挙の JSON
 | 強制終了の後 | VM の合成のプロセスとファイルで、親だけを `KILL` して書き手を残す | 次の実行の始めに `NTK-STALE:alive` で止まり、許可の後に止めてから消す。止めずに消す形に壊すと自己テストで落ちる |
 | 止める相手の取り違え | 自己テストで、(a) 印と同じ PID で実行ファイルの違うプロセス、(b) 開始時刻の違うプロセス、(c) 起動の時刻より前の印、(d) テストの道具でないプロセスが混ざった process group（leader と書き手は 3 つが一致）、(e) 印に無い PID で前の回の一時フォルダーの下から印の後に起きたサンプル、を与える | (a)・(b) はそのプロセスへの送信 0 回。(c) は止めずに一時フォルダーだけを消す。(d) は group への送信 0 回で、3 つが一致した書き手にだけ個別に送る。(e) は書き手として止める |
 | 押す相手ごとの条件 | VM で、後ろの状態（N21）とコールドスタート（NC1）の押下を、前面を求める条件の口で押す形に壊す。想定外の状態（サンプルが前面のはずが後ろ）で押す | 正しい版は後ろとコールドスタートで押せる。想定外の状態では操作が 0 回 |
+| 同じ持ち主の別の窓 | 自己テスト（押す点の窓を決める純粋な関数）: 持ち主がすべて `com.apple.notificationcenterui` の合成の窓の並びで、(1) 根を含む窓が最前面でちょうど 1 つ、(2) 別の窓が押す点だけを覆う、(3) 根を含む候補の窓が 2 つ以上、(4) 持ち主か枠の値が欠ける、を与える。「ちょうど 1 つ」は、根の要素の枠を含む候補の窓の集合がちょうど 1 つであることを求める | (1) は押す。(2)〜(4) は押さない。候補の一意性の確かめを外す変異で (3) が落ちる |
 | setUp の失敗の立て直し | VM で、通知のクラスの先頭のテストの setUp で根が残る状態を作る | そのテストは失敗のまま、6b で立て直した後の次のテストは通る |
 | 監査 | U-29 の監査した suite の本文・依存する実装・`TEST_HOST` のどれか 1 つだけを変える | 監査のハッシュが合わず、この Mac ではその suite を選ばない（起動する前に止まる） |
 | 監査の照らし | 自己テスト（この Mac でテストを起動しない）: 許した出現に無い `resolve(.general)`（`PasteboardResolverTests.swift:15-18` の形）や `MacClipboardManager.shared` の出現を拒む。語・数・理由が一致する mock の許した出現（`MacClipboardManagerTests.swift` の形）を受ける。語・数・suite のどれかが違えば拒む。照らす語を減らす・許した出現の照合を外す変異で落ちる | 自己テストが落ちる。これは人の監査の代わりではない |
@@ -666,31 +669,31 @@ macOS の自己テストの fixture は、VM で取った実物（列挙の JSON
 
 ## 8. 決めること
 
-推奨を 1 つずつ書く。U-22 は決まった（2026-11-23、親が推奨案で決めた）。
+推奨を 1 つずつ書く。**どれも推奨のとおり決定した**（2026-11-23。U-22 は親が推奨案で決め、ほかは利用者の指示「判断は推奨案で」による）。
 
 | ID | 決めること | 推奨 | 理由（1 行） |
 |---|---|---|---|
-| U-9 | 宣言の区分を 3.3 の 10 個にし、`ncsettings`・`pasteprivacy`・`realservice` を VM だけにする | **案のとおり** | この Mac の設定を変えるもの・実のサービスを開くものを、許可の誤りでも選ばれない形にできる |
-| U-3 | 結果の行の番号を `#<n> <本文>` の 1 つの値にし、余分な完了の 2 秒をすべての完了に当てる | **案のとおり** | 今の Clipboard と同じ形で、0e の二重の完了を捕まえられる |
-| U-4 | 受け手を起動の処理の 1 か所だけにし、`onAppear` の上書きをやめる | **案のとおり** | 今は画面を開くと起動の処理の受け手が消え、コールドスタートのイベントを入れ物に書けない |
-| U-5 | `Options`・テキストの欄はサンプルのバナーの根の中だけ、返信の placeholder をサンプルだけの文に | **案のとおり** | VM で通知センターに別の通知の `Options` が同時にあった。根の外のものを押すと私物の通知で返信しうる |
-| U-7 | 通知の許可のテストは VM だけ。この Mac では何も押す前に読んで、`authorized` でなければ止める | **案のとおり** | 許可を戻せるのは VM だけで、この Mac で問い合わせを出すと利用者の設定が変わりうる |
-| U-11 | パネルは Cmd+Shift+G で `/private/tmp/ntk-uitest-<ID>/` に移り、移った先を確かめてから選ぶ | **案のとおり**（不安定なら、0b でサンプルに試験用の起動の引数で `directoryURL` を渡す形に替える。VM の sandbox の試作で、コンテナーの外の `directoryURL` は効いた） | 開く場所は前に使った私物のフォルダーで、ホームの外なら結果に名前が入らない |
-| U-17 | 識別子のボタンの名前を、ボタンの文字から括弧を除いた大文字の始まりのまま | **案のとおり** | macOS の Clipboard の 36 個と同じ規則 |
-| U-20 | この Mac の画面の共有中の通知の設定は利用者が入れ、見張りは `notification` を選んだ回だけ | **案のとおり** | 利用者の通知の設定を読まず、許していない通知を出さない |
-| U-21 | `coldstart` の宣言と、余分なコピーを外す許可（`--allow-lsregister`、印で固定）を分ける | **案のとおり** | 起こすことを許しただけで、見ていないコピーまで外さないため |
-| U-22 | コールドスタート NC1〜NC3 を 0c に入れる | **決まった** | DoD の 0c の行。0e・0g の変更で壊れうる所を基準で守る |
-| U-23 | この Mac で組む Xcode | **26.6**（D-21）。UI テストが流せなければ 26.3 で流し、「26.6 での基準ではない」と環境を別に記録する。Xcode の共有の部品を直す操作（`-runFirstLaunch` など）は別に許可を得る | 配る dist と同じ Xcode |
-| U-24 | ランナーの共通化 | **共通のモジュール（例 `scripts/apple_ui_runner_common.py`）に純粋な関数だけを出す**。条件: 共通化の前後で iOS の自己テスト（`scripts/tests/test_ios_ui_runner.py`）と変異（`ios_ui_runner_mutations.py`）をすべて流して同じ結果であること、共通のモジュールを iOS と macOS の両方の許可の一覧の「ランナーのファイル」に入れてハッシュで固定すること、iOS の信頼する部分の変更として別のモデルのレビューを通すこと。実行先・ファイル・台帳の adapter は共通にしない。条件を満たせないなら「写して始め、0d の後に共通化を別の作業にする」 | 写すと 2 つの照合が別れて直す所が倍になる。ただし iOS の守りを変えるので、iOS の確かめをやり直すことが前提 |
-| U-25 | VM の道で組む場所 | **VM の中で組む**（Xcode 26.3、ad-hoc） | 0a とこの文書の確かめで動いた形。チームの署名を VM に入れない |
-| U-26 | 今の Clipboard の 17 件 | **検査の中身を残し、ナビの補助と C9 の戻るの 1 行、`tap`・範囲の選択・スクロールの操作を `SampleApp` の守りの口に替え、待ちの規則の本体を `Support/` に移してから固定する** | 本体は既に識別子と錨で待っている。戻るは補助でなく本体にあった |
-| U-27 | 今の Share の 17 件と雛形 3 件 | **Share は S1〜S17 に置き換え、雛形は消す** | 文字で探し部分一致で比べ、15 で 3 件落ち、この Mac で Mail を開く |
-| U-28 | ShowDialog のヘルプで完了が 2 回来る今の動作を期待値にする（D5） | **案のとおり**（中間の結果は `dialog.resultHistory` で読む。1b で DH1 に替える） | 「今の動作を基準にする」 |
-| U-29 | **この Mac の単体テスト** | **この Mac では、監査した hostless の単体テストだけを名指しで流す**: `MacLibraryTests` のうち、名前付きか unique の貼り付け板と mock だけを使い、通知センターと本物の共有のサービスに届かないと読んで確かめた suite を `scripts/mac_unit_audit.json`（suite、理由、確かめた日）に載せ、ランナーはそこに無い suite を選ばない。**監査はコードに結ぶ**: 監査の表に、監査したときの `mac/MacLibrary/` の木（`MacLibrary` と `MacLibraryTests` のソースと、`MacLibrary.xcodeproj` のビルドの設定）のハッシュを持ち、今の木と違えば、その表は失効したものとしてこの Mac では単体テストを 1 件も選ばない（VM では流す）。まずは木全体のハッシュで始め、suite ごとの依存の範囲に絞るのは後でよい。あわせて、監査した suite のファイルを機械で照らす（補助の照らし。監査の代わりではない）: 照らす語は `NSPasteboard.general`、`.general`（`PasteboardScope` の値。`PasteboardResolver.resolve(.general)` のようにライブラリの API から本物の一般の貼り付け板に届く書き方がある。`PasteboardResolverTests.swift:17`）、`MacClipboardManager.shared`（既定の範囲を使う呼び出し）、`UNUserNotificationCenter.current`、`MacNotificationManager.shared`、`NSSharingService`、`MacShareManager.shared`、`NSWorkspace`、`TEST_HOST`。当たったときは自動で外さず、監査の表の suite ごとの「許した出現」（語、数、人が書いた理由。例: `MacClipboardManagerTests` は `.general` を mock に渡すだけ）に一致するときだけ許す。一致しなければその suite を選ばない。語の照らしは、範囲を渡さずに既定の範囲（`.general`）を使う呼び出し（範囲の引数を省いた `copy` など）を拾わないので、**人の監査で既定の範囲を使う呼び出しを必ず確かめる**（監査の観点に入れる）。**監査の失効**: 0e などで `mac/MacLibrary/` が変わると表が失効する。区切り（0g・1b の後）の前に、エージェントが変わった差分を読んで監査をやり直し、別のモデルのレビューを通してから表とハッシュを更新する。やり直す前の回では、単体テストを `excluded`（理由: 監査の失効）にして基準との差として出す（U-32）。監査の表自身のハッシュも許可の一覧に入れる。**`MacLibraryExampleTests`（サンプルをホストにして通知の delegate を入れる）と、固定の待ちを直すまでの `SharePickerPresenterTests` は VM だけ**。単体テストの名指しの一覧も許可の一覧に入れる | iOS の「実機では単体テストを流さない」と同じ考えで、宣言の表の外のテストが私物に触れないようにする（決まりの区分 1 の「宣言の前に洗う」） |
-| U-30 | **26 と ja のシステムの UI の木の取り方** | **ja は VM で取る**: VM の表示の言語を一時的に ja にして 15 の木のラベルを取り、`SystemLabels` の表に入れて en に戻す（VM なので許可なし）。**26 はこの Mac で、許可を得た区切りに「適格性の確かめ」を 1 回行う**: 別の試験のクラス（`MacQualificationProbeTests`。この Mac だけ）が、サンプルの根・サンプルのピッカー・サンプルのパネルの**中だけ**で、表の候補（identifier とラベル）がちょうど 1 つあるかを、真偽と件数だけで出す（階層・ラベルの文字・ほかのアプリは出さない）。**結果の運び方**: 候補 1 つにつき 1 つのテストのメソッドにし（成功 = ちょうど 1 つあった）、結果の種類（passed / failed）だけで運ぶ（3.4 の一覧の中）。クラスは宣言の表に入れ（`notification`・`sharepicker`・`panels`・`clipboard` のうち使うもの）、VM の列挙にも出す（柱 2 の照合はそのまま）が、ランナーの `QUALIFICATION_ONLY_TESTS` の表で普段の実行と基準から除き、`--qualification` の計画でだけ選ぶ。根は「label が `MacLibraryExample` で始まり、`Immediate Notification` を含む group がちょうど 1 つ」で取り、区切りの形（`, ` など）を候補として照らす。**`Reply` の確かめはほかの候補と別の段（`--qualification mac26-reply`）に分ける**（N24・NC3 の保留を解く条件。U-5）: その段の `--dry-run` の一覧と 6.5 の知らせに「通知センターの一覧が開き、私物の通知が画面と収録に出うる」と書き、別の許可を得たときだけ流す。一覧が開いたかは、読むだけの口で `Reply` の前と後の `com.apple.notificationcenterui` の窓の数と枠だけを読み（label は読まない）、**純粋な関数**（`classify_reply_state`）で「一覧」「バナーの中で入力できる」「分からない」の 3 つに分ける: 前は根の窓がちょうど 1 つで閉じた状態（ほかの通知センターの窓がサンプルの窓より前に無い）を前提にし、`Reply` の後 2 秒の間に読む。新しい通知センターの窓が増えた、または根の窓の枠が、前の根の枠に決まった余白（値は VM で決める）を足した範囲より外に広がった、なら「一覧」。窓の数が同じで、枠が前の根の枠と余白の中に収まり、根の中に焦点を持つ返信の欄がちょうど 1 つあれば「バナーの中で入力できる」。読めない値・前提が崩れている・どちらにも当たらないなら「分からない」。「一覧」と「分からない」は保留を解かず、その場で残りを止め（`NTK-STOP:notificationUI`）、利用者に閉じてもらう。**この関数は、15 の VM（一覧が開くと分かっている形）で「一覧」と判定することを 9.1 で確かめてから、この Mac の段に使う**。変化なし・関係の無い窓の変化・欠けた値の fixture で自己テストする。数と枠だけで分けられなければ、利用者自身の確かめに移し、自動で安全とは判定しない。「バナーの中で入力できる」ときは、Escape で欄と広がったバナーを閉じ、根が 0 件になるのを待ってから段を終える（0 件にならなければ `NTK-STOP:notificationUI`）。この段を許したくない利用者には、利用者が自分で `Reply` を 1 回試して一覧が開くかを答えてもらう形を示す（エージェントは画面を見ない）。あわせて、**26 で `CGWindowListCopyWindowInfo` から窓の持ち主と枠を読めるか、画面の収録の許可が要るか**も `mac26` の段の候補にする（要るなら U-31 と 6.5 に書く）。3 回流して同じなら、2.1 のこの Mac の列を確定する。ja の段（`--qualification vm-ja`）の結果は en-US の基準と別に記録する。確かめるまでは 2.1 のこの Mac の列を `自動*` にし、確かめられなければ「26 は確かめない範囲」として記録する | 階層のダンプを出さずに 26 の差を知る方法で、私物の画面の文字を書き出さない |
-| U-31 | **この Mac の署名と TCC** | **開発用のチームの署名（Automatic）で組む**。署名の ID・Team ID は 3.4 の一覧に入れず、表示もしない。最初の適格性の確かめ（U-30）で、組み直した後にアクセシビリティ・自動化の許可を許し直す要るか、前に許した通知の許可が引き継がれるかを確かめる。要るなら 6.5 の準備に書く。5.0 の押す前の確かめのために、26 で UI テストのランナーに画面の収録の許可が要ると分かったら、それは利用者の設定の変更なので 6.5 に書いて利用者に与えてもらい、与えられなければこの Mac では UI テストを流さない | ad-hoc は組むたびに cdhash が変わり、利用者が毎回システム設定で許し直す見込みがある（測っていない）。VM で ad-hoc にした理由（チームの署名を VM に入れない）はこの Mac には当たらない |
-| U-32 | **この Mac の基準の範囲** | **VM だけの 3 区分を除く 7 区分をすべて許し、U-29 の単体テストを含めた回だけを基準にする**。`eligible`・`executed`・`excluded` と理由を記録する。区分を絞った回は比べるだけ | 区分を絞った回を基準にすると、DoD の「基準として記録」を薄く満たしてしまう（iOS の実機の基準は区分なしの 19 件だった） |
-| U-33 | **15 で戻るボタンを押せないこと** | **戻る操作を使う M1b・M2・C9 を 26 だけにし、15 では M1a（起動し直して開く）で画面を開けることだけを見る**。26 でも押せなければ、**M1b・M2・C9 の 3 件を同じ規則で**この Mac の環境ごとの除外（理由つき、基準の `excluded` に記録）にする。M1a は画面を作り直すことも `onDisappear` も確かめないので、代わりにはならない。画面を離れたときに監視が止まることは、そのとき人の確認（HC を足す）に移す。**VM の区切り（0e・0f の後）では、画面を離れたときの監視の停止を見ない**。見るのはこの Mac の区切り（0g・1b の後）だけ | VM で 6 通りの押し方がどれも効かなかった。原因が分からないまま待つと 0d の VM の基準が取れない |
+| U-9 | 宣言の区分を 3.3 の 10 個にし、`ncsettings`・`pasteprivacy`・`realservice` を VM だけにする | **決定: 推奨のとおり**。**案のとおり** | この Mac の設定を変えるもの・実のサービスを開くものを、許可の誤りでも選ばれない形にできる |
+| U-3 | 結果の行の番号を `#<n> <本文>` の 1 つの値にし、余分な完了の 2 秒をすべての完了に当てる | **決定: 推奨のとおり**。**案のとおり** | 今の Clipboard と同じ形で、0e の二重の完了を捕まえられる |
+| U-4 | 受け手を起動の処理の 1 か所だけにし、`onAppear` の上書きをやめる | **決定: 推奨のとおり**。**案のとおり** | 今は画面を開くと起動の処理の受け手が消え、コールドスタートのイベントを入れ物に書けない |
+| U-5 | `Options`・テキストの欄はサンプルのバナーの根の中だけ、返信の placeholder をサンプルだけの文に | **決定: 推奨のとおり**。**案のとおり** | VM で通知センターに別の通知の `Options` が同時にあった。根の外のものを押すと私物の通知で返信しうる |
+| U-7 | 通知の許可のテストは VM だけ。この Mac では何も押す前に読んで、`authorized` でなければ止める | **決定: 推奨のとおり**。**案のとおり** | 許可を戻せるのは VM だけで、この Mac で問い合わせを出すと利用者の設定が変わりうる |
+| U-11 | パネルは Cmd+Shift+G で `/private/tmp/ntk-uitest-<ID>/` に移り、移った先を確かめてから選ぶ | **決定: 推奨のとおり**。**案のとおり**（不安定なら、0b でサンプルに試験用の起動の引数で `directoryURL` を渡す形に替える。VM の sandbox の試作で、コンテナーの外の `directoryURL` は効いた） | 開く場所は前に使った私物のフォルダーで、ホームの外なら結果に名前が入らない |
+| U-17 | 識別子のボタンの名前を、ボタンの文字から括弧を除いた大文字の始まりのまま | **決定: 推奨のとおり**。**案のとおり** | macOS の Clipboard の 36 個と同じ規則 |
+| U-20 | この Mac の画面の共有中の通知の設定は利用者が入れ、見張りは `notification` を選んだ回だけ | **決定: 推奨のとおり**。**案のとおり** | 利用者の通知の設定を読まず、許していない通知を出さない |
+| U-21 | `coldstart` の宣言と、余分なコピーを外す許可（`--allow-lsregister`、印で固定）を分ける | **決定: 推奨のとおり**。**案のとおり** | 起こすことを許しただけで、見ていないコピーまで外さないため |
+| U-22 | コールドスタート NC1〜NC3 を 0c に入れる | **決定: 推奨のとおり（2026-11-23、親が推奨案で決めた）**。NC1〜NC3 を 0c に入れる | DoD の 0c の行。0e・0g の変更で壊れうる所を基準で守る |
+| U-23 | この Mac で組む Xcode | **決定: 推奨のとおり**。**26.6**（D-21）。UI テストが流せなければ 26.3 で流し、「26.6 での基準ではない」と環境を別に記録する。Xcode の共有の部品を直す操作（`-runFirstLaunch` など）は別に許可を得る | 配る dist と同じ Xcode |
+| U-24 | ランナーの共通化 | **決定: 推奨のとおり**。**共通のモジュール（例 `scripts/apple_ui_runner_common.py`）に純粋な関数だけを出す**。条件: 共通化の前後で iOS の自己テスト（`scripts/tests/test_ios_ui_runner.py`）と変異（`ios_ui_runner_mutations.py`）をすべて流して同じ結果であること、共通のモジュールを iOS と macOS の両方の許可の一覧の「ランナーのファイル」に入れてハッシュで固定すること、iOS の信頼する部分の変更として別のモデルのレビューを通すこと。実行先・ファイル・台帳の adapter は共通にしない。条件を満たせないなら「写して始め、0d の後に共通化を別の作業にする」 | 写すと 2 つの照合が別れて直す所が倍になる。ただし iOS の守りを変えるので、iOS の確かめをやり直すことが前提 |
+| U-25 | VM の道で組む場所 | **決定: 推奨のとおり**。**VM の中で組む**（Xcode 26.3、ad-hoc） | 0a とこの文書の確かめで動いた形。チームの署名を VM に入れない |
+| U-26 | 今の Clipboard の 17 件 | **決定: 推奨のとおり**。**検査の中身を残し、ナビの補助と C9 の戻るの 1 行、`tap`・範囲の選択・スクロールの操作を `SampleApp` の守りの口に替え、待ちの規則の本体を `Support/` に移してから固定する** | 本体は既に識別子と錨で待っている。戻るは補助でなく本体にあった |
+| U-27 | 今の Share の 17 件と雛形 3 件 | **決定: 推奨のとおり**。**Share は S1〜S17 に置き換え、雛形は消す** | 文字で探し部分一致で比べ、15 で 3 件落ち、この Mac で Mail を開く |
+| U-28 | ShowDialog のヘルプで完了が 2 回来る今の動作を期待値にする（D5） | **決定: 推奨のとおり**。**案のとおり**（中間の結果は `dialog.resultHistory` で読む。1b で DH1 に替える） | 「今の動作を基準にする」 |
+| U-29 | **この Mac の単体テスト** | **決定: 推奨のとおり**。**この Mac では、監査した hostless の単体テストだけを名指しで流す**: `MacLibraryTests` のうち、名前付きか unique の貼り付け板と mock だけを使い、通知センターと本物の共有のサービスに届かないと読んで確かめた suite を `scripts/mac_unit_audit.json`（suite、理由、確かめた日）に載せ、ランナーはそこに無い suite を選ばない。**監査はコードに結ぶ**: 監査の表に、監査したときの `mac/MacLibrary/` の木（`MacLibrary` と `MacLibraryTests` のソースと、`MacLibrary.xcodeproj` のビルドの設定）のハッシュを持ち、今の木と違えば、その表は失効したものとしてこの Mac では単体テストを 1 件も選ばない（VM では流す）。まずは木全体のハッシュで始め、suite ごとの依存の範囲に絞るのは後でよい。あわせて、監査した suite のファイルを機械で照らす（補助の照らし。監査の代わりではない）: 照らす語は `NSPasteboard.general`、`.general`（`PasteboardScope` の値。`PasteboardResolver.resolve(.general)` のようにライブラリの API から本物の一般の貼り付け板に届く書き方がある。`PasteboardResolverTests.swift:17`）、`MacClipboardManager.shared`（既定の範囲を使う呼び出し）、`UNUserNotificationCenter.current`、`MacNotificationManager.shared`、`NSSharingService`、`MacShareManager.shared`、`NSWorkspace`、`TEST_HOST`。当たったときは自動で外さず、監査の表の suite ごとの「許した出現」（語、数、人が書いた理由。例: `MacClipboardManagerTests` は `.general` を mock に渡すだけ）に一致するときだけ許す。一致しなければその suite を選ばない。語の照らしは、範囲を渡さずに既定の範囲（`.general`）を使う呼び出し（範囲の引数を省いた `copy` など）を拾わないので、**人の監査で既定の範囲を使う呼び出しを必ず確かめる**（監査の観点に入れる）。**監査の失効**: 0e などで `mac/MacLibrary/` が変わると表が失効する。区切り（0g・1b の後）の前に、エージェントが変わった差分を読んで監査をやり直し、別のモデルのレビューを通してから表とハッシュを更新する。やり直す前の回では、単体テストを `excluded`（理由: 監査の失効）にして基準との差として出す（U-32）。監査の表自身のハッシュも許可の一覧に入れる。**`MacLibraryExampleTests`（サンプルをホストにして通知の delegate を入れる）と、固定の待ちを直すまでの `SharePickerPresenterTests` は VM だけ**。単体テストの名指しの一覧も許可の一覧に入れる | iOS の「実機では単体テストを流さない」と同じ考えで、宣言の表の外のテストが私物に触れないようにする（決まりの区分 1 の「宣言の前に洗う」） |
+| U-30 | **26 と ja のシステムの UI の木の取り方** | **決定: 推奨のとおり**。**ja は VM で取る**: VM の表示の言語を一時的に ja にして 15 の木のラベルを取り、`SystemLabels` の表に入れて en に戻す（VM なので許可なし）。**26 はこの Mac で、許可を得た区切りに「適格性の確かめ」を 1 回行う**: 別の試験のクラス（`MacQualificationProbeTests`。この Mac だけ）が、サンプルの根・サンプルのピッカー・サンプルのパネルの**中だけ**で、表の候補（identifier とラベル）がちょうど 1 つあるかを、真偽と件数だけで出す（階層・ラベルの文字・ほかのアプリは出さない）。**結果の運び方**: 候補 1 つにつき 1 つのテストのメソッドにし（成功 = ちょうど 1 つあった）、結果の種類（passed / failed）だけで運ぶ（3.4 の一覧の中）。クラスは宣言の表に入れ（`notification`・`sharepicker`・`panels`・`clipboard` のうち使うもの）、VM の列挙にも出す（柱 2 の照合はそのまま）が、ランナーの `QUALIFICATION_ONLY_TESTS` の表で普段の実行と基準から除き、`--qualification` の計画でだけ選ぶ。根は「label が `MacLibraryExample` で始まり、`Immediate Notification` を含む group がちょうど 1 つ」で取り、区切りの形（`, ` など）を候補として照らす。**`Reply` の確かめはほかの候補と別の段（`--qualification mac26-reply`）に分ける**（N24・NC3 の保留を解く条件。U-5）: その段の `--dry-run` の一覧と 6.5 の知らせに「通知センターの一覧が開き、私物の通知が画面と収録に出うる」と書き、別の許可を得たときだけ流す。一覧が開いたかは、読むだけの口で `Reply` の前と後の `com.apple.notificationcenterui` の窓の数と枠だけを読み（label は読まない）、**純粋な関数**（`classify_reply_state`）で「一覧」「バナーの中で入力できる」「分からない」の 3 つに分ける: 比べるのは、`Reply` の前の**根の要素（group）の枠**と、後の通知センターの窓の数と枠。前提は、`Reply` の前に、根を含む通知センターの窓がちょうど 1 つで、**その窓の枠が根の要素の枠に余白を足した範囲に収まる（バナーの大きさの窓である）**こと、ほかの通知センターの窓がサンプルの窓より前に無いこと。前提を満たさない（大きい 1 つの窓の中にバナーを描く形など）なら「分からない」。`Reply` の後 2 秒の間に読み、新しい通知センターの窓が増えた、または根を含む窓の枠が、前の根の要素の枠に余白（値は VM で決める）を足した範囲より外に広がった、なら「一覧」。窓の数が同じで、根を含む窓の枠がその範囲に収まり、根の中に焦点を持つ返信の欄がちょうど 1 つあれば「バナーの中で入力できる」。読めない値・前提が崩れている・どちらにも当たらないなら「分からない」。**判定表の自己テスト**（合成の入力）: 受ける例（数が同じ・範囲の中・根の中に焦点のある欄が 1 つ）は「バナーの中」。欄 0 件・2 件・焦点なし・前提が崩れる・値の欠け・**大きい 1 つの窓の中で一覧が開く形（窓の数も枠も変わらない）**は「分からない」。窓の増加と範囲の外への広がりは「一覧」。余白のちょうど境界は「バナーの中」、1 pt 外は「一覧」。どの条件を外す変異でも落ちる。「一覧」と「分からない」は保留を解かず、その場で残りを止め（`NTK-STOP:notificationUI`）、利用者に閉じてもらう。**この関数は、15 の VM（一覧が開くと分かっている形）で「一覧」と判定することを 9.1 で確かめてから、この Mac の段に使う**。変化なし・関係の無い窓の変化・欠けた値の fixture で自己テストする。数と枠だけで分けられなければ、利用者自身の確かめに移し、自動で安全とは判定しない。「バナーの中で入力できる」ときは、Escape で欄と広がったバナーを閉じ、根が 0 件になるのを待ってから段を終える（0 件にならなければ `NTK-STOP:notificationUI`）。この段を許したくない利用者には、利用者が自分で `Reply` を 1 回試して一覧が開くかを答えてもらう形を示す（エージェントは画面を見ない）。あわせて、**26 で `CGWindowListCopyWindowInfo` から窓の持ち主と枠を読めるか、画面の収録の許可が要るか**も `mac26` の段の候補にする（要るなら U-31 と 6.5 に書く）。3 回流して同じなら、2.1 のこの Mac の列を確定する。ja の段（`--qualification vm-ja`）の結果は en-US の基準と別に記録する。確かめるまでは 2.1 のこの Mac の列を `自動*` にし、確かめられなければ「26 は確かめない範囲」として記録する | 階層のダンプを出さずに 26 の差を知る方法で、私物の画面の文字を書き出さない |
+| U-31 | **この Mac の署名と TCC** | **決定: 推奨のとおり**。**開発用のチームの署名（Automatic）で組む**。署名の ID・Team ID は 3.4 の一覧に入れず、表示もしない。最初の適格性の確かめ（U-30）で、組み直した後にアクセシビリティ・自動化の許可を許し直す要るか、前に許した通知の許可が引き継がれるかを確かめる。要るなら 6.5 の準備に書く。5.0 の押す前の確かめのために、26 で UI テストのランナーに画面の収録の許可が要ると分かったら、それは利用者の設定の変更なので 6.5 に書いて利用者に与えてもらい、与えられなければこの Mac では UI テストを流さない | ad-hoc は組むたびに cdhash が変わり、利用者が毎回システム設定で許し直す見込みがある（測っていない）。VM で ad-hoc にした理由（チームの署名を VM に入れない）はこの Mac には当たらない |
+| U-32 | **この Mac の基準の範囲** | **決定: 推奨のとおり**。**VM だけの 3 区分を除く 7 区分をすべて許し、U-29 の単体テストを含めた回だけを基準にする**。`eligible`・`executed`・`excluded` と理由を記録する。区分を絞った回は比べるだけ | 区分を絞った回を基準にすると、DoD の「基準として記録」を薄く満たしてしまう（iOS の実機の基準は区分なしの 19 件だった） |
+| U-33 | **15 で戻るボタンを押せないこと** | **決定: 推奨のとおり**。**戻る操作を使う M1b・M2・C9 を 26 だけにし、15 では M1a（起動し直して開く）で画面を開けることだけを見る**。26 でも押せなければ、**M1b・M2・C9 の 3 件を同じ規則で**この Mac の環境ごとの除外（理由つき、基準の `excluded` に記録）にする。M1a は画面を作り直すことも `onDisappear` も確かめないので、代わりにはならない。画面を離れたときに監視が止まることは、そのとき人の確認（HC を足す）に移す。**VM の区切り（0e・0f の後）では、画面を離れたときの監視の停止を見ない**。見るのはこの Mac の区切り（0g・1b の後）だけ | VM で 6 通りの押し方がどれも効かなかった。原因が分からないまま待つと 0d の VM の基準が取れない |
 
 ## 9. 未確認のこと
 
