@@ -214,3 +214,14 @@
 - Finder や `open` からの普通の起動（測ったのは XCUITest の `launch()` だけ）、ログインの項目からの起動、別の Space・全画面のとき、複数の画面
 - 通知のスタイルを「通知パネル」（alerts）にしたとき。VM は既定の「バナー」のまま
 - macOS 26（この Mac）での順。区切りで利用者の許可を得て見るか、26 の環境で流す
+
+## 6. 1a-9: Unity での確かめ（途中の知らせ、2026-11-23 未明）
+
+申し送り（`2026-11-23-macos-c-abi-unity-handoff-1a9.md`）を `unity-native-plugin-8f`（利用者が「macOS C ABI対応」と呼ぶ向こうのセッション）に送り、起動しない確かめの結果が届いた。向こうの記録は unity-native-plugin の `artifact/topics/macos-c-abi-handoff/results/2026-11-23-macos-c-abi-1a9-results.md`（向こうで未コミット）。**アプリを起動する確かめ（M-1・M-2・M-3・M-4・M-5・M-7〜M-11）は、向こうの利用者の許可を待っている**（私物の Mac の決まり）。
+
+- 雛形: 向こうが Xcode 26.6 で組んだ（ソースは `90f3bfd1` のもの）。smoke は 4 回、DLOPEN は 2 回とも通った
+- 起動の前の確かめ: 組んだ 9 つの `.app`（install の形 x0〜x3、x7、Hardened Runtime の 3 通り、IL2CPP）すべてで、2 つの framework が入り、`otool -L` に 2 行あり、`codesign --verify --deep --strict` が通り、sandbox が true で、Team はアプリと同じ。**`.app` の中の framework の symlink は 5 本でなく 3 本**（`Versions/Current`・本体・`Resources`）。Xcode の `RemoveHeadersOnCopy` が `Headers` と一緒に `Modules` も外すため（`builtin-copy -exclude Modules`）。署名の検証は通る。`check_mac_dist.py` の照らし方（dist の側）とは別の話で、利用者のアプリの中ではこれが正しい形
+- M-12（symlink）: **合格**。dist → `Plugins/macOS` → 書き出しで 5 本ずつ残り、`.app` は 3 本ずつ。git の URL の `PackageCache` では 0 本になり、書き出しで作り直した。段 A・B とも `xcodebuild` と `codesign --verify --deep --strict` が通り、取り込みの警告と二重の取り込みは無い
+- M-6（書き出し直し）: batchmode で同じフォルダーに書き出し直すと置き換えになり、足した `Main.cpp`・`GCC_PREPROCESSOR_DEFINITIONS`・sandbox・署名・`Info.plist` の鍵はすべて消える。`PostBuildProcessor` は 2 つの framework を 1 回ずつ足し直す（二重にならない）。**2c では、通知の install のための `Main.cpp` の直しを書き出しのたびに入れる形が要る**（D-4・D-24 の材料）
+- M-2（IL2CPP、Unity 6000.0.44f1、組み立てまで）: `GameAssembly.xcodeproj` が書き出しの直下にできるので、向こうの `FindPbxprojPath` は「more than one」で止まる。組むには共有の scheme が要る。**C ABI の framework は `GameAssembly` にもリンクが要り**（アプリだけだと `GameAssembly` のリンクが `_ntk_*` の未定義で落ちる）、ターゲットのリンクの段に足しても効かず（il2cpp の `--compile-cpp` が自分でリンクする）、il2cpp の `--linker-flags` に framework の本体のパスを 1 つの値で渡すと通った。`GameAssembly.dylib` には `LC_RPATH` が無く、起動で解けるかは未確認。新しいプロジェクトの最小 macOS は 11.0 で、15.0 向けの framework とのリンクで警告が出る。**D-24 の材料: IL2CPP は 2c で手当てが要る**
+- M-4（起動の前）: install の参照の無い形（x0）の実行ファイルは `_ntk_*` を参照しないが、dead strip の設定が無く、`otool -L` に 2 つの framework が残る（起動で読まれるかは起動の確かめで見る）
