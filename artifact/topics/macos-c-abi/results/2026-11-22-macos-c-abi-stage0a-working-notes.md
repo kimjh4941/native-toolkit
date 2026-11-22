@@ -228,7 +228,7 @@
 
 ### 6.1 1a-9 の結果（起動の確かめまで、2026-11-23）
 
-向こう（`unity-native-plugin-8f`）が、向こうの利用者の許可を組ごとに得て 04:16〜04:41 に流した。記録は unity-native-plugin の `artifact/topics/macos-c-abi-handoff/results/2026-11-23-macos-c-abi-1a9-results.md`（`feature/UNT-15` の `de7448e3`、向こうは push の前）。環境: Unity 6000.4.2f1（IL2CPP は 6000.0.44f1）、Xcode 26.6（M-12 と smoke の利用者は 26.3）、この Mac の macOS 26.7.3。**M-1〜M-12 はすべて済み、blocked は無し**。
+向こう（`unity-native-plugin-8f`）が、向こうの利用者の許可を組ごとに得て 04:16〜04:41 に流した。記録は unity-native-plugin の `artifact/topics/macos-c-abi-handoff/results/2026-11-23-macos-c-abi-1a9-results.md`（`feature/UNT-15` の `994892d`、向こうは push の前）。環境: Unity 6000.4.2f1（IL2CPP は 6000.0.44f1）、Xcode 26.6（M-12 と smoke の利用者は 26.3）、この Mac の macOS 26.7.3。**M-1〜M-12 はすべて済み、blocked は無し**。
 
 | M | 結果 |
 |---|---|
@@ -250,3 +250,5 @@
 **2c でする手当て（D-24）**: 書き出しのたびに `Main.cpp` の install の形 1 を入れ直す。IL2CPP は `GameAssembly` へのリンクを il2cpp の `--linker-flags` で渡し、`FindPbxprojPath` を 2 つのプロジェクトで止まらない形にし、共有の scheme で組む。Hardened Runtime の利用者には Mono の `allow-jit` を案内する（`disable-library-validation` は要らない）。
 
 **向こうに残ったもの**: この Mac の通知の設定に試すアプリ（NtkProbe1a9）の項目と、ad-hoc の回の crash の記録が 1 つ。消すかは利用者が決める（向こうが利用者に伝えた）。
+
+（2026-11-23 追記: 向こうが push の前に、前のコミットのスクリプトに残っていたホームのパスを履歴から消したため、向こうのハッシュが変わった。この記録のハッシュは読み替えた後のもの（`b1367a8` → `3a337d8`、`de7448e3` → `994892d`。中身は同じ。`cbdf82c` は変わらない）。）
