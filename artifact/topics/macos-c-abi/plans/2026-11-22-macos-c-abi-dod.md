@@ -7,7 +7,7 @@
 ## 企画と決定
 
 - [x] この企画（plan・decisions・dod）のレビューで区分 A が 0 になっている（2026-11-22。Claude と Codex の 2 者で 3 回。`reviews/2026-11-22-macos-c-abi-plan-review-v1〜v3.md`）
-- [ ] D-1〜D-24 を決める（2026-11-22: D-21 のほかは推奨のとおりに決まった。D-21 は話し合い中）
+- [x] D-1〜D-24 を決める（2026-11-22。D-21 のほかは推奨のとおり、D-21 は利用者の案（15 は VM の 15.8.3、26 はこの Mac））
 - [ ] 条件付きの決定（D-4・D-6・D-7・D-8・D-24）を、1a-前（決定の文書の 8.2）の結果で 0e の前に確定している
 - [ ] 0e・0f の後に 1a-6 の測り（出し方 A のまま）を流し直し、Dialog の間のほかの完了と取り消しの振る舞いが 0e の前と変わっていない
 - [ ] `agent-rules/device-testing.md` に macOS の節（D-23）があり、0a の前に書いた
@@ -40,13 +40,13 @@
 - [ ] `MacLibraryCApi` が企画 6 章の振る舞いの集合をすべて公開している（2a の機械照合）
 - [ ] `check_mac_dist.py` の全項目（企画 7.3）が通る。公開シンボルが `ntk_*` だけで、capi が Swift のモジュール・interface・ヘッダーを配らず、版付きの構成の symlink があり、両方のアーキテクチャの minos が 15.0 で、署名が D-18 のとおり
 - [ ] sandbox の C のホストで、ファイルのパネルの結果のパスを後から読めること、そのファイルを非同期の Share に渡せることを、最後の dist で確かめている（決定の文書の 8.6 の契約）
-- [ ] D-21 で決めた最小の macOS の環境で、サンプルと smoke が動く（C に落ちたら、macOS 15 で動かしていないことをリリースの受け入れの判断として記録している）
+- [ ] macOS 15.8.3 の VM でサンプルの単体テスト・UI テストが通り、この Mac で組んだ dist の smoke（と、流せるなら C ABI のテストの束）が動く。確かめていない範囲（15.0〜15.8.2）と、macOS 27 は対応予定であることを、マニュアルとリリースの記録に書いている
 - [ ] `ntk_notification_install` が、main から呼ぶと戻る前に delegate を設定し終え、main 以外からは同期のエラーを返す
 - [ ] smoke が dist の 2 つの xcframework だけで組めて、arm64 と Rosetta の x86_64 で動く。利用者の下限の Xcode 26.3 でも組める。Hardened Runtime と sandbox の組み合わせ（企画 7 章）で起動する
 - [ ] 照合のスクリプト（`check_c_abi_contract_mac.py`、`check_manual_c_examples_mac.py`、`check_mac_dist.py`）が通り、Windows・Android・iOS の照合も通る。照合の自己テストが、規則を 1 つずつ壊すと落ちる。`IosLibraryCApi/Common` と `MacLibraryCApi/Common` の写しの一致を照らしている
 - [ ] C ABI のテストが通常・ASan・TSan で通る（企画 7.4）。足したテストは、守る対象を壊すと落ちることを確かめている
 - [ ] `unity-native-plugin` が、版の固定（次の dist の前）と、完全一致の探索・development ビルドの埋め込み・symlink を保つコピー（2b で dist を置く前）を入れ、2c で C ABI を呼ぶ形に移り、macOS のテストを通している（別リポジトリ）
-- [ ] 最後の dist で、パッケージ（symlink を commit したもの）→ git の URL で入れた `PackageCache` → AssetDatabase → 書き出し → 最後の `.app` の各段で framework が symlink を保ち、署名し直されて `codesign --verify` が通る。backend（Mono / IL2CPP）・Unity の版・アーキテクチャごとの表で、コールバック・`release`・GC を挟んだ寿命・通知の起動を確かめている
+- [ ] 最後の dist で、パッケージ → git の URL で入れた `PackageCache`（Package Manager は symlink を落とす）→ AssetDatabase → 書き出し（コピーの後に作り直す）→ 最後の `.app` で framework が symlink を持ち、署名し直されて `codesign --verify` が通る。backend（Mono / IL2CPP）・Unity の版・アーキテクチャごとの表で、コールバック・`release`・GC を挟んだ寿命・通知の起動を確かめている
 
 ## 片付けとドキュメント（段階 3・4）
 

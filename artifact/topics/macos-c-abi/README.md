@@ -1,7 +1,7 @@
 # macOS の汎用 C ABI
 
 - 分類: アーキテクチャ（横断課題。機能追加ではない）
-- 状態: **企画中**（2026-11-22。調査が済み、企画を書いた。Claude と Codex のレビューを 3 回通し、v3 で区分 A が 0 になった。D-21 のほかは推奨のとおりに決まった（2026-11-22、利用者）。D-21（試験の環境）は話し合い中。実装には着手していない）
+- 状態: **企画中**（2026-11-22。調査が済み、企画を書いた。Claude と Codex のレビューを 3 回通し、v3 で区分 A が 0 になった。D-1〜D-24 が決まった（2026-11-22、利用者。D-21 は利用者の案: 15 は VM の 15.8.3、26 はこの Mac で、どちらも各メジャーの最新の版。27 は対応予定）。実装には着手していない）
 - チケット: NTKIT-19（ブランチ `feature/NTKIT-19` の名前から。中身は未確認）
 - 手本: [ios-c-abi](../ios-c-abi/README.md)（1.14.0、iOS 2.0.0）
 
@@ -17,9 +17,10 @@ Windows・Android・iOS と同じ汎用の C ABI（`ntk_*`）を macOS に作る
 
 ## 次にすること
 
-1. D-21（試験の環境）を決める。ほかの D-n は推奨のとおりに決まった（2026-11-22。レビューは `reviews/2026-11-22-macos-c-abi-plan-review-v1〜v3.md`。v3 で区分 A が 0）
-2. `unity-native-plugin` に macOS の版の固定を頼む（次にどの OS でも `dist/` を作る前に。企画 5 章）→ **頼んだ**（2026-11-22、利用者の指示でセッション `unity-native-plugin-cd` に。企画 5 章の 1〜4 をまとめて送り、1 は急ぎ、2〜4 は 2b で dist を置く前と伝えた）。**1〜3 は済んだ**（向こうの `feature/UNT-15` の `cbdf82c`、push の前。`Plugins/macOS/VERSION.txt` に `dist_version: 1.14.0` と `unity-mac-native-toolkit-1.3.0.xcframework` を書き、名前が dist に無ければビルドを止める。3 か所の探索は `VERSION.txt` との完全一致で、2.0.0 では `xcframeworks` に 2 つの名前を並べる。`-debug` の扱いは共通の手順に寄せた。EditMode 1601 件中 1600 件が通り、skip 1）。4（symlink を保つコピー）は作業中。向こうの気づき: `dist/1.14.0/mac` の 2 つのバイナリのファイルのモードが、向こうは 100755、こちらは 100644 で、git の木のハッシュが違う（中身は同じ）。リリースの照合で木のハッシュを比べるときに当たる（2b で dist を作るときに扱いを決める）
-3. `agent-rules/device-testing.md` に macOS の節を書き（D-23）、段階 0a と 1a-前（0e の前に終える）に入る
+1. ~~D-16 を決め直すか~~ → 決め直さない（2026-11-22、利用者。26.3 以上のまま。15 の VM で Xcode 26.3 を使うので、ソースが 26.3 で組めることはどのみち保たれる）
+2. `unity-native-plugin` に macOS の版の固定を頼む（次にどの OS でも `dist/` を作る前に。企画 5 章）→ **頼んだ**（2026-11-22、利用者の指示でセッション `unity-native-plugin-cd` に。企画 5 章の 1〜4 をまとめて送り、1 は急ぎ、2〜4 は 2b で dist を置く前と伝えた）。**1〜3 は済んだ**（向こうの `feature/UNT-15` の `cbdf82c`、push の前。`Plugins/macOS/VERSION.txt` に `dist_version: 1.14.0` と `unity-mac-native-toolkit-1.3.0.xcframework` を書き、名前が dist に無ければビルドを止める。3 か所の探索は `VERSION.txt` との完全一致で、2.0.0 では `xcframeworks` に 2 つの名前を並べる。`-debug` の扱いは共通の手順に寄せた。EditMode 1601 件中 1600 件が通り、skip 1）。4 も済んだ（`b1367a8`、`cbdf82c` の上。push の前。向こうの記録は `artifact/topics/macos-c-abi-handoff/README.md`）。**依頼と違う結果**: Unity 6000.4.2f1 の Package Manager は、git の URL で入れたパッケージを `Library/PackageCache` に置くときに symlink をすべて落とす（git に mode 120000 で入っていても）。そのため向こうは、書き出しへのコピーの後に版付きの framework の symlink を作り直す形にした（`MacFrameworkLinks.cs`。版のフォルダーが 1 つで、上の階の項目が `Versions/<版>` と同じ名前のときだけ。入れ子の framework も対象）。こちらは dist に今までどおり symlink のある形で置けばよい。あわせて、書き出しの Xcode のプロジェクト名（`<書き出し先のフォルダー名>.xcodeproj`）を決め打ちしない形にも直した（企画 5.2 では 2c の項目だった）。確かめは試しの版付きの xcframework と本物の 1.3.0 で、リポジトリの形と git の URL の利用者の形の両方で `xcodebuild` が通り、`.app` 全体で `codesign --verify --deep --strict` が通った（EditMode 1607 件中 1606 件、skip 1）。残りは本物の 2.0.0 での通し（dist を置いてから）と IL2CPP（2c）。**出し済みの 1.3.0 の不具合**: 1.10.0〜1.14.0 の `unity-mac-native-toolkit-1.3.0` を埋め込んだ `.app` は、`codesign --verify --strict` が「bundle format is ambiguous」で通っていなかった（`rsync -aL` の symlink の実体化による。向こうの作り直しで直る）。向こうの気づき: `dist/1.14.0/mac` の 2 つのバイナリのファイルのモードが、向こうは 100755、こちらは 100644 で、git の木のハッシュが違う（中身は同じ）。リリースの照合で木のハッシュを比べるときに当たる（2b で dist を作るときに扱いを決める）
+3. この Mac を macOS 26.7.3 に上げる（利用者が行う。0d で基準を取る前に。D-21）→ **済んだ**（2026-11-22。Xcode 26.3・26.6 とも動くことを確かめた）
+4. `agent-rules/device-testing.md` に macOS の節を書き（D-23）、段階 0a と 1a-前（0e の前に終える）に入る
 
 ## 文書
 

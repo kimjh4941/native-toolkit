@@ -1,7 +1,7 @@
 # macOS の汎用 C ABI: 企画
 
 - 記録日: 2026-11-22
-- 状態: 企画中（調査が済み、レビュー v1〜v3（`reviews/`）を反映し、v3 で区分 A が 0 になった。利用者の決定の前）。決定（D-n）は `2026-11-22-macos-c-abi-decisions.md`、DoD は `2026-11-22-macos-c-abi-dod.md`
+- 状態: 企画中（調査が済み、レビュー v1〜v3（`reviews/`）を反映し、v3 で区分 A が 0 になった。D-1〜D-24 は 2026-11-22 に決まった。D-21 は利用者の案（15 は VM の 15.8.3、26 はこの Mac）で、この企画の VM の記述はそれに合わせて読む）。決定（D-n）は `2026-11-22-macos-c-abi-decisions.md`、DoD は `2026-11-22-macos-c-abi-dod.md`
 - 分類: 横断課題（アーキテクチャ）。機能追加ではない
 - 進め方: Windows（`windows-architecture`、1.12.0）、Android（`android-c-abi`、1.13.0）、iOS（`ios-c-abi`、1.14.0）と同じ汎用 C ABI を、1 OS ずつ作る。このトピックは最後の macOS の分
 - 対象: `mac/MacLibrary`、`mac/UnityMacPlugin`（新しい C ABI のモジュールに置き換える）、`mac/MacLibraryExample`、`scripts/build_xcode26_library_xcframework.sh`（と前の版の `build_xcode16_library_xcframework.sh`）、`mac/generate_docc.sh`、`scripts/publish_docs.sh`、配布物 `mac-native-toolkit-*.xcframework` / `unity-mac-native-toolkit-*.xcframework`
@@ -263,7 +263,7 @@ iOS の 4.1 と同じく、段階ごとにこの節に書き足す（0e の `@Se
 1. macOS の xcframework を `VERSION.txt` で完全なファイル名に固定する（iOS・Windows・Android は固定済み）
 2. `PreBuildProcessor`・`PostBuildProcessor`・`Tools/macOS/MacFrameworkPatcher` の 3 か所の探索を完全一致にする（2c で前方一致を `mac-native-toolkit-` に変えると、序数の比較で `-capi-` を選ぶ）
 3. `PostBuildProcessor` と `MacFrameworkPatcher` を、`PreBuildProcessor` と同じく development ビルドで `-debug` が無ければ release の xcframework を使う形に直す
-4. 3 か所のコピーの経路で、版付きの framework の symlink を保つ（`ditto` か symlink を作り直すコピー）。dist → Unity のパッケージ（symlink を commit する。今の `Plugins/macOS` は git に symlink を持たない）→ git の URL で入れた `PackageCache` → AssetDatabase の取り込み → 書き出し → 最後の `.app` の各段で、警告や二重の取り込みなしに symlink が残り、最後の `.app` の framework の `codesign --verify` が通ることを確かめる（レビュー v1 の RA-6）
+4. 3 か所のコピーの経路で、版付きの framework の symlink を保つ（`ditto` か symlink を作り直すコピー）。dist → Unity のパッケージ（symlink を commit する。今の `Plugins/macOS` は git に symlink を持たない）→ git の URL で入れた `PackageCache` → AssetDatabase の取り込み → 書き出し → 最後の `.app` の各段で、警告や二重の取り込みなしに symlink が残り（**2026-11-22 の向こうの確かめ: Package Manager は `PackageCache` で symlink をすべて落とすので、書き出しへのコピーの後に作り直す形にした**）、最後の `.app` の framework の `codesign --verify` が通ることを確かめる（レビュー v1 の RA-6）
 
 **順番の理由**:
 
@@ -420,5 +420,7 @@ macOS のテストは、利用者が今使っているこの Mac の上で、本
 | 画面を使うテスト | UI テスト、`--capi-ui`、人の確認 | この Mac では毎回の許可と時刻の取り決め。テストの間は利用者がマウスとキーボードに触れない。結果のスクリーンショットに私物が写るので、書き写したら消す |
 
 テストのコードは、一般の貼り付け板でなく名前付きか unique の貼り付け板を既定にする（名前付きの貼り付け板は貼り付け板のプライバシーの確認の対象外。Apple の SDK のヘッダー）。一般の貼り付け板を使うテストは区分を宣言し、内容を退避して戻すこと（読むことになる）はしない。agent が `pbcopy`・`pbpaste` などで Mac のクリップボードを直接読み書きしない今の規則は残し、許可を得たランナーを通したテストの実行だけを例外にする（D-23）。
+
+**D-21 の決定（2026-11-22）**: 15 は VM（macOS 15.8.3、Xcode 26.3）、26 はこの Mac（Xcode 26.6）。どちらも各メジャーの最新の版で確かめる（この Mac は 0d の前に利用者が 26.7.3 に上げる）。macOS 27 は 2.0.0 では確かめず対応予定。15.0〜15.8.2 は確かめない範囲として記録する。
 
 VM の中を許可なしにするのは、VM が隔離されている場合だけである（個人のアカウントでサインインしていない、ホストとのクリップボードとフォルダーの共有が無い、合成のデータだけを使う、実のサービスへ送らない。D-23）。ビルドの Xcode 26.6 は macOS 26.2 以上、利用者の下限の 26.3 は 15.6 以上でしか動かない。macOS 15 の VM の中で Xcode を動かすなら 15.6 以上の 26.3 になり、15.0〜15.5 は Xcode が動かないので、どちらの場合も組むのはホストで、VM では流すだけにする（D-21）。
