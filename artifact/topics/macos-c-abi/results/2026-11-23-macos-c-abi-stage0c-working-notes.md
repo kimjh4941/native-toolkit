@@ -2,8 +2,8 @@
 
 - 記録日: 2026-11-23（書き足していく）
 - 段階: 0c（UI テストの実装。企画 5 章、UI テストの設計書 `designs/2026-11-23-macos-c-abi-ui-test-design.md`）
-- 状態: 1 章（共通・Dialog・Share）と 2 章（Notification）が終わった。3 章（Clipboard）はこれから。段階の結果は 0c の終わりに別に書く
-- 元にした版: `bab34db1`（feature/NTKIT-19、0b）。コミットはしていない
+- 状態: 1 章（共通・Dialog・Share）、2 章（Notification）、3 章（Clipboard）、4 章（0c の全体）が終わった。段階の結果は 0c の終わりに別に書く
+- 元にした版: `bab34db1`（feature/NTKIT-19、0b）。1・2 章は `51dc7e6f`・`4e9ebe9b` でコミット済み。3・4 章は `4e9ebe9b` の上で、コミットしていない
 - 環境: この Mac では組むだけ（Xcode 26.3 と 26.6）。動かす確かめは VM `ntk-macos-15-new`（macOS 15.8.3、Xcode 26.3、en-US、`--no-graphics --no-clipboard`）だけ。この Mac では UI・通知・クリップボードを使うものを何も動かしていない
 
 ## 1. 共通・Dialog・Share
@@ -325,4 +325,183 @@ DerivedData は scratchpad、署名は ad-hoc（0b と同じ）。宣言の表�
 
 ## 3. Clipboard
 
-（後で）
+### 3.1 作ったもの・変えたもの（`mac/MacLibraryExample/MacLibraryExampleUITests/`）
+
+| ファイル | 中身 |
+|---|---|
+| `ClipboardSampleViewUITests.swift`（固定。C1〜C11） | 基底を `SampleUITestCase` にし、`setUpWithError` を `setUpAfterGate()` にした。補助だけを `SampleApp` の口に替えた: 起動（`launchSample()` と `clipboardToken()`）、メニュー（`openMenuCard` は `menu.clipboard` を押すだけ。文字で探す 2 つの道を消した）、`tap` のクリック（`pressClipboardButton`）、範囲のピッカー（`selectClipboardScope`）、スクロール（`scrollIntoView` を消し、`SampleApp` が押す前に見える範囲に入れる）。`isResultOfThisClick` と名前から label を作る規則は `ClipboardWaitRule` を呼ぶだけにした。**テストの本体は C9 の戻るの 1 行（`try sample.goBack(from: .clipboard)`）のほか変えていない**。11 のメソッドの名前も同じ。補助は投げない形のまま残したので、`SampleApp` の口の失敗は補助の中で `XCTFail` にし、`continueAfterFailure = false` でそこで止まる |
+| `ClipboardSampleWaitRuleTests.swift`（固定。C12〜C17） | 基底を `SampleUITestCase` にし、`Rule` を移した本体 `ClipboardWaitRule` に向けた。検査の中身は変えていない |
+| `Support/WaitRule.swift`（新規） | `ClipboardWaitRule`: 固定したテストの待ちの規則 `isResultOfThisClick`（本体をそのまま移した）、ボタンの名前から label を作る `label(forButtonNamed:)`、新しいテスト（CB1〜CB6）の規則 `judge`（次の 1 件だけ、印の直後に `[<label>] ` が錨で付くこと。Clipboard の画面の文は `Result: ` を持たない）と全文 `expected` |
+| `Support/PrivacyPrompt.swift`（新規） | `PastePrivacyToken` が要る。貼り付けの確認（サンプルの木の `Dialog` で、`action-button--999` と `--998` を 1 つずつ持つもの）をちょうど 1 つ待つ、`Allow Paste`・`Don’t Allow Paste` を identifier で押す（押す前の確かめを通す）、閉じるのを待つ |
+| `Support/SampleApp.swift`（足した） | 押す相手 `PressTarget` に `.pasteButton`・`.pasteConfirmation`（許す持ち主はサンプルだけ。3.3）。`pressClipboardButton`（`ClipboardToken` が要る。押した識別子の記録には繋がない。5.7）、`selectClipboardScope`、`pressPasteButton`（`clipboard.section.pasteControl` の中の識別子が空で label が `SystemLabels.paste` のボタンちょうど 1 つ。無効なら押さずに失敗。3.4）、読むだけの `pasteConfirmations` と `expectNoPasteConfirmation`、Clipboard の結果を待つ `waitForNextClipboardResult`（ほかの画面の待ちと同じ本体 `waitForNext` を使う）。スクロールの入れ物を探す識別子を引数にした（`PasteButton` は識別子が無いので節の識別子で探す） |
+| `Support/SystemLabels.swift`、`StepCode.swift`（足した） | 確認のボタンの identifier 2 つ。段の符号 `pasteButton`・`pasteConfirmation` |
+| `ClipboardPasteUITests.swift`（CB1）、`ClipboardPrivacyUITests.swift`（CB2〜CB6） | 新しいテスト（3.2） |
+| `SupportRuleTests.swift`（1 件足した）、`Support/DeviceRequirements.json`（24 行足した） | `ClipboardWaitRule.judge` の自己テスト（次の 1 件だけ、詳細の語や `Result: ` の形を受けない、36 個のボタンの label の前方一致の対で長い方が短い方の代わりにならない）と宣言 |
+
+サンプルと `MacLibrary` は変えていない。
+
+**固定するファイルの値**（0d のランナーの固定に使う。どちらもこの章の最終のソース）:
+
+| ファイル | SHA-256 | メソッド |
+|---|---|---|
+| `ClipboardSampleViewUITests.swift` | `c1924aa9b959fd7d931248b5ebaecf0fc17dcdb0875b0472bfa80b4fbdccf028` | `testEveryButtonReportsAResult`、`testAnExpectationThatDoesNotHoldIsShownAsAFailure`、`testTheScopeArgumentFollowsThePicker`、`testAnOrdinaryFailureIsRecordedInTheReachedList`、`testCreatingANamedPasteboardAgainKeepsItsContents`、`testCreatingAUniquePasteboardAgainReleasesThePreviousOne`、`testANamedPasteboardGoesFromCreationThroughUseToRemoval`、`testAUniquePasteboardGoesFromCreationThroughUseToRemoval`、`testAppendFollowsTheOwnershipTheCopyReturned`、`testObservationStopsWhenTheScreenIsLeft`、`testACallerSuppliedPasteboardNameIsNotShown`（11） |
+| `ClipboardSampleWaitRuleTests.swift` | `c861faa4babd1f36578997532e2fe72881179b8c30b10c28e3fcadc0b7bbf0cb` | `testTheSameTextFromAnEarlierClickIsNotAccepted`、`testAResultFromAnotherButtonIsNotAccepted`、`testTheResultOfThisClickIsAccepted`、`testALongerButtonNameDoesNotStandInForTheShorterOne`、`testADetailWordDoesNotStandInForALabel`、`testARepeatWithIdenticalTextIsAccepted`（6） |
+
+閉じた形の規則（6.1）で照らす出現（替えた後）: `ClipboardSampleViewUITests.swift` の危ない名前は `XCUIApplication` が 9（前は 10）、ほかの 8 つ（`NSPasteboard`、`NSWorkspace`、`NSRunningApplication`、`Process`、`addUIInterruptionMonitor`、`typeKey`、`typeText`、`coordinate`）は 0。`ClipboardSampleWaitRuleTests.swift` はどれも 0。固定したファイルからの直接の操作は、`.click()` が 5 → 0、`scroll(` が 1 → 0、`.launch()` が 1 → 0（残る `XCUIApplication` は読むためだけ: 結果・範囲・監視の状態の値と `waitForExistence`）。識別子の文字列 `clipboard.` は 10 か所（例外のまま）。Swift の正規表現の literal は 2 つ（404・415 行）、`#filePath` は 1 つ（392 行。サンプルのソースを読む）。
+
+### 3.2 テストの数と区分
+
+| クラス | ケース | 宣言 | VM で流す | 流さない（理由） |
+|---|---|---|---|---|
+| `ClipboardSampleViewUITests` | C1〜C11 | `clipboard` | 10 | C9（26 だけ。15.8.3 では戻るボタンを押せない。U-33） |
+| `ClipboardSampleWaitRuleTests` | C12〜C17 | `-` | 6 | - |
+| `ClipboardPasteUITests` | CB1 | `clipboard` | 1（この Mac では U-30 まで保留。`MAC_DEFERRED_TESTS`） | - |
+| `ClipboardPrivacyUITests` | CB2〜CB6 | `clipboard`・`pasteprivacy` | 5（VM だけ。プレビューの段） | - |
+| 計 | **23**（設計書 5.8 と同じ） | | **22** | 1 |
+| `SupportRuleTests`（足した分） | 1 | `-` | 1 | - |
+
+宣言の表は 118 件（2 章の 94 件、Clipboard 23、規則の自己テスト 1）。5.8 の `clipboard` 19 件のうち Clipboard の 17（C1〜C11、CB1〜CB6）と、`pasteprivacy` 5 件が一致する。
+
+### 3.3 VM で確かめた事実（設計書 9.1 のうちこの段の分）
+
+探りのテスト（`Stage0cCProbe*Tests`）は VM の写しにだけ置き、リポジトリには入れていない。
+
+| 項目 | 結果 |
+|---|---|
+| `clipboard.pasteButton`（9.1、I1d） | 15.8.3 の木に無い（1 章と同じ）。`PasteButton` は `clipboard.section.pasteControl`（`Group`）の中の、識別子が空で label `Paste` の `Button` ちょうど 1 つ（その親の `Group` は `Disabled` と出る）。枠は節の幅いっぱい（821×35）で、見た目もいっぱいに描かれる。中心を押せる |
+| `PasteButton` の持ち主（9.1、5.0） | 押す点の窓の持ち主は**サンプル**（層 0。前の全画面の 3 つの窓は 1 章の規則で素通し）。ボタンの中身は `com.apple.appkit.xpc.TrustedUIService`（サンプルごとに起こされる）が出すが、点に窓は持たない |
+| 貼り付けの確認の持ち主（9.1、5.0） | 確認の窓（260×230、層 8）の持ち主も**サンプル**で、`TrustedUIService` ではなかった（0a の見込みと違う）。確認が出ている間もサンプルは `runningForeground` で前面のアプリ。ボタンの title は `Allow Paste`（`--999`）と `Don’t Allow Paste`（`--998`）、label は空。押してから約 1.1 秒で出た |
+| プレビューの設定（9.1） | VM の中で `defaults write com.jonghyunkim.mac.nativetoolkit.example EnablePasteboardPrivacyDeveloperPreview -bool yes` は sandbox のコンテナーの設定（`~/Library/Containers/<id>/Data/Library/Preferences/<id>.plist`）に書かれ、次に起動したサンプルから効いた。`defaults delete` で元の「無い」に戻った（各段の後に無いことを確かめた） |
+| `AccessBehavior` | プレビューなしで `alwaysAllow`、プレビューありで `ask` |
+| プレビューなしの `PasteButton`（9.1、CB1） | 確認は出ず、`✅ \n[onPaste] items=1, failures=0, partial=false` |
+| 確認での許可・拒否（CB2〜CB5） | `PasteButton` で許可 → `[onPaste] items=1, failures=0, partial=false`、拒否 → `[onPaste] items=0, failures=1, partial=false`（どちらも ✅）。範囲 general の `Read` で拒否 → **`✅ \n[read] items=1, bytes=0, [0:text=none ]`**（エラーにならず、表現の無い項目が 1 つ返る。到達したエラーの番号の一覧も変わらない）。許可 → `items=1, bytes=18, [0:text=18B public.utf8-plain-text]`（書いた文が 18 バイト）。同じ中身をもう一度 `Read` すると確認は 2 秒出ない |
+| 検出（CB6） | プレビューありでも `DetectPatterns` → `found=[emailAddresses, links, probableWebURL]`、`DetectValues` → `patterns=3, links=1, emails=1, probableWebURL=true`。確認は出ない（サンプルが先に自分で書くため） |
+| **`PasteButton` が無効になる条件**（3.4） | 一般の貼り付け板が**空のまま画面を作ると、ボタンは無効（`isEnabled == false`）になり、後で中身を書いても無効のまま**で、押しても何も起きない（探りで、空のまま 2 回起動して 4 回押し、4 回とも無効で何も起きなかった。中身がある状態で起動すると有効で、2 回押して 2 回とも貼り付いた）。押したときのサンプルにも `TrustedUIService` にもログが出ない |
+| スクロールの直後の押下 | 見える範囲に入れた直後（0.07 秒後）の押下も 12/12 で貼り付いた。スクロールの後に枠は動かなかった（3.4 の原因の候補から外した） |
+
+### 3.4 CB2 が落ちたこと（原因と直し方）
+
+最初の版で、CB2 だけが 4 回の通しで 4 回とも「確認が 5 秒出ない」で落ちた（CB3 以降は通る）。動画のその瞬間ではポインターがボタンの上にあり、何も覆っていなかった。`TrustedUIService` のログに押下の跡が無かった。一時は「システムがまれに合成のクリックを捨てる」と見て、何も応えなければ 1 回だけ押し直す形を試したが、押し直しも同じに捨てられた（2 回とも無応答で落ちた）ので外した。
+
+CB2 だけ、単独や CB3 の後では通った。前の段の固定のテストを 2 つに分けて調べ、**C3（`testTheScopeArgumentFollowsThePicker`）の後でだけ**落ちることが分かった。C3 は最後に範囲 general で `Clear` するので、次のプロセスは空の一般の貼り付け板で起動する。探りで、空のまま画面を作ると `PasteButton` が無効になり、後から書いても戻らないことを確かめた（3.3）。0c の最初の探りで 1 回だけ押下が空振りしたのも、同じ形（前の段が貼り付け板を空にしていた）と見ている（推測）。
+
+直し方（固定の待ちは使わない）:
+
+- CB1〜CB6 は、ランナーが**サンプルを起動する前に**合成の文を書く（各テストの `setUpAfterGate`。テストごとに新しい文）。読む操作の直前に `changeCount` が変わっていないことを確かめるのは前と同じ（U-10）
+- `pressPasteButton` は、ボタンが無効なら押さずに `NTK-STEP:pasteButton` で失敗する（何も起きない押下を「確認が出ない」と取り違えない）
+
+直した後、3 回の通しで CB2 は 3 回とも通った（3.5）。変異で、書く順を前に戻すと C3 の後の CB1 が押さずに `pasteButton` で落ちることを確かめた（3.6）。
+
+### 3.5 VM の 3 回
+
+流したのは 23 件（C1〜C8、C10、C11、C12〜C17、CB1〜CB6、`SupportRuleTests` の 1 件）。VM の写しの手の台本（0d のランナーの代わり）で、1 回を 2 つの段に分けた: 普段の段（C1〜C8・C10・C11 を名指し、C12〜C17、CB1、規則の 1 件を 1 回の xcodebuild の呼び出し）→ サンプルを止めてプレビューの設定を入れる → プレビューの段（CB2〜CB6）→ 設定を消して無いことを確かめる。C9 は名指しから外した。環境は 1・2 章と同じ（`TEST_RUNNER_NTK_HOST=vm`、10 区分、`-parallel-testing-enabled NO`、時間切れの 3 つの指定）。ソースは `mac/` を `tar` で写し、VM の中で Xcode 26.3・ad-hoc で組んだ（コンパイラーの警告 0）。
+
+| 回 | 普段の段 | プレビューの段 | 時間（普段・プレビュー） |
+|---|---|---|---|
+| 1 | 18/18 passed | 5/5 passed | 247 秒・98 秒 |
+| 2 | 18/18 passed | 5/5 passed | 248 秒・99 秒 |
+| 3 | 18/18 passed | 5/5 passed | 247 秒・99 秒 |
+
+1 件の時間（3 回の幅）: C1 79.3〜79.4 秒、C3 30.4〜30.7 秒、C7 28.7〜29.1 秒、ほかの固定のテスト 7.8〜19.6 秒、C12〜C17 と規則 0.05〜0.11 秒、CB1 13.1 秒、CB2 16.9〜17.2 秒、CB3 16.9〜17.1 秒、CB4 15.3〜15.4 秒、CB5 21.1〜21.4 秒、CB6 25.9〜26.2 秒。
+
+直す前の 4 回（3.4）は、どれも普段の段 18/18、プレビューの段 4/5（CB2）だった。
+
+### 3.6 変異
+
+壊すのは VM の写しだけで、1 つずつ置き換え（置き換える文がちょうど 1 回現れることを確かめてから）、組み直して流し、戻した。最後に戻した木で組み直し、確かめた後は写しごと消した（リポジトリには残していない）。
+
+| 設計書 7 章の行 | 壊したもの | 流したテスト | 結果 |
+|---|---|---|---|
+| Clipboard「`onPaste` で結果を変えない」 | サンプルの `onPaste` の受け手で結果の行を変えない | CB1、CB2（プレビューの段） | 両方落ちた（CB1 は `#0` のまま、CB2 は許可の後 `#1` のまま。`resultTimeout`） |
+| Clipboard「読み込みの失敗を ✅ で表示する → CB4」の代わり（3.7 の 2） | ライブラリーの読み込み（`ClipboardRepositoryImpl.read`）が表現の無い項目を落とす | CB4、CB5（対照） | CB4 が落ちた（`items=0, bytes=0, []`）。CB5 は通った |
+| （規則。5.5 の移した待ちの規則） | `ClipboardWaitRule.isResultOfThisClick` から番号の確かめ（`sequence > before`）を外す | C12〜C17 | C12（同じ文の前の結果を受けない）だけが落ちた |
+| （規則） | 同じ規則の `[<label>]` の括弧を外す（`contains(label)`） | C12〜C17 | C15（長い名前が短い名前の代わりにならない）と C16（詳細の語が label の代わりにならない）が落ちた |
+| （規則。新しい待ちの規則） | `ClipboardWaitRule.judge` の錨を外して `[<label>]` を含むかにする | `SupportRuleTests` の 1 件 | 落ちた（詳細の語の結果を受けた） |
+| （規則） | `judge` の錨から閉じ括弧と空白を外す（`✅ \n[<label>` で始まるか） | 同 | 落ちた（`copyEmptyRepresentations` が `copyEmpty` の代わりになった） |
+| （3.4 の直し） | CB1 で、ランナーが書くのを画面を作った後に戻す | C3 の後に CB1 | C3 は通り、CB1 は押さずに `NTK-STEP:pasteButton`（無効）で落ちた |
+| （3.7 の 5 の前提） | プレビューの設定を入れずにプレビューの段のテストを流す | CB2 | setUp で `NTK-PRECONDITION:pastePrivacyPreview`（`alwaysAllow`）で止まり、`PasteButton` も `Read` も押さなかった |
+| 固定したテストの割り込み・押す前の確かめ（固定したファイルの補助も守りの口を通ること） | コードは変えず、C1 の途中（約 24 秒目）に合成のアプリ（浮く層の `NSPanel`、マウスのクリックとスクロールを数えてファイルに書く）の窓をサンプルの上に出す | C1 | 次の押下（`CopyPartialPasteContent`）が押す前の確かめで `NTK-STEP:overlay ... (blocked)` で止まり、C1 が落ちた。窓が出た後のクリックとスクロールはテストの記録で 0 回（最後のクリックは窓の出る約 1 秒前）、合成の窓に届いたクリックとスクロールも 0 回。固定したテストは普通の片付けを持たない（基底がサンプルを止めただけ）。XCTest の割り込みの監視は呼ばれなかった（押す前の確かめが先に止めた） |
+
+ここで試していない 7 章の行: 監視（U-8）の押す枝（無害な試験用のアラート。0d の前）、柱 1〜3・出力の境界・中断（0d のランナー）。固定した C1〜C11 の検査そのものの変異（サンプルを壊して C1〜C11 が落ちること）は、検査の中身を変えていないので行っていない。
+
+### 3.7 設計書との差
+
+設計書は直していない。親が反映を決める。
+
+| # | 所 | 設計書 | 実際・したこと |
+|---|---|---|---|
+| 1 | 5.5 CB4 | ❌ で始まる結果（エラーの番号を写す） | 拒否しても ✅ `[read] items=1, bytes=0, [0:text=none ]`（表現の無い項目が 1 つ返り、エラーにならない）。今の動作として期待値にした。9.4（気になる動作）の候補: 拒否された読み込みが成功として空の項目を返す |
+| 2 | 7 章 Clipboard「読み込みの失敗を ✅ で表示する → CB4」 | CB4 が落ちる | 今の動作が既に ✅ なので、この変異では CB4 を確かめられない。代わりに、拒否の経路を変える変異（ライブラリーの読み込みが表現の無い項目を落とす）で CB4 が落ちることを確かめた（3.6） |
+| 3 | 5.5 CB1〜CB3 の「ランナーが書く → `PasteButton`」 | 書いてから押す | 一般の貼り付け板が空のまま画面を作ると `PasteButton` が無効のまま戻らない（3.3、3.4）。ランナーが**サンプルの起動の前に**書く形にし、無効なら押さずに失敗する。9.4 の候補: `PasteButtonFactory` の説明（RK-16「中身に関わらず有効のまま」）と 15.8.3 の振る舞いが違う |
+| 4 | 5.0 の `PasteButton`・貼り付けの確認の持ち主 | `TrustedUIService` の見込み | 15.8.3 ではどちらも点の窓の持ち主は**サンプル**（3.3）。`PressTarget` に 2 つの相手を足し、許す持ち主はサンプルだけにした。26 は U-30 |
+| 5 | 5.5 CB2〜CB6 の前提 | （書かれていない） | プレビューの段の各テストの始めに `AccessBehavior` を押し、`ask` でなければ押さずに `NTK-PRECONDITION:pastePrivacyPreview` で止める（設定が入っていないことを確認の不具合と取り違えない。3.6 で確かめた） |
+| 6 | 5.5「同じ中身では 2 回目に出ないので毎回新しい中身を書く」 | 押すたびに書く | テストごとに起動の前に 1 回書く（`ntk-cbp-<秒>`。CB5 の 2 回目の `Read` は同じ中身で確認が出ないことを見るため、書き直さない） |
+| 7 | U-1・U-3 の Clipboard の待ち | `#<n> <本文>` の全文 | 固定したテストは今の規則（`[<label>]` を含み、番号が進んだ）のまま。新しいテストは `ClipboardWaitRule.judge`（次の 1 件だけ、印の直後に錨）で待ち、全文で比べる。Clipboard の文は `Result: ` を持たないので、ほかの画面の `ResultLine.judge` は使えない |
+| 8 | 5.5「固定するファイルの操作の補助も守りの口に通す」 | `SampleApp` の口が throw する | 固定したテストの補助は投げない形なので、`SampleApp` の失敗を補助の中で `XCTFail` にした（`continueAfterFailure = false` でそこで止まる。印が立っていれば普通の片付けは呼ばれない）。失敗の文は `NTK-STEP:<段>` で始まるまま |
+| 9 | U-12 の確認のテスト | 確認は identifier で押す | そのとおり。加えて、確認は `--999` と `--998` を 1 つずつ持つ `Dialog` ちょうど 1 つのときだけ押す |
+| 10 | 1 章の 1.7 の 4（I1d） | - | 15.8.3 では `clipboard.pasteButton` が木に無いので、I1d の期待は 53 のまま（1 章と同じ） |
+
+### 3.8 組み立て（この Mac）
+
+| Xcode | `build-for-testing` | エラー | コンパイラーの警告 |
+|---|---|---|---|
+| 26.3（17C529） | 成功 | 0 | 0（`appintentsmetadataprocessor` の分は 1 章と同じ） |
+| 26.6（17F113） | 成功 | 0 | 0（同） |
+
+DerivedData は scratchpad、署名は ad-hoc。この Mac では何も起動していない。
+
+### 3.9 残したこと
+
+- C9 は書き換えたが一度も通していない（26 だけ）。CB1 はこの Mac では U-30 まで保留（`MAC_DEFERRED_TESTS`）
+- 26 の `PasteButton` と確認の持ち主、`PasteButton` が空の貼り付け板で無効になるか、`accessBehavior` の既定は U-30 で確かめる
+- 固定するファイルのハッシュとメソッドの一覧（3.1）をランナーの表に入れるのは 0d
+- 3.7 の 1・3 の気になる動作（拒否された読み込みが成功になる、`PasteButton` が無効のまま戻らない）は段階 0 では直さない。1b 以降で扱うかは親が決める
+
+## 4. 0c の全体
+
+### 4.1 件数（設計書 5.8 の 95 件に対して）
+
+| 機能 | 設計書 | 実装 | VM の全件で通った | 26 だけ（VM で流さない） | この Mac で U-30 まで保留（VM では流す） | HC に回した |
+|---|---|---|---|---|---|---|
+| 共通 | 7 | 7 | 5 | 2（M1b、M2） | - | - |
+| Dialog | 17 | 17 | 17 | - | - | - |
+| Notification | 31 | 30 | 30 | - | 5（N20、N23、N24、NC2、NC3） | 1（N19 → HC3。2.6 の 1） |
+| Share | 17 | 17 | 15 | 2（S2、S4。この Mac でも `Copy` の持ち主を U-30 で確かめるまで保留） | - | - |
+| Clipboard | 23 | 23 | 22 | 1（C9） | 1（CB1） | - |
+| **計** | **95** | **94** | **89** | **5** | **6** | **1** |
+| 設計書の外（`SupportRuleTests`） | - | 24 | 24 | - | - | - |
+
+- VM で通った 89 件のうち、VM だけのもの（この Mac では流さない区分）は 11 件: NP1〜NP3（`ncsettings`）、S11・S12・S17（`realservice`）、CB2〜CB6（`pasteprivacy`）
+- 26 だけの 5 件（M1b、M2、C9、S2、S4）は書いたが一度も通していない（S2・S4 は 15 で `copyMissing` で止まることだけを 1 章で見た）。この Mac の区切りで、許可を得て U-30 の後に流す
+- 実装 94 件と規則の自己テスト 24 件の宣言は `Support/DeviceRequirements.json` の 118 件に一致する
+
+### 4.2 全件の 1 回（VM）
+
+3 章の最終のソースで、0c のテストを VM で 1 回通した。手の台本（0d のランナーの代わり。VM の写しにだけ置いた）は 1・2 章の決めごとをまとめたもの: 流す前にサンプルとランナーの今回の DerivedData の外の LaunchServices の登録を外す（1 つ外した）、fixture を作って中身を記録する、`TEST_RUNNER_NTK_EXPECTED_COPY` を計算する。順は設計書 6.3 の 7・8 のとおり「共通 → Dialog → 権限の段（確かめつきで許可を戻す → NP2、NP3、NP1）→ 通知の UI の立て直し → N4（見張り）→ N1〜N18 → 立て直し → N20〜N24 → 立て直し → NC1〜NC3 → Clipboard → Share（後で Mail を止める）→ 規則 → プレビューの段（CB2〜CB6）」。通知のクラスは 1 件ずつ別の xcodebuild の呼び出し、ほかはクラスごと。環境は 1〜3 章と同じ。
+
+| 部分 | 件数 | 結果 | 時間 |
+|---|---|---|---|
+| 共通（M1a、I1a〜I1d） | 5 | 5 passed | 31 秒 |
+| Dialog | 17 | 17 passed | 259 秒 |
+| 権限の段 | 3 | 3 passed（許可の戻しは NP1 の前だけ 2 回目で確かめが通った。2.6 の 16 の戻し方が働いた） | 68 秒 |
+| `NotificationUITests` | 19 | 19 passed（落ちたテストは無く、立て直しは決まった 3 か所だけ） | 656 秒 |
+| `NotificationEventUITests` | 5 | 5 passed | 162 秒 |
+| `NotificationColdStartUITests` | 3 | 3 passed | 114 秒 |
+| Clipboard（普段の段） | 17 | 17 passed | 247 秒 |
+| Share | 15 | 15 passed | 142 秒 |
+| `SupportRuleTests` | 24 | 24 passed | 4 秒 |
+| プレビューの段 | 5 | 5 passed | 98 秒 |
+| **計** | **113** | **113 passed、失敗・skip 0** | **1821 秒（約 30 分。立て直しと戻しの待ちを含む）** |
+
+- fixture の 7 項目は変わらなかった（`.DS_Store` が 1 つ増えた。1.7 の 3 と同じ）
+- プレビューの設定は段の後に無いことを確かめた
+- 設計書 6.2 の見積もり（95 件で 60〜80 分）より短いのは、26 だけの 5 件と N19 を流さず、通知の待ちが見積もりより短かったため
+
+### 4.3 0c で残したこと（全体）
+
+- 26 だけの 5 件と、この Mac で保留の 6 件（4.1）は、この Mac の区切り（U-30 の後）
+- 人の確認の手順書（HC1、HC3〜HC7。`mac/MacLibraryExample/ComputerUse/`）は書いていない
+- ランナー（0d）に移すもの: 押す相手の表、固定するファイルのハッシュ（3.1）、閉じた形の規則（`supportRoot` を Support の外で禁じる。1.7 の 9）、許可の戻し方と立て直しの決めごと（2.6 の 12・16・17）、プレビューの設定の出し入れ（3.5）、fixture の照合で `.DS_Store` を扱う（1.7 の 3）、押したボタンの記録の和集合の照合（5.7）
+- ja のラベルは推測の値のまま（U-30 の `vm-ja`）
+- 設計書との差は 1.7、2.6、3.7 に分けて書いた。どれも設計書には反映していない（親が決める）
+- U-8 の監視の押す枝（無害な試験用のアラート）、おとりの通知（6c）を使う変異、setUp の根の待ちを外す変異は 0d の前

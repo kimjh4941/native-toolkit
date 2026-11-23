@@ -407,6 +407,13 @@ enum PressTarget {
     case sampleWindow
     /// An open or save panel: the sample, or the panel view service when it owns the window.
     case panel
+    /// The Clipboard screen's `PasteButton` (CB1〜CB3). On the 15.8.3 VM the window at its point
+    /// belongs to the sample (stage 0c 3.3); only the sample is allowed until U-30 checks 26.
+    case pasteButton
+    /// A button of the paste confirmation (`action-button--999` / `--998`. CB2〜CB5). On the 15.8.3
+    /// VM its window (layer 8) belongs to the sample, not to `TrustedUIService` (stage 0c 3.3);
+    /// only the sample is allowed until U-30 checks 26.
+    case pasteConfirmation
 }
 
 // MARK: - Inventory snapshot
@@ -642,6 +649,70 @@ final class SampleApp {
         session.recordPressed(identifier)
     }
 
+    // MARK: Clipboard screen (design 5.5)
+
+    /// The section that holds the `PasteButton`.
+    static let clipboardPasteSection = "clipboard.section.pasteControl"
+
+    /// Presses `clipboard.button.<name>` (exactly one), scrolled into view and checked before the
+    /// press. Every Clipboard button may read or write the general pasteboard, so it needs
+    /// `ClipboardToken`. The fixed tests (C1〜C11) and CB4〜CB6 press through here. Not recorded
+    /// for the button coverage (design 5.7: C1 presses all 36, taken from the sample's source).
+    func pressClipboardButton(_ name: String, _ token: ClipboardToken) throws {
+        let identifier = SampleScreen.clipboard.buttonPrefix + name
+        let button = try exactlyOne(app.buttons.matching(identifier: identifier), identifier, step: .elementNotUnique)
+        try guardedClick(button, .sampleWindow, name: identifier)
+    }
+
+    /// Selects `option` of the scope picker (`clipboard.scopePicker`; the option is matched as the
+    /// fixed tests' `radioButtons[option]` did). Selecting moves the screen's scope only; it touches
+    /// no pasteboard.
+    func selectClipboardScope(_ option: String) throws {
+        let picker = try exactlyOne(app.radioGroups.matching(identifier: "clipboard.scopePicker"), "clipboard.scopePicker",
+                                    step: .elementNotUnique)
+        let choice = try exactlyOne(picker.radioButtons.matching(identifier: option), "scope option \(option)",
+                                    step: .elementNotUnique)
+        try guardedClick(choice, .sampleWindow, name: "scope option \(option)")
+    }
+
+    /// Presses the Clipboard screen's `PasteButton` (CB1〜CB3): the one button of
+    /// `clipboard.section.pasteControl` without an identifier and with a label of `SystemLabels.paste`
+    /// (its container `clipboard.pasteButton` does not reach the tree on 15.8.3. Stage 0b).
+    ///
+    /// On the 15.8.3 VM the button is disabled when the general pasteboard was empty as the screen
+    /// was built, and it stays disabled after something is written; a click on it then does nothing
+    /// at all (stage 0c 3.4). The tests write their content before launching the sample, and a
+    /// disabled button fails here without a click.
+    func pressPasteButton(_ token: ClipboardToken) throws {
+        let section = try exactlyOne(app.descendants(matching: .any).matching(identifier: Self.clipboardPasteSection),
+                                     Self.clipboardPasteSection, step: .pasteButton)
+        let paste = try exactlyOne(section.buttons.matching(NSPredicate(format: "identifier == '' AND label IN %@",
+                                                                         SystemLabels.paste)),
+                                   "PasteButton", step: .pasteButton)
+        guard paste.isEnabled else {
+            throw SampleUITestError(.pasteButton, "the PasteButton is disabled (was the general pasteboard empty when the screen was built?)")
+        }
+        try guardedClick(paste, .pasteButton, name: "PasteButton")
+    }
+
+    /// The paste confirmations open now (dialogs of the sample holding `action-button--999`). Read
+    /// only; pressing one needs `PrivacyPrompt`.
+    var pasteConfirmations: XCUIElementQuery {
+        app.dialogs.containing(.button, identifier: SystemLabels.pasteAllowIdentifier)
+    }
+
+    /// Watches for `seconds` that no paste confirmation appears (U-14 (a): 2 seconds). Read only.
+    func expectNoPasteConfirmation(for seconds: TimeInterval) throws {
+        let deadline = Date().addingTimeInterval(seconds)
+        repeat {
+            guard pasteConfirmations.count == 0 else {
+                throw SampleUITestError(.pasteConfirmation, "a paste confirmation appeared")
+            }
+            Thread.sleep(forTimeInterval: 0.1)
+        } while Date() < deadline
+        try session.checkInterruption()
+    }
+
     // MARK: Result line
 
     /// The result line of `screen` as one value (`#<n> <text>`).
@@ -665,20 +736,37 @@ final class SampleApp {
     @discardableResult
     func waitForNextResult(_ screen: SampleScreen, after before: Int, marker: String,
                            timeout: TimeInterval = SampleApp.elementTimeout) throws -> String {
+        try waitForNext(screen, after: before, what: marker, timeout: timeout) {
+            ResultLine.judge($0, before: before, marker: marker)
+        }
+    }
+
+    /// The same for the Clipboard screen, whose text is `✅ \n[<label>] <detail>` without `Result: `
+    /// (`ClipboardWaitRule.judge`).
+    @discardableResult
+    func waitForNextClipboardResult(after before: Int, label: String,
+                                    timeout: TimeInterval = SampleApp.elementTimeout) throws -> String {
+        try waitForNext(.clipboard, after: before, what: "[\(label)]", timeout: timeout) {
+            ClipboardWaitRule.judge($0, before: before, label: label)
+        }
+    }
+
+    private func waitForNext(_ screen: SampleScreen, after before: Int, what: String, timeout: TimeInterval,
+                             _ judge: (ShownResult) -> ResultLine.Verdict) throws -> String {
         let deadline = Date().addingTimeInterval(timeout)
         var last = try result(screen)
         while true {
-            switch ResultLine.judge(last, before: before, marker: marker) {
+            switch judge(last) {
             case .accepted:
                 try session.checkInterruption()
                 return last.text
             case .overtaken:
                 throw SampleUITestError(.extraResult, "\(screen.resultIdentifier) passed #\(before + 1): #\(last.sequence) \(last.text)")
             case .foreign:
-                throw SampleUITestError(.resultShape, "\(screen.resultIdentifier) #\(last.sequence) is not of \(marker): \(last.text)")
+                throw SampleUITestError(.resultShape, "\(screen.resultIdentifier) #\(last.sequence) is not of \(what): \(last.text)")
             case .pending:
                 guard Date() < deadline else {
-                    throw SampleUITestError(.resultTimeout, "\(screen.resultIdentifier) stayed at #\(last.sequence) for \(timeout)s waiting for \(marker)")
+                    throw SampleUITestError(.resultTimeout, "\(screen.resultIdentifier) stayed at #\(last.sequence) for \(timeout)s waiting for \(what)")
                 }
                 Thread.sleep(forTimeInterval: 0.1)
                 last = try result(screen)
@@ -741,8 +829,14 @@ final class SampleApp {
     /// (with `modifiers` held) and reads the interruption mark.
     func guardedClick(_ element: XCUIElement, _ target: PressTarget, name: String,
                       modifiers: XCUIElement.KeyModifierFlags = []) throws {
-        if target == .sampleWindow {
-            try scrollIntoViewIfNeeded(element, name: name)
+        switch target {
+        case .sampleWindow:
+            try scrollIntoViewIfNeeded(element, holder: element.identifier, name: name)
+        case .pasteButton:
+            // The PasteButton has no identifier; the scroll view is the one holding its section.
+            try scrollIntoViewIfNeeded(element, holder: Self.clipboardPasteSection, name: name)
+        case .panel, .pasteConfirmation:
+            break
         }
         try checkBeforePress(element, target, name: name)
         lastClickAt = Date()
@@ -821,6 +915,8 @@ final class SampleApp {
         guard frame.width > 0, frame.height > 0 else {
             throw SampleUITestError(.overlay, "\(name) has an empty frame")
         }
+        // The owners verified for each target (design 5.0); the PasteButton and the paste
+        // confirmation: the sample only (15.8.3 VM, stage 0c 3.3).
         var allowed: Set<Int32> = [try samplePID()]
         if target == .panel {
             allowed.formUnion(OverlayCheck.pids(of: SystemLabels.openAndSavePanelServiceBundleIdentifier))
@@ -832,12 +928,13 @@ final class SampleApp {
 
     // MARK: Scrolling
 
-    /// Scrolls until `element` lies wholly inside the scroll view that holds it. A button outside
-    /// the viewport still reports a frame and sometimes `isHittable`, and the click lands on
-    /// whatever sits there (stage 0b 5: on the Notification screen it hit nothing).
-    private func scrollIntoViewIfNeeded(_ element: XCUIElement, name: String) throws {
-        let holders = app.scrollViews.containing(NSPredicate(format: "identifier == %@", element.identifier))
-        guard !element.identifier.isEmpty, holders.count > 0 else { return }
+    /// Scrolls until `element` lies wholly inside the scroll view that holds the element identified
+    /// by `holder` (the element itself, or for the PasteButton its section). A button outside the
+    /// viewport still reports a frame and sometimes `isHittable`, and the click lands on whatever
+    /// sits there (stage 0b 5: on the Notification screen it hit nothing).
+    private func scrollIntoViewIfNeeded(_ element: XCUIElement, holder: String, name: String) throws {
+        let holders = app.scrollViews.containing(NSPredicate(format: "identifier == %@", holder))
+        guard !holder.isEmpty, holders.count > 0 else { return }
         let scrollView = try exactlyOne(holders, "scroll view holding \(name)", step: .scroll)
         var direction: CGFloat = -1
         var distances: [CGFloat] = []

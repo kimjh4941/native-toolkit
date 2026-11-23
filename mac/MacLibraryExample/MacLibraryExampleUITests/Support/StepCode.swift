@@ -51,6 +51,11 @@ enum StepCode: String, CaseIterable {
     case copyMissing
     /// The general pasteboard changed between the runner's write and the sample's read.
     case pasteboard
+    /// The Clipboard screen's `PasteButton` was not found exactly once.
+    case pasteButton
+    /// The paste confirmation did not appear, did not close, was not found exactly once, or
+    /// appeared when it should not.
+    case pasteConfirmation
     /// Another app could not be stopped or read.
     case otherApp
     /// The interruption monitor stopped the test (U-8).

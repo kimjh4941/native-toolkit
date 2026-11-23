@@ -142,6 +142,34 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertGreaterThan(pairs, 0, "no name starts with another; the case is untested")
     }
 
+    /// The new Clipboard tests' rule (CB1〜CB6): the next result only, the label anchored right after
+    /// the mark. The pairs come from the 36 button names of the inventory.
+    func testClipboardResultRuleAcceptsOnlyTheNextResultOfTheLabel() {
+        let mine = ClipboardWaitRule.expected(success: true, label: "read", "items=1")
+        XCTAssertEqual(ClipboardWaitRule.judge(ShownResult(sequence: 7, text: mine), before: 7, label: "read"), .pending)
+        XCTAssertEqual(ClipboardWaitRule.judge(ShownResult(sequence: 8, text: mine), before: 7, label: "read"), .accepted)
+        XCTAssertEqual(ClipboardWaitRule.judge(ShownResult(sequence: 9, text: mine), before: 7, label: "read"), .overtaken)
+        let failure = ClipboardWaitRule.expected(success: false, label: "read", "errorCode=1514, errorMessage=x")
+        XCTAssertEqual(ClipboardWaitRule.judge(ShownResult(sequence: 8, text: failure), before: 7, label: "read"), .accepted)
+        // A label in the detail of another operation's result is not this operation's result.
+        let detail = ClipboardWaitRule.expected(success: true, label: "snapshot", "note [read] x")
+        XCTAssertEqual(ClipboardWaitRule.judge(ShownResult(sequence: 8, text: detail), before: 7, label: "read"), .foreign)
+        // The other screens' shape (`Result: `) is not the Clipboard screen's.
+        let other = ResultLine.expected(success: true, "[read] items=1")
+        XCTAssertEqual(ClipboardWaitRule.judge(ShownResult(sequence: 8, text: other), before: 7, label: "read"), .foreign)
+
+        let labels = SampleInventory.clipboardButtonNames.map(ClipboardWaitRule.label(forButtonNamed:))
+        var pairs = 0
+        for short in labels {
+            for long in labels where long != short && long.hasPrefix(short) {
+                pairs += 1
+                let shown = ShownResult(sequence: 1, text: ClipboardWaitRule.expected(success: true, label: long, "done"))
+                XCTAssertEqual(ClipboardWaitRule.judge(shown, before: 0, label: short), .foreign, "\(long) stood in for \(short)")
+            }
+        }
+        XCTAssertGreaterThan(pairs, 0, "no label starts with another; the case is untested")
+    }
+
     // MARK: - Gate (U-9)
 
     func testHostIsTheVMOnlyByFact() throws {

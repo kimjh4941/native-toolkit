@@ -17,11 +17,21 @@ import XCTest
 ///
 /// - Note: The screen scrolls, and a button that has scrolled out of the scroll view is still
 ///   reported as existing and sometimes as hittable, so a click on it lands on whatever sits
-///   at those coordinates instead. `scrollIntoView` puts the button inside the viewport before
+///   at those coordinates instead. `SampleApp` puts the button inside the viewport before
 ///   every click.
-final class ClipboardSampleViewUITests: XCTestCase {
+///
+/// - Note: Stage 0c of the macOS C ABI work (UI test design 5.5, U-26) kept the checks of every
+///   test as they were and moved the operations behind `SampleApp`: launching, the menu card
+///   (`menu.clipboard`), the back button, every click, the scope picker and the scrolling go
+///   through its guarded entry points (the check before a press, the interruption mark), and the
+///   waiting rule lives in `ClipboardWaitRule`. A failure of an operation fails the test where it
+///   happens (`continueAfterFailure` is false). This file is fixed by its hash (design 6.1).
+final class ClipboardSampleViewUITests: SampleUITestCase {
 
-    override func setUpWithError() throws {
+    private var sample: SampleApp!
+    private var clipboard: ClipboardToken!
+
+    override func setUpAfterGate() throws {
         continueAfterFailure = false
     }
 
@@ -30,27 +40,30 @@ final class ClipboardSampleViewUITests: XCTestCase {
     @MainActor
     private func openClipboardExample() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launch()
+        guarded {
+            clipboard = try clipboardToken()
+            sample = try launchSample()
+        }
         openMenuCard(app, titled: "Clipboard Example")
         XCTAssertTrue(app.staticTexts["clipboard.result"].waitForExistence(timeout: 10),
                       "the clipboard screen did not appear")
         return app
     }
 
-    /// Clicks a menu card on the main screen.
-    ///
-    /// A `NavigationLink` with a custom label is not always published as a button, so the
-    /// card is looked up by the text it contains and clicked through its ancestor.
+    /// Opens the Clipboard screen from the menu by its card's identifier (`menu.clipboard`).
     @MainActor
     private func openMenuCard(_ app: XCUIApplication, titled title: String) {
-        let button = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch
-        if button.waitForExistence(timeout: 3) {
-            button.click()
-            return
+        guarded { try sample.open(.clipboard) }
+    }
+
+    /// Runs an operation of `SampleApp`. A thrown error fails the test at that point
+    /// (`continueAfterFailure` is false), so the helpers keep the shape the tests call.
+    private func guarded(_ operation: () throws -> Void) {
+        do {
+            try operation()
+        } catch {
+            XCTFail(String(describing: error))
         }
-        let text = app.staticTexts[title]
-        XCTAssertTrue(text.waitForExistence(timeout: 5), "no menu card titled \(title)")
-        text.click()
     }
 
     // MARK: - Reading the screen
@@ -90,11 +103,10 @@ final class ClipboardSampleViewUITests: XCTestCase {
                      timeout: TimeInterval = 10) -> String {
         let button = button(app, name)
         XCTAssertTrue(button.waitForExistence(timeout: timeout), "\(name) was not found")
-        scrollIntoView(app, button, named: name)
         let before = shown(app).sequence
-        button.click()
+        guarded { try sample.pressClipboardButton(name, clipboard) }
 
-        let expected = name.prefix(1).lowercased() + name.dropFirst()
+        let expected = ClipboardWaitRule.label(forButtonNamed: name)
         let deadline = Date().addingTimeInterval(timeout)
         var lastText = ""
         while Date() < deadline {
@@ -110,19 +122,11 @@ final class ClipboardSampleViewUITests: XCTestCase {
         return lastText
     }
 
-    /// Whether what the screen shows now is the result of the click that was just made.
-    ///
-    /// Kept as a function of its inputs so that it can be checked directly. A mutant of the
-    /// waiting rule cannot be built by breaking the app -- "the second click does nothing"
-    /// needs a branch no real defect would take -- but it can be built by breaking this
-    /// (レビュー v3 M-02).
+    /// Whether what the screen shows now is the result of the click that was just made. The rule
+    /// itself is `ClipboardWaitRule.isResultOfThisClick` (C12〜C17 check that one body).
     static func isResultOfThisClick(text: String, sequence: Int, before: Int,
                                     expecting label: String) -> Bool {
-        // Anchored on the brackets the screen puts around the label. A bare substring let one
-        // operation stand in for another whose name contains it, and the sample has several
-        // such pairs: snapshot / snapshotFiltered, read / readDataPlainText,
-        // copyEmpty / copyEmptyRepresentations (レビュー v4 M-05).
-        sequence > before && text.contains("[\(label)]")
+        ClipboardWaitRule.isResultOfThisClick(text: text, sequence: sequence, before: before, expecting: label)
     }
 
     /// Selects a scope with the picker.
@@ -130,38 +134,7 @@ final class ClipboardSampleViewUITests: XCTestCase {
     private func selectScope(_ app: XCUIApplication, _ name: String) {
         let option = app.radioGroups["clipboard.scopePicker"].radioButtons[name]
         XCTAssertTrue(option.waitForExistence(timeout: 5), "no \(name) option in the scope picker")
-        option.click()
-    }
-
-    /// Scrolls until the button is inside the scroll view, so that clicking it hits it.
-    ///
-    /// A button that has scrolled past the top of the viewport keeps a frame and can report
-    /// itself hittable; the click then lands on the header that occupies those coordinates,
-    /// the operation never runs, and the previous result stays on screen (R-SA6).
-    private func scrollIntoView(_ app: XCUIApplication, _ element: XCUIElement, named name: String) {
-        let scrollView = app.scrollViews.firstMatch
-        guard scrollView.exists else { return }
-        var direction: CGFloat = -1
-        var distances: [CGFloat] = []
-        for _ in 0..<16 {
-            let viewport = scrollView.frame
-            let frame = element.frame
-            if viewport.minY <= frame.minY && frame.maxY <= viewport.maxY { return }
-            let offset = frame.midY - viewport.midY
-            distances.append(abs(offset))
-            // The sign of a scroll delta is not the sign of the movement on every input
-            // device, and a boundary can absorb a scroll entirely. Judging each attempt by
-            // whether it got closer covers both, where reading the first move alone did not.
-            if distances.count >= 2, distances.last! >= distances[distances.count - 2] {
-                direction = -direction
-            }
-            scrollView.scroll(byDeltaX: 0, deltaY: direction * min(abs(offset), 200))
-        }
-        XCTFail("""
-            \(name) could not be scrolled into view. \
-            viewport: \(scrollView.frame), element: \(element.frame), \
-            distances: \(distances)
-            """)
+        guarded { try sample.selectClipboardScope(name) }
     }
 
     // MARK: - MS-01
@@ -373,7 +346,7 @@ final class ClipboardSampleViewUITests: XCTestCase {
         // Leave and come back. The manager is shared, so the state would survive without the
         // teardown on disappear. The macOS NavigationStack back control carries the chevron as
         // its identifier and "Back" as its label; it is not named after the screen it returns to.
-        app.buttons["chevron.backward"].firstMatch.click()
+        try sample.goBack(from: .clipboard)
         openMenuCard(app, titled: "Clipboard Example")
 
         XCTAssertTrue(app.staticTexts["clipboard.observeStatus"].waitForExistence(timeout: 5))
@@ -444,6 +417,6 @@ final class ClipboardSampleViewUITests: XCTestCase {
 
     /// The label each button reports under: its name with a lower case first letter.
     static func buttonLabels() throws -> [String] {
-        try buttonNames().map { $0.prefix(1).lowercased() + $0.dropFirst() }
+        try buttonNames().map { ClipboardWaitRule.label(forButtonNamed: $0) }
     }
 }

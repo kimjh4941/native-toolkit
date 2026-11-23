@@ -10,9 +10,12 @@ import XCTest
 /// The rule is what stops a click that produced nothing from being read as a result, and the
 /// only shape of that failure -- the same button, twice, with word for word the same text --
 /// cannot be produced by breaking the app (レビュー v3 M-02).
-final class ClipboardSampleWaitRuleTests: XCTestCase {
+///
+/// Stage 0c of the macOS C ABI work moved the rule's body to `ClipboardWaitRule` (UI test design
+/// 5.5): these checks now examine that one body, which the fixed tests call. Fixed by its hash.
+final class ClipboardSampleWaitRuleTests: SampleUITestCase {
 
-    private typealias Rule = ClipboardSampleViewUITests
+    private typealias Rule = ClipboardWaitRule
 
     func testTheSameTextFromAnEarlierClickIsNotAccepted() {
         // The button was clicked again and nothing happened: the words still match, and the

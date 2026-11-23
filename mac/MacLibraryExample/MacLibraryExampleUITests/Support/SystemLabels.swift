@@ -99,4 +99,10 @@ enum SystemLabels {
     /// The system `PasteButton` of the Clipboard screen: no identifier reaches the tree (its
     /// `NSViewRepresentable` container `clipboard.pasteButton` does not appear on 15.8.3. Stage 0b).
     static let paste = ["Paste", "ペースト"]
+
+    /// The paste confirmation of the pasteboard privacy preview (design U-12): a dialog in the
+    /// sample's tree whose buttons carry these identifiers (stage 0a 4.3; titles `Allow Paste` and
+    /// `Don’t Allow Paste` on the 15.8.3 VM, stage 0c 3.3).
+    static let pasteAllowIdentifier = "action-button--999"
+    static let pasteDenyIdentifier = "action-button--998"
 }
