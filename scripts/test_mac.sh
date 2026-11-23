@@ -82,10 +82,19 @@ CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds
   setpgrp($pid, $pid);
   if ($pidfile ne "-") { open(my $f, ">", $pidfile) or die "pid file: $!\n"; print $f "$pid\n"; close $f; }
   my $reaped = 0; my $status = 0;
+  # Before every signal: is the leader still the own unreaped child of this perl? waitpid with WNOHANG answers
+  # it even when the main waitpid already reaped it and a handler ran before $reaped was set (-1, ECHILD).
+  my $gone = sub {
+    return 1 if $reaped;
+    my $r = waitpid($pid, 1);
+    if ($r == $pid || $r == -1) { $reaped = 1; return 1; }
+    return 0;
+  };
   my $stop = sub {
-    return if $reaped;
+    return if $gone->();
     kill "TERM", -$pid;
-    for (1..60) { if (waitpid($pid, 1) > 0) { $reaped = 1; return; } select(undef, undef, undef, 0.5); }
+    for (1..60) { return if $gone->(); select(undef, undef, undef, 0.5); }
+    return if $gone->();
     kill "KILL", -$pid;
     waitpid($pid, 0); $reaped = 1;
   };
@@ -127,6 +136,7 @@ in_vm_main() {
   mkdir -p "${RES}" "${LOGS}" "${STATE}"
   case "${op}" in
     clean) vm_clean "${run_id}" ;;
+    tree-hash) vrunner tree-hash --dir "${RUN_DIR}/src" ;;
     build) vm_build ;;
     enumerate) vm_enumerate "${DD_UI}" enumeration ;;
     enumerate-lib) vm_enumerate "${DD_LIB}" unit-enumeration ;;
@@ -472,7 +482,7 @@ UNIT=1; [[ "${SKIP_UNIT}" == 1 ]] && UNIT=0
 # exit (Codex A-9, Claude A-2, B-7). One EXIT trap for everything the run may leave.
 SCAN_ROOT="${TMPDIR:-/tmp}"; SCAN_ROOT="${SCAN_ROOT%/}"
 PRIVATE="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac-private.XXXXXX")"
-MAC_TMP=""; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
+MAC_TMP=""; MAC_WAITER=""; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
 on_exit() {
   local code=$?
   trap - EXIT INT TERM HUP
@@ -595,9 +605,13 @@ vm_send_plan() {
   vm_ssh "cat > \"\$HOME/ntk/runs/${RUN_ID}/plan.json\"" < "$1"
 }
 
-vm_enumeration() {  # 6.3 steps 0-3 in the VM: qualification, hand-over, build, both enumerations
+vm_enumeration() {  # <HEAD> <mac tree>: 6.3 steps 0-3 in the VM: qualification, hand-over, build, both enumerations
+  local head="$1" mac_tree="$2"
   vm_qualify
   vm_push
+  # The copy the VM builds is the tree the plan and the baseline name (review v3: Codex A-4).
+  [[ "$(vm_op tree-hash "${RUN_ID}")" == "${mac_tree}" && "$(git -C "${ROOT_DIR}" rev-parse HEAD)" == "${head}" ]] \
+    || fail "mac/ changed while it was handed to the VM; run again"
   vm_op clean "${RUN_ID}" | grep '^NTK-VM' | sed 's/^/  /'
   echo "[vm] building (Xcode 26.3, ad-hoc)"
   vm_op build "${RUN_ID}" | sed 's/^/  /'
@@ -621,7 +635,7 @@ run_vm() {
   if [[ "${BASELINE}" == 1 && -n "$(git -C "${ROOT_DIR}" status --porcelain=v1 -uall -- mac | grep -v ' mac/MacLibraryExample/build/' || true)" ]]; then
     fail "--baseline needs mac/ without uncommitted changes"
   fi
-  vm_enumeration
+  vm_enumeration "${head}" "${mac_tree}"
   IFS=$'\t' read -r VM_OS_VERSION VM_OS_BUILD VM_ARCH VM_LANGUAGE VM_XCODE <<< "${VM_OS}"
   runner preflight --where vm --enumeration "${OUT}/enumeration.json" --unit-enumeration "${OUT}/unit-enumeration.json" \
     --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" \
@@ -718,7 +732,7 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
   rm -f "${MAC_PIDFILE}"
   # Only what the run sets reaches xcodebuild (Claude v2 C-2): an empty environment with HOME, USER,
   # LOGNAME, TMPDIR, a fixed PATH, the Xcode, and the runner's TEST_RUNNER_NTK_ values.
-  local environment=(HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}"
+  local environment=(HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${MAC_TMP}/tmp/"
     PATH=/usr/bin:/bin:/usr/sbin:/sbin DEVELOPER_DIR="${MAC_XCODE_DIR}") name
   for name in TEST_RUNNER_NTK_HOST TEST_RUNNER_NTK_ALLOW TEST_RUNNER_NTK_FIXTURE_DIR TEST_RUNNER_NTK_EXPECTED_COPY; do
     [[ -n "${!name+set}" ]] && environment+=("${name}=${!name}")
@@ -727,18 +741,34 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
   # it stops the xcodebuild group while the group's leader is still perl's own child (Claude v2 B-1).
   /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${MAC_PIDFILE}" /usr/bin/env -i "${environment[@]}" \
     "${MAC_XCODE_DIR}/usr/bin/xcodebuild" "$@" < /dev/null > "${log}" 2>&1 &
-  local waiter=$! i code=0
+  MAC_WAITER=$!
+  local i code=0
   for i in $(seq 1 100); do [[ -s "${MAC_PIDFILE}" ]] && break; sleep 0.1; done
   if ! { [[ -s "${MAC_PIDFILE}" ]] && runner marker --root "${MAC_TMP}" --pid "$(cat "${MAC_PIDFILE}")" \
            --role xcodebuild --expect-under "$(cd -P "${MAC_XCODE_DIR}" && pwd -P)"; }; then
-    # `waiter` is this shell's own child that has not been waited for, so its number is still perl's.
-    kill -TERM "${waiter}" 2>/dev/null || true
-    wait "${waiter}" || true
+    stop_waiter
     fail "the xcodebuild could not be recorded as a writer; stopped"
   fi
-  wait "${waiter}" || code=$?
+  wait "${MAC_WAITER}" || code=$?
+  MAC_WAITER=""
   rm -f "${MAC_PIDFILE}"
   return "${code}"
+}
+
+# Stops the background perl of the current xcodebuild, and nothing else (review v3: Codex A-1, Claude
+# C-1, C-2). If perl already ended, bash may have reaped it and its number may be free; so the TERM goes
+# only when the process of that number is still this shell's own child running perl (its parent and
+# executable read right before). Otherwise nothing is sent and the run says so. The EXIT trap calls this
+# too (through mac_cleanup), so a TERM to the shell while the marker is written still stops perl first.
+stop_waiter() {
+  [[ -n "${MAC_WAITER}" ]] || return 0
+  if runner own-child --pid "${MAC_WAITER}" --parent "$$" --exe-name perl; then
+    kill -TERM "${MAC_WAITER}" 2>/dev/null || true
+    wait "${MAC_WAITER}" 2>/dev/null || true
+  else
+    echo "Note: the background xcodebuild supervisor could not be confirmed as this run's; nothing was signalled" >&2
+  fi
+  MAC_WAITER=""
 }
 
 # The end of a run on this Mac (6.3 step 4): the writers of this run (three-way match, again right
@@ -746,6 +776,7 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
 # nothing is removed and the run fails (Codex A-4).
 mac_cleanup() {
   [[ -n "${MAC_TMP}" && -d "${MAC_TMP}" ]] || return 0
+  stop_waiter
   runner stop-current --root "${MAC_TMP}"
 }
 
@@ -770,12 +801,19 @@ run_mac() {
   head="$(git -C "${ROOT_DIR}" rev-parse HEAD)"
   mac_tree="$(runner tree-hash --repo "${ROOT_DIR}")"
   # Step 1: the enumeration comes from the VM (the same tree).
-  vm_enumeration
+  vm_enumeration "${head}" "${mac_tree}"
   VM_FINISHED=1
   vm_op finish "${RUN_ID}" 0 | grep '^NTK-VM' | sed 's/^/  /' || true
   # The previous runs of this Mac (6.3 step 4) and the registered copies of the sample (U-21; only when
   # coldstart is allowed). Both read only; the raw lists stay in the private folder.
-  runner stale --scan-root "${SCAN_ROOT}" --list --out "${stale}"
+  if [[ "${DRY_RUN}" == 1 ]]; then
+    runner stale --scan-root "${SCAN_ROOT}" --list --out "${stale}"
+  else
+    # The approved run plans with the stopped runs the user saw; what is there now is checked against that
+    # list when they are stopped (a run that ended since is fine; review v3: Codex B-5).
+    python3 -c 'import json,sys; json.dump(json.load(open(sys.argv[1])).get("stale"), open(sys.argv[2], "w"))' \
+      "${APPROVED}" "${stale}"
+  fi
   echo '[]' > "${lsreg}"
   if [[ ",${ALLOW}," == *,coldstart,* ]]; then
     "${LSREGISTER}" -dump > "${PRIVATE}/lsregister.txt" 2>/dev/null || true
@@ -802,11 +840,11 @@ run_mac() {
   runner approve --plan "${plan}" --approved "${APPROVED}" --repo "${ROOT_DIR}"
   # Step 4: the private run folder and its marker before the first xcodebuild (the EXIT trap is set
   # above and reaches mac_cleanup once MAC_TMP is set).
-  # The folder and its marker (naming the consumed approval) are made in one step (Claude v2 B-3).
-  MAC_TMP="$(umask 077; runner make-run-folder --scan-root "${SCAN_ROOT}" --run-id "${RUN_ID}" --approved "${APPROVED}")"
+  # The folder, its marker (naming the consumed approval) and the read-only copies of the plan and the
+  # approval are made complete under another name and then renamed (Claude v2 B-3, Codex v3 B-3).
+  MAC_TMP="$(umask 077; runner make-run-folder --scan-root "${SCAN_ROOT}" --run-id "${RUN_ID}" --approved "${APPROVED}" \
+    --plan "${plan}")"
   MAC_PIDFILE="${MAC_TMP}/xcodebuild.pid"
-  cp "${plan}" "${MAC_TMP}/plan.approved.json"; chmod 0444 "${MAC_TMP}/plan.approved.json"
-  cp "${APPROVED}" "${MAC_TMP}/approval.approved.json"; chmod 0444 "${MAC_TMP}/approval.approved.json"
   plan="${MAC_TMP}/plan.approved.json"
   # The stopped runs are stopped only as the approval lists them: folder, marker and processes (Codex v2 A-3).
   runner stale --scan-root "${SCAN_ROOT}" --current-root "${MAC_TMP}" --stop --plan "${plan}" \
@@ -818,6 +856,9 @@ run_mac() {
   (cd "${ROOT_DIR}" && COPYFILE_DISABLE=1 tar --null -T "${PRIVATE}/files" -cf -) | tar -xf - -C "${MAC_TMP}/src"
   [[ "$(runner tree-hash --dir "${MAC_TMP}/src")" == "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["macTree"])' "${plan}")" ]] \
     || fail "the copied sources differ from the approved tree"
+  # The names in $TMPDIR before the run (names only, kept private), to count what Xcode leaves there
+  # (review v3: Claude B-1). xcodebuild itself gets a TMPDIR inside the run folder.
+  runner tmp-names --dir "${SCAN_ROOT}" --out "${MAC_TMP}/tmp-before.json"
   # Step 5: the build of this Mac (Xcode 26.6, the project's automatic signing; U-23, U-31).
   echo "[mac] building (Xcode 26.6)"
   mac_xcodebuild 2400 "${MAC_TMP}/build-ui.log" build 0 build-for-testing \
@@ -904,6 +945,7 @@ run_mac() {
     fi
   done < <(runner invocations --plan "${plan}")
   # Step 10: the fixture, what is left on this Mac, the summary.
+  runner tmp-names --dir "${SCAN_ROOT}" --compare "${MAC_TMP}/tmp-before.json"
   if [[ -f "${MAC_TMP}/fixture-before.json" ]]; then
     runner fixture-manifest --dir "${fx}" > "${MAC_TMP}/fixture-after.json"
     runner fixture-compare --before "${MAC_TMP}/fixture-before.json" --after "${MAC_TMP}/fixture-after.json" \

@@ -34,6 +34,7 @@ import plistlib
 import pwd
 import re
 import secrets
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -531,7 +532,8 @@ def bundle_declaration_problems(source_path, bundle_paths):
     if not bundle_paths:
         return [f"no {DECLARATIONS_FILE} in the built test bundle"]
     expected = file_sha256(source_path)
-    return [f"the bundled copy differs from {DECLARATIONS_FILE}: {p}" for p in bundle_paths if file_sha256(p) != expected]
+    differing = [p for p in bundle_paths if file_sha256(p) != expected]
+    return [f"{len(differing)} bundled copy(ies) differ from {DECLARATIONS_FILE}"] if differing else []
 
 
 def bundle_info_plist_problems(info_plist_paths):
@@ -540,7 +542,7 @@ def bundle_info_plist_problems(info_plist_paths):
         with open(path, "rb") as f:
             info = plistlib.load(f)
         if "NSPrincipalClass" in info:
-            problems.append(f"the built Info.plist sets NSPrincipalClass: {path}")
+            problems.append("the built test bundle's Info.plist sets NSPrincipalClass")
     return problems
 
 
@@ -1828,13 +1830,23 @@ def parse_xcresult_tests(text):
     return cases, [d.get("deviceId") for d in data.get("devices", [])]
 
 
-def destination_ok(tests_text):
-    """Exactly one device, and it is a Mac of arm64 (this Mac or the VM; Claude v2 C-4)."""
+def destination_ok(tests_text, summary_text=None):
+    """Exactly one device, and it is a Mac of arm64 (this Mac or the VM; Claude v2 C-4); a missing platform or
+    architecture is not a Mac (Codex v3 B-2). With the summary, its devices name the same device."""
     devices = json.loads(tests_text).get("devices", [])
     if len(devices) != 1 or not isinstance(devices[0], dict):
         return False
     device = devices[0]
-    return device.get("platform", "macOS") == "macOS" and device.get("architecture", "arm64") == "arm64"
+    if device.get("platform") != "macOS" or device.get("architecture") != "arm64" or not device.get("deviceId"):
+        return False
+    if summary_text is not None:
+        try:
+            configured = [c.get("device", {}).get("deviceId") for c in json.loads(summary_text).get("devicesAndConfigurations", [])]
+        except (ValueError, AttributeError):
+            return False
+        if configured and configured != [device["deviceId"]]:
+            return False
+    return True
 
 
 def summary_problems(summary_text, cases):
@@ -1903,7 +1915,7 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
         pseudo("noResult")
         return [public_record(r) for r in records], True
     cases, devices = parse_xcresult_tests(tests_text)
-    if not destination_ok(tests_text):
+    if not destination_ok(tests_text, summary_text):
         pseudo("destination")  # one run is one Mac (this one or the VM); more, none, or not a Mac is not this run
     if not cases:
         pseudo("zeroTests")
@@ -2014,7 +2026,7 @@ def unit_records(target, tests_text, exit_code, vocabulary, expected=None, summa
         return [public_record({"test": f"{target}#noResult", "result": "failed", "codes": ["NTK-RUNNER:noResult"]})]
     cases, _ = parse_xcresult_tests(tests_text)
     records, problems = [], []
-    if not destination_ok(tests_text):
+    if not destination_ok(tests_text, summary_text):
         problems.append("destination")
     if summary_text is not None and summary_problems(summary_text, cases):
         problems.append("summary")
@@ -2256,20 +2268,23 @@ def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
         root = str(marker["root"])
         writers = list(marker.get("writers", []))
     except (KeyError, TypeError, ValueError, AttributeError):
-        return {"removeOnly": False, "signal": [], "group": None, "refuse": "malformed marker"}
+        return {"removeOnly": False, "signal": [], "group": None, "refuse": "malformed marker", "unverified": []}
     if folder is not None and (os.path.realpath(folder) != root or
                                not os.path.basename(root).startswith(RUN_FOLDER_PREFIX)):
-        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker names another folder"}
+        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker names another folder",
+                "unverified": []}
     if boot < boottime_now:
-        return {"removeOnly": True, "signal": [], "group": None, "refuse": None}
+        return {"removeOnly": True, "signal": [], "group": None, "refuse": None, "unverified": []}
     if boot > boottime_now:
-        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker's boot time is later than now"}
+        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker's boot time is later than now",
+                "unverified": []}
 
     def matches(p, w):
         return p.get("pid") == w.get("pid") and p.get("start") == w.get("start") and p.get("exe") == w.get("exe") \
             and p.get("exe") is not None
 
     alive = []
+    unverified = []
     for p in processes:
         if any(matches(p, w) for w in writers):
             alive.append(p)
@@ -2283,17 +2298,14 @@ def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
         members_ok = bool(members) and all(
             _under(p.get("exe"), root) or any(_under(p.get("exe"), t) for t in tool_roots) for p in members)
         leader_ok = len(leader) == 1 and any(matches(leader[0], w) for w in writers)
-        # After the leader ended (TERM), the rest of its group: only while every member is a tool or this
-        # run's own build and started after the marker, so a group number taken by something else is never
-        # one of ours (Claude v2 C-1).
-        orphaned_ok = not leader and all(isinstance(p.get("start"), (int, float)) and p["start"] >= created
-                                          for p in members)
-        if members_ok and (leader_ok or orphaned_ok):
+        if members_ok and leader_ok:
             group = pgid
-            for p in members:
-                if p not in alive:
-                    alive.append(p)
-    return {"removeOnly": not alive, "signal": sorted(p["pid"] for p in alive), "group": group, "refuse": None}
+        elif not leader and members:
+            # A group whose leader is gone cannot be shown to be this run's by the three-way match: its
+            # members are never signalled; they are reported and the folder stays (review v3: Codex A-2).
+            unverified = sorted(p["pid"] for p in members if p not in alive)
+    return {"removeOnly": not alive and not unverified, "signal": sorted(p["pid"] for p in alive), "group": group,
+            "refuse": None, "unverified": unverified}
 
 
 MARKER_NAME = "ntk-run-marker.json"
@@ -2345,21 +2357,38 @@ class OsPort:
         return time.time()
 
 
-def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0):
+def _identity(process):
+    return (process.get("pid"), process.get("start"), _mark(process.get("exe")))
+
+
+def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0, approved=None):
     """Stops the writers of a run folder: TERM, wait, KILL, wait. The plan is made again right before
-    each signal from the process list of that moment (PID, start time and real executable, and the
-    group's members), so a PID that ended and was reused in between is never signalled (Codex A-5).
-    Returns None when no writer is left, or the reason the folder must stay."""
+    each signal from the process list of that moment (PID, start time and real executable), so a PID that
+    ended and was reused in between is never signalled (Codex A-5, v2 A-2). With `approved` (the
+    identities a stopped run's approval listed), only those are signalled, one by one, and a process
+    that is not among them stops the cleanup instead (review v3: Codex B-1). Returns None when no writer
+    is left, or the reason the folder must stay; processes of a group whose leader is gone are never
+    signalled and keep the folder (Codex v3 A-2)."""
+    allowed = None if approved is None else {tuple(a) for a in approved}
+
     def fresh():
         return stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
+
+    def outsider(plan):
+        if allowed is None:
+            return False
+        current = {p["pid"]: p for p in port.processes()}
+        return any(pid in current and _identity(current[pid]) not in allowed for pid in plan["signal"])
 
     for number, wait in ((15, term_wait), (9, kill_wait)):
         plan = fresh()
         if plan["refuse"]:
             return plan["refuse"]
         if not plan["signal"]:
-            return None
-        if plan["group"] is not None:
+            break
+        if outsider(plan):
+            return "a process the approval did not list belongs to the stopped run; plan and ask again"
+        if plan["group"] is not None and allowed is None:
             port.signal_group(plan["group"], number)
         # Each process is checked again right before its own signal (review v2: Codex A-2): one that ended
         # with the group, or whose number was taken meanwhile, is no longer in the fresh plan.
@@ -2367,18 +2396,27 @@ def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0
             current = fresh()
             if current["refuse"]:
                 return current["refuse"]
-            if pid in current["signal"]:
+            if pid in current["signal"] and not outsider({"signal": [pid]}):
                 port.signal(pid, number)
         deadline = port.now() + wait
         while port.now() < deadline:
-            if not stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)["signal"]:
-                return None
+            if not fresh()["signal"]:
+                break
             port.sleep(0.5)
-    plan = stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
-    return plan["refuse"] or ("writers are still running" if plan["signal"] else None)
+        else:
+            continue
+        break
+    plan = fresh()
+    if plan["refuse"]:
+        return plan["refuse"]
+    if plan["signal"]:
+        return "writers are still running"
+    if plan["unverified"]:
+        return "processes of the run's xcodebuild group are left whose identity cannot be shown; nothing was signalled"
+    return None
 
 
-def clean_run_folder(folder, port, tool_roots, read_marker):
+def clean_run_folder(folder, port, tool_roots, read_marker, approved_entry=None):
     """A run folder of this Mac (a stopped one, or the current one at its end): its marker must be
     there and name it; its writers are stopped and found gone; then its fixture and the folder go.
     Returns None, or the reason nothing was removed (Codex A-6: a folder without a readable marker
@@ -2389,7 +2427,13 @@ def clean_run_folder(folder, port, tool_roots, read_marker):
         return "the run folder has no readable marker"
     if not isinstance(marker, dict):
         return "the run folder has no readable marker"
-    problem = stop_writers(marker, folder, port, tool_roots)
+    approved = None
+    if approved_entry is not None:
+        # The marker is the one the approval saw (review v3: Codex B-1).
+        if sha256_bytes(json.dumps(marker, sort_keys=True).encode())[:16] != approved_entry.get("marker"):
+            return "the stopped run's marker changed after the approval"
+        approved = [(w.get("pid"), w.get("start"), w.get("exe")) for w in approved_entry.get("writers", [])]
+    problem = stop_writers(marker, folder, port, tool_roots, approved=approved)
     if problem:
         return problem
     for app in RUN_APPS:
@@ -2559,7 +2603,8 @@ def baseline_name(where, os_version):
     return f"test_mac.baseline.{where}-{os_version}.json"
 
 
-def compare_with_baseline(current, baseline_results, in_scope, current_excluded=None, baseline_excluded=None):
+def compare_with_baseline(current, baseline_results, in_scope, current_excluded=None, baseline_excluded=None,
+                          current_runs=None, baseline_runs=None, baseline_totals=None):
     """(report lines, lost tests). changed / added / removed of the results, and the excluded set and
     reasons that changed (shown for review, never hidden: 6.3 "基準の条件"). A test of this run's
     scope that passed in the baseline and now skipped or did not run is lost coverage."""
@@ -2587,8 +2632,25 @@ def compare_with_baseline(current, baseline_results, in_scope, current_excluded=
             if current_excluded.get(t) != baseline_excluded.get(t):
                 excluded_changes.append(t)
                 lines.append(f"  EXCLUDED {t}: {baseline_excluded.get(t, '-')} -> {current_excluded.get(t, '-')}")
+    # The expanded runs of parameterized tests (review v3: Codex A-3): fewer runs of a test is lost coverage
+    # even when its key and result are the same; without per-test numbers in an older baseline, the totals
+    # per target are compared.
+    shrunk = 0
+    if current_runs is not None:
+        if baseline_runs:
+            for t in sorted(set(current_runs) & set(baseline_runs)):
+                if current_runs[t] < baseline_runs[t]:
+                    shrunk += 1
+                    lost.append(t)
+                    lines.append(f"  RUNS {t}: {baseline_runs[t]} -> {current_runs[t]}")
+        for target, total in sorted((baseline_totals or {}).items()):
+            now = sum(n for t, n in current_runs.items() if t.split("/", 1)[0] == target)
+            if any(t.split("/", 1)[0] == target for t in current_runs) and now < total:
+                shrunk += 1
+                lost.append(f"{target}#expandedRuns")
+                lines.append(f"  RUNS {target} (all): {total} -> {now}")
     header = (f"changed={len(changed)}, added={len(added)}, removed={len(removed) - out_of_scope}, "
-              f"outside this run={out_of_scope}, excluded changed={len(excluded_changes)}")
+              f"outside this run={out_of_scope}, excluded changed={len(excluded_changes)}, fewer runs={shrunk}")
     return [header] + lines, sorted(set(lost))
 
 
@@ -2609,8 +2671,14 @@ def in_run_scope(test, plan):
     return plan["feature"] is None or feature in (plan["feature"], COMMON_FEATURE)
 
 
-def baseline_counts(results):
+def baseline_counts(results, runs=None):
+    """Per target (UI tests per feature): the outcomes of the test keys, and for unit tests the expanded
+    runs too (`runs`; review v3: Codex A-3)."""
     counts = {}
+    for test, n in (runs or {}).items():
+        target = test.split("/", 1)[0]
+        bucket = counts.setdefault(target, {})
+        bucket["runs"] = bucket.get("runs", 0) + n
     for test, outcome in results.items():
         target = test.split("/", 1)[0].split("#", 1)[0]
         if target == UI_TARGET and "/" in test:
@@ -2709,7 +2777,8 @@ def make_baseline(env, plan, results, durations, created, runs=None, runner_file
         "source": {"head": plan["head"], "macTree": plan["macTree"], "declarations": plan["declarationsHash"],
                    "tables": plan["tablesHash"], "audit": plan["auditHash"], "runnerFiles": dict(runner_files or {})},
         "eligible": eligible, "executed": executed, "excluded": excluded,
-        "counts": baseline_counts(results), "results": dict(sorted(results.items())),
+        "counts": baseline_counts(results, runs), "results": dict(sorted(results.items())),
+        "runs": dict(sorted((runs or {}).items())),
         "seconds": dict(sorted(durations.items())),
         "expandedRuns": {t: sum(n for k, n in (runs or {}).items() if k.split("/", 1)[0] == t) for t in UNIT_TARGETS
                          if any(k.split("/", 1)[0] == t for k in (runs or {}))},
@@ -2729,8 +2798,10 @@ HAPPENINGS = {
     None: ["The sample app (MacLibraryExample) comes to the front again and again; keep hands off the mouse "
            "and keyboard for the whole run",
            "XCUITest records the screen while the tests run. The runner keeps its DerivedData and result bundles "
-           "in a private temporary folder and deletes it at the end; that Xcode leaves nothing elsewhere is not "
-           "confirmed yet",
+           "in a private temporary folder (xcodebuild's TMPDIR too) and deletes it at the end; that Xcode leaves "
+           "nothing elsewhere is not confirmed yet: the run counts the new names in $TMPDIR before and after",
+           "Every run of the runner, this --dry-run too, first removes the runner's own private temporary folders "
+           "that an earlier run killed without its cleanup left behind (their owner is no longer running)",
            "The runner registers its own build of the sample with LaunchServices and removes that registration "
            "at the end"],
     "notification": ["Notifications of the sample appear and play their sound; the sample's notifications are "
@@ -2823,13 +2894,17 @@ def _write_json(path, value):
     pathlib.Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-_ABSOLUTE_PATH = re.compile(r"(?<![\w.])/(?:[^\s'\"():,;]+/)*[^\s'\"():,;]*")
+_PATH_START = re.compile(r"(^|[^A-Za-z0-9._-])(/|~/)")
+WITHHELD = "NTK-RUNNER:withheld (a message that named a place was not shown)"
 
 
 def public_message(text):
-    """A message as it may be shown: every absolute path replaced by <path> (review v2: Codex B-6,
-    Claude C-9). The places stay in the private folders."""
-    return _ABSOLUTE_PATH.sub("<path>", str(text))
+    """A message as it may be shown (review v3: Codex A-5). The runner's messages are built from fixed
+    words, counts and public names, never places; a message that still holds anything that starts like an
+    absolute path is not shown at all, only the fixed code `WITHHELD` (nothing of it is cut out and kept,
+    so no part of a place, a name with spaces say, can come through)."""
+    text = str(text)
+    return WITHHELD if _PATH_START.search(text) else text
 
 
 def _say(text):
@@ -3261,13 +3336,15 @@ def _processes():
     """[{"pid", "pgid", "start", "exe"}] of this Mac (read only: ps and proc_pidpath)."""
     import ctypes
     libproc = ctypes.CDLL("/usr/lib/libproc.dylib")
-    out = subprocess.run(["/bin/ps", "-axo", "pid=,pgid=,lstart="], capture_output=True, text=True,
+    out = subprocess.run(["/bin/ps", "-axo", "pid=,pgid=,ppid=,lstart="], capture_output=True, text=True,
                          env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"}).stdout
     processes = []
     for line in out.splitlines():
-        parts = line.split(None, 2)
-        if len(parts) != 3:
+        parts = line.split(None, 3)
+        if len(parts) != 4:
             continue
+        ppid = int(parts[2])
+        parts = [parts[0], parts[1], parts[3]]
         try:
             start = int(time.mktime(time.strptime(parts[2].strip(), "%a %b %d %H:%M:%S %Y")))
         except ValueError:
@@ -3276,8 +3353,38 @@ def _processes():
         exe = None
         if libproc.proc_pidpath(int(parts[0]), buf, 4096) > 0:
             exe = os.path.realpath(buf.value.decode(errors="replace"))
-        processes.append({"pid": int(parts[0]), "pgid": int(parts[1]), "start": start, "exe": exe})
+        processes.append({"pid": int(parts[0]), "pgid": int(parts[1]), "ppid": ppid, "start": start, "exe": exe})
     return processes
+
+
+def own_child(pid, parent, exe_name, processes):
+    """Whether the process of that number is now the parent's own child running `exe_name` (the shell's
+    background perl): only then may the shell signal it (review v3: Codex A-1)."""
+    found = [p for p in processes if p.get("pid") == pid]
+    return len(found) == 1 and found[0].get("ppid") == parent and \
+        exe_name in os.path.basename(str(found[0].get("exe") or ""))
+
+
+def cmd_own_child(args):
+    return 0 if own_child(args.pid, args.parent, args.exe_name, _processes()) else 1
+
+
+def tmp_new_names(before, after):
+    """The names in $TMPDIR that a run added, its own folders aside (counted, never listed)."""
+    return sorted(n for n in set(after) - set(before)
+                  if not n.startswith((RUN_FOLDER_PREFIX, PRIVATE_PREFIX, STAGING_PREFIX)))
+
+
+def cmd_tmp_names(args):
+    """Names only, never contents. `--out`: the names before the run (written into the private folder).
+    `--compare`: how many new names the run left (review v3: Claude B-1)."""
+    names = sorted(os.listdir(args.dir))
+    if args.out:
+        _write_json(args.out, names)
+        return 0
+    added = tmp_new_names(json.loads(_read(args.compare)), names)
+    print(f"[tmp] {len(added)} new name(s) in $TMPDIR during the run" + (" (look at them before the next run)" if added else ""))
+    return 0
 
 
 def _boottime():
@@ -3422,8 +3529,12 @@ def cmd_stale(args):
     problems += stale_changes(plan.get("stale"), listing)
     if problems:
         return _fail("NTK-STALE:changed the stopped runs or the approval differ; plan and ask again")
+    by_folder = {e.get("folder"): e for e in plan.get("stale") or [] if isinstance(e, dict)}
     for folder in folders:
-        problem = clean_run_folder(folder, port, tools, _read_marker)
+        entry = by_folder.get(_mark(os.path.realpath(folder)))
+        if entry is None:
+            return _fail("NTK-STALE:changed a stopped run folder that was not approved")
+        problem = clean_run_folder(folder, port, tools, _read_marker, entry)
         if problem:
             return _fail(f"NTK-STALE:alive a stopped run's folder stays ({problem})")
         print("[stale] a stopped run's folder was removed")
@@ -3468,18 +3579,29 @@ def cmd_stop_current(args):
     return 0
 
 
-def make_run_folder(scan_root, run_id, approval_id, boottime, now):
-    """The private run folder and its marker in one step, so no folder is ever left without a marker
-    (Claude v2 B-3). The marker names the approval the run consumed."""
+STAGING_PREFIX = "ntk-test-mac-staging."
+
+
+def make_run_folder(scan_root, run_id, approval_id, boottime, now, copies=None):
+    """The private run folder, complete before it exists under its name (review v3: Codex B-3): a staging
+    folder (another prefix) gets the marker naming the consumed approval, the copies of the plan and the
+    approval (read only), and the folder for xcodebuild's TMPDIR; then one rename gives it the run-folder
+    name. A run killed before the rename leaves only a staging folder, which `private --clean` removes."""
     if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}", run_id) or not APPROVAL_ID.match(approval_id):
         raise RunnerError("malformed run ID or approval ID")
-    root = os.path.realpath(tempfile.mkdtemp(prefix=RUN_FOLDER_PREFIX, dir=scan_root))
+    staging = os.path.realpath(tempfile.mkdtemp(prefix=STAGING_PREFIX, dir=scan_root))
+    root = os.path.join(os.path.dirname(staging), RUN_FOLDER_PREFIX + os.path.basename(staging)[len(STAGING_PREFIX):])
+    if os.path.lexists(root):
+        raise RunnerError("the run folder name is taken")
     marker = {"schema": 1, "runId": run_id, "approvalId": approval_id, "boottime": boottime, "created": now,
               "root": root, "writers": [], "pgid": None}
-    path = pathlib.Path(root) / MARKER_NAME
-    tmp = path.with_suffix(".tmp")
-    _write_json(tmp, marker)
-    os.replace(tmp, path)
+    _write_json(pathlib.Path(staging) / MARKER_NAME, marker)
+    os.mkdir(os.path.join(staging, "tmp"), 0o700)
+    for name, source in (copies or {}).items():
+        target = os.path.join(staging, name)
+        shutil.copyfile(source, target)
+        os.chmod(target, 0o444)
+    os.rename(staging, root)
     return root
 
 
@@ -3488,7 +3610,10 @@ def cmd_make_run_folder(args):
     ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
     if approval.get("approvalId") not in ledger_ids(ledger.read_text(encoding="utf-8") if ledger.exists() else ""):
         return _fail("the approval was not consumed; no run folder")
-    print(make_run_folder(args.scan_root, args.run_id, approval["approvalId"], _boottime(), time.time()))
+    copies = {"approval.approved.json": args.approved}
+    if args.plan:
+        copies["plan.approved.json"] = args.plan
+    print(make_run_folder(args.scan_root, args.run_id, approval["approvalId"], _boottime(), time.time(), copies))
     return 0
 
 
@@ -3513,8 +3638,9 @@ def orphaned_private_folders(folders, owners, processes, now, grace=120.0):
 
 
 def cmd_private(args):
-    """`--own <pid>`: record the runner's shell as the owner of its private folder. `--clean`: remove the
-    private folders of earlier runs of this user that their owner left behind."""
+    """`--own <pid>`: record the runner's shell as the owner of its private folder. Otherwise: remove the
+    private folders of earlier runs of this user that their owner left behind, and run folders a run killed
+    before it renamed them (staging folders; no owner, older than the grace)."""
     if args.own is not None:
         found = [p for p in _processes() if p["pid"] == args.own]
         if len(found) != 1:
@@ -3523,7 +3649,8 @@ def cmd_private(args):
         return 0
     folders, owners = [], {}
     current = os.path.realpath(args.dir) if args.dir else None
-    for folder in sorted(pathlib.Path(args.scan_root).glob(PRIVATE_PREFIX + "*")):
+    scan = pathlib.Path(args.scan_root)
+    for folder in sorted(list(scan.glob(PRIVATE_PREFIX + "*")) + list(scan.glob(STAGING_PREFIX + "*"))):
         if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid() \
                 or os.path.realpath(folder) == current:
             continue
@@ -3644,18 +3771,22 @@ def cmd_summary(args):
         baseline = json.loads(_read(compare_path))
         in_scope = {t for t in baseline["results"] if in_run_scope(t, plan)}
         lines, lost = compare_with_baseline(current, baseline["results"], in_scope, excluded_now,
-                                            baseline.get("excluded", {}) if plan["feature"] is None else None)
+                                            baseline.get("excluded", {}) if plan["feature"] is None else None,
+                                            *runs_to_compare(results, baseline))
         print(f"[baseline] {compare_path.name}: {lines[0]}")
         for line in lines[1:]:
             print(line)
         if lost:
-            print(f"[baseline] FAILED: {len(lost)} test(s) that passed in the baseline skipped or did not run: {lost}")
+            print(f"[baseline] FAILED: {len(lost)} test(s) that passed in the baseline skipped, did not run or ran "
+                  f"fewer arguments: {lost}")
     else:
         print(f"[baseline] none ({baseline_path.name})")
     failed = failed or bool(lost)
     if args.save_baseline:
         executed = [t.split("/", 1)[1] for t in current if t.startswith(UI_TARGET + "/")]
         refusal = baseline_refusal(env, plan, failed, bool(git_mac_changes(args.repo)), executed, lost)
+        if refusal is None and snapshot_changed(args.repo, plan):
+            refusal = "mac/ or HEAD changed after the run was planned (review v3: Codex A-4)"
         if refusal:
             print(f"[baseline] not saved: {refusal}")
             return 1
@@ -3668,12 +3799,27 @@ def cmd_summary(args):
             os.replace(baseline_path, dated)
             print(f"[baseline] the previous baseline is kept as {dated.name}")
         created = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-        runs = {r["test"]: r.get("runs", 1) for r in results if "#" not in r["test"] and
-                r["test"].split("/", 1)[0] in UNIT_TARGETS}
-        _write_json(baseline_path, make_baseline(env, plan, current, durations, created, runs,
+        _write_json(baseline_path, make_baseline(env, plan, current, durations, created, unit_runs(results),
                                                  runner_file_hashes(args.repo)))
         print(f"[baseline] saved {baseline_path.name}")
     return 1 if failed else 0
+
+
+def unit_runs(results):
+    """{unit test: its expanded runs} of the records (review v3: Codex A-3)."""
+    return {r["test"]: r.get("runs", 1) for r in results
+            if "#" not in r["test"] and r["test"].split("/", 1)[0] in UNIT_TARGETS}
+
+
+def runs_to_compare(results, baseline):
+    """(this run's runs, the baseline's per-test runs, the baseline's totals per target): the totals only
+    for an older baseline without per-test numbers."""
+    return unit_runs(results), baseline.get("runs"), ({} if baseline.get("runs") else baseline.get("expandedRuns", {}))
+
+
+def snapshot_changed(repo, plan):
+    """Whether mac/ or HEAD is no longer what the run was planned and built from (review v3: Codex A-4)."""
+    return tree_hash(repo, ["mac"]) != plan["macTree"] or _head(repo) != plan["head"]
 
 
 def latest_baseline(baseline_dir, where):
@@ -3868,10 +4014,23 @@ def main(argv=None):
 
     p = sub.add_parser("make-run-folder")
     p.add_argument("--scan-root", required=True)
+    p.add_argument("--plan")
     p.add_argument("--run-id", required=True)
     p.add_argument("--approved", required=True)
     p.add_argument("--ledger-for-self-test", help=argparse.SUPPRESS)
     p.set_defaults(func=cmd_make_run_folder)
+
+    p = sub.add_parser("own-child")
+    p.add_argument("--pid", type=int, required=True)
+    p.add_argument("--parent", type=int, required=True)
+    p.add_argument("--exe-name", required=True)
+    p.set_defaults(func=cmd_own_child)
+
+    p = sub.add_parser("tmp-names")
+    p.add_argument("--dir", required=True)
+    p.add_argument("--out")
+    p.add_argument("--compare")
+    p.set_defaults(func=cmd_tmp_names)
 
     p = sub.add_parser("private")
     p.add_argument("--scan-root", default="")

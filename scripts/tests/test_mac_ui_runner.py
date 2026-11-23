@@ -65,6 +65,10 @@ def _prelude_copy(path):
             text = f.read()
     except OSError:
         return False
+    code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    # Nothing destructive may be in it either, whatever moved in the script (review v3: Claude C-6).
+    if re.search(r"\b(rm|pkill|killall|kill|defaults|lsregister|tart|ssh)\b", code):
+        return False
     return "PRELUDE-PASSED" in text and "in_vm_main" not in text and "vm_clean" not in text \
         and os.path.realpath(path) != _REAL_SCRIPT
 
@@ -560,12 +564,15 @@ class OutputBoundary(unittest.TestCase):
         self.assertTrue(r.public_record(dict(good, codes=["NTK-PRECONDITION:notAuthorized", "NTK-RUNNER:noResult"])))
 
     def test_messages_show_no_paths(self):
-        text = r.public_message("the bundled copy differs: /Users/someone/Library/x/DeviceRequirements.json; git: "
-                                "fatal: '/private/var/folders/a b/x' and ./relative and <home>")
-        self.assertNotIn("/Users", text)
-        self.assertNotIn("/private", text)
-        self.assertIn("<path>", text)
-        self.assertIn("./relative", text)
+        for raw in ("the bundled copy differs: /Users/Alice Smith/private (copy)/x.json",
+                    "fatal: '/private/var/folders/a b/x' failed", "see ~/Library/Logs/Alice Smith.log",
+                    "/Users/Alice Smith/start", "copy at </Users/Alice Smith/x>", "`~/Alice Smith`", "a|/Users/x"):
+            text = r.public_message(raw)
+            self.assertEqual(text, r.WITHHELD, raw)  # a fixed code, nothing cut out of the message
+            for fragment in ("Users", "Alice", "Smith", "private", "folders", "Library", "start", "(copy)"):
+                self.assertNotIn(fragment, text, raw)
+        kept = "Support/SampleApp.swift:12: MacLibraryTests/DetectionUseCaseTests and ./relative, 3 problem(s)"
+        self.assertEqual(r.public_message(kept), kept)
 
     def test_the_step_vocabulary_comes_from_the_trusted_file(self):
         self.assertIn("overlay", VOCABULARY)
@@ -581,7 +588,7 @@ def case(node, result, children=(), seconds=1.0):
 
 
 def tests_json(cases, bundle="MacLibraryExampleUITests"):
-    return json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [
+    return json.dumps({"devices": [{"deviceId": "x", "platform": "macOS", "architecture": "arm64"}], "testNodes": [
         {"nodeType": "Test Plan", "children": [{"nodeType": "UI test bundle", "name": bundle, "children": [
             {"nodeType": "Test Suite", "children": list(cases)}]}]}]})
 
@@ -681,7 +688,7 @@ class Results(unittest.TestCase):
 
     def test_unit_shapes_and_folded_names(self):
         def unit(cases):
-            return json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [{"nodeType": "Unit test bundle",
+            return json.dumps({"devices": [{"deviceId": "x", "platform": "macOS", "architecture": "arm64"}], "testNodes": [{"nodeType": "Unit test bundle",
                                                                               "name": "MacLibraryTests", "children": cases}]})
         records = r.unit_records("MacLibraryTests", unit([case("S/t()", "Passed", [{"nodeType": "Repetition"}])]), 0,
                                  VOCABULARY)
@@ -701,7 +708,7 @@ class Results(unittest.TestCase):
                       [x["test"] for x in r.unit_records("MacLibraryTests", text, 0, VOCABULARY, summary_text='{"totalTestCount": 1}')])
 
         def unit(cases, bundle="MacLibraryTests"):
-            return json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [
+            return json.dumps({"devices": [{"deviceId": "x", "platform": "macOS", "architecture": "arm64"}], "testNodes": [
                 {"nodeType": "Unit test bundle", "name": bundle, "children": cases}]})
         failed_argument = case("S/t(a:)", "Passed", [{"nodeType": "Arguments", "name": "1", "result": "Failed"}])
         self.assertIn("MacLibraryTests#summary", [x["test"] for x in r.unit_records("MacLibraryTests", unit([failed_argument]), 0, VOCABULARY)])
@@ -726,8 +733,19 @@ class Results(unittest.TestCase):
             self.assertTrue(stop)
             self.assertTrue(any(x["test"].endswith("#destination") for x in records))
 
+    def test_a_destination_without_its_platform_or_another_in_the_summary(self):
+        mac = {"deviceId": "x", "platform": "macOS", "architecture": "arm64"}
+        self.assertTrue(r.destination_ok(json.dumps({"devices": [mac]})))
+        for device in ({}, {"deviceId": "x"}, {"deviceId": "x", "platform": "macOS"},
+                       {"deviceId": "x", "architecture": "arm64"}, dict(mac, deviceId="")):
+            self.assertFalse(r.destination_ok(json.dumps({"devices": [device]})), device)  # Codex v3 B-2
+        summary = {"devicesAndConfigurations": [{"device": {"deviceId": "y"}}]}
+        self.assertFalse(r.destination_ok(json.dumps({"devices": [mac]}), json.dumps(summary)))
+        summary = {"devicesAndConfigurations": [{"device": {"deviceId": "x"}}]}
+        self.assertTrue(r.destination_ok(json.dumps({"devices": [mac]}), json.dumps(summary)))
+
     def test_argument_values_never_leave(self):
-        tests = json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests", "children": [
+        tests = json.dumps({"devices": [{"deviceId": "x", "platform": "macOS", "architecture": "arm64"}], "testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests", "children": [
             case("Suite/check(value:)", "Passed", [{"nodeType": "Arguments", "name": "/Users/x/secret", "result": "Passed"},
                                                    {"nodeType": "Arguments", "name": "2", "result": "Passed"}])]}]})
         records = r.unit_records("MacLibraryTests", tests, 0, VOCABULARY)
@@ -890,19 +908,49 @@ class Stopping(unittest.TestCase):
         self.assertNotIn(("signal", 301, 15), port.log)
         self.assertIn(("signal", 300, 15), port.log)
 
-    def test_the_group_left_by_its_leader_is_still_stopped(self):
-        # TERM ended the leader 300; a tool of its group (not a writer, not under the folder) remains.
+    def test_a_group_left_by_its_leader_is_never_signalled(self):
+        # TERM ended the leader 300; a tool of its group (not a writer, not under the folder) remains. Its
+        # identity cannot be shown, so nothing is sent to it and the folder stays (review v3: Codex A-2).
         tool = {"pid": 302, "pgid": 300, "start": 5002, "exe": self.XCODE + "/Developer/usr/bin/xctest"}
         port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}, tool],
-                        on_term=lambda p, pid: p.drop(pid) if pid == 300 else None,
-                        on_group=lambda p, pgid, n: p.drop(300) if n == 15 else p.table.clear())
-        self.assertIsNone(r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE], term_wait=2, kill_wait=2))
-        self.assertIn(("group", 300, 9), port.log)
-        # A group whose number was taken by others (not tools, or started before the marker) is never signalled.
-        strangers = [{"pid": 400, "pgid": 300, "start": 9000, "exe": "/Applications/Safari.app/Contents/MacOS/Safari"}]
-        self.assertIsNone(r.stale_plan(self.marker(), 1000, strangers, [self.XCODE], self.ROOT_DIR)["group"])
-        early = [{"pid": 400, "pgid": 300, "start": 10, "exe": self.XCODE + "/Developer/usr/bin/xctest"}]
-        self.assertIsNone(r.stale_plan(self.marker(), 1000, early, [self.XCODE], self.ROOT_DIR)["group"])
+                        on_group=lambda p, pgid, n: p.drop(300))
+        problem = r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE], term_wait=2, kill_wait=2)
+        self.assertIn("identity cannot be shown", problem)
+        self.assertNotIn(("group", 300, 9), port.log)
+        self.assertNotIn(("signal", 302, 15), port.log)
+        self.assertNotIn(("signal", 302, 9), port.log)
+        # The counterexample: a newer Xcode tool in a group number taken by another job is not adopted.
+        reused = [{"pid": 400, "pgid": 300, "start": 9000, "exe": self.XCODE + "/Developer/usr/bin/xctest"}]
+        plan = r.stale_plan(self.marker(), 1000, reused, [self.XCODE], self.ROOT_DIR)
+        self.assertEqual((plan["group"], plan["signal"], plan["unverified"]), (None, [], [400]))
+
+    def test_only_the_approved_processes_of_a_stopped_run(self):
+        sample = {"pid": 301, "pgid": 300, "start": 5003, "exe": self.SAMPLE}
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}, sample],
+                        on_term=lambda p, pid: p.drop(pid))
+        approved = r.stale_listing([self.ROOT_DIR], port, [self.XCODE], lambda f: self.marker())[0]
+        self.assertIsNone(r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], lambda f: self.marker(), approved))
+        self.assertNotIn("group", [e[0] for e in port.log])  # one by one, never the group
+        # A sample woken after the check is not in the approval: nothing is sent, the folder stays.
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}, sample,
+                         {"pid": 305, "pgid": 305, "start": 5050, "exe": self.SAMPLE}], on_term=lambda p, pid: p.drop(pid))
+        problem = r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], lambda f: self.marker(), approved)
+        self.assertIsNotNone(problem)
+        self.assertFalse([e for e in port.log if e[0] in ("signal", "group", "remove")])
+        # A marker changed after the approval keeps the folder too.
+        port = FakePort([])
+        changed = dict(self.marker(), runId="20261123T000009Z-abcdef")
+        self.assertIsNotNone(r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], lambda f: changed, approved))
+        self.assertEqual(port.log, [])
+
+    def test_the_shells_own_child_only(self):
+        processes = [{"pid": 50, "ppid": 10, "exe": "/System/Library/Perl/5.34/perl5.34"},
+                     {"pid": 51, "ppid": 11, "exe": "/usr/bin/perl"},
+                     {"pid": 52, "ppid": 10, "exe": "/System/Applications/Mail.app/Contents/MacOS/Mail"}]
+        self.assertTrue(r.own_child(50, 10, "perl", processes))
+        self.assertFalse(r.own_child(51, 10, "perl", processes))   # another parent: a reused number
+        self.assertFalse(r.own_child(52, 10, "perl", processes))   # our child, but not perl
+        self.assertFalse(r.own_child(53, 10, "perl", processes))   # gone
 
     def test_a_writer_that_never_stops_keeps_the_folder(self):
         port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}], on_kill=lambda p, pid: None)
@@ -965,13 +1013,26 @@ class Stopping(unittest.TestCase):
 
     def test_the_run_folder_comes_with_its_marker(self):
         with tempfile.TemporaryDirectory() as scan:
-            root = r.make_run_folder(scan, "20261123T000000Z-abcdef", "a" * 32, 1000, 5000.0)
+            source = pathlib.Path(scan, "approval-source.json")
+            source.write_text("{}")
+            root = r.make_run_folder(scan, "20261123T000000Z-abcdef", "a" * 32, 1000, 5000.0,
+                                     {"approval.approved.json": str(source)})
+            self.assertFalse(list(pathlib.Path(scan).glob(r.STAGING_PREFIX + "*")))
+            self.assertTrue(pathlib.Path(root, "tmp").is_dir())
+            self.assertEqual(oct(os.stat(pathlib.Path(root, "approval.approved.json")).st_mode & 0o777), "0o444")
             self.assertTrue(os.path.basename(root).startswith(r.RUN_FOLDER_PREFIX))
             marker = json.loads(pathlib.Path(root, r.MARKER_NAME).read_text())
             self.assertEqual((marker["approvalId"], marker["root"]), ("a" * 32, os.path.realpath(root)))
             self.assertEqual(oct(os.stat(root).st_mode & 0o777), "0o700")
             with self.assertRaises(r.RunnerError):
                 r.make_run_folder(scan, "bad", "a" * 32, 1000, 5000.0)
+            # A copy that fails leaves no run folder: the staging folder never got its public name.
+            names = sorted(os.listdir(scan))
+            with self.assertRaises(OSError):
+                r.make_run_folder(scan, "20261123T000001Z-abcdef", "b" * 32, 1000, 5000.0,
+                                  {"approval.approved.json": str(pathlib.Path(scan, "missing.json"))})
+            new = sorted(set(os.listdir(scan)) - set(names))
+            self.assertTrue(all(n.startswith(r.STAGING_PREFIX) for n in new), new)
 
     def test_private_folders_left_by_a_killed_run(self):
         folders = ["/t/ntk-test-mac-private.a", "/t/ntk-test-mac-private.b", "/t/ntk-test-mac-private.c",
@@ -1116,6 +1177,44 @@ class Baseline(unittest.TestCase):
     def test_lost_coverage_by_a_skip(self):
         _, lost = r.compare_with_baseline({"a": "skipped"}, {"a": "passed"}, set())
         self.assertEqual(lost, ["a"])
+
+    def test_fewer_expanded_runs_is_lost_coverage(self):
+        # Same keys and results, one parameterized test ran 2 of its 3 arguments (review v3: Codex A-3).
+        current, baseline = {"MacLibraryTests/S/t(a:)": "passed"}, {"MacLibraryTests/S/t(a:)": "passed"}
+        lines, lost = r.compare_with_baseline(current, baseline, set(baseline), None, None,
+                                              {"MacLibraryTests/S/t(a:)": 2}, {"MacLibraryTests/S/t(a:)": 3})
+        self.assertIn("fewer runs=1", lines[0])
+        self.assertIn("  RUNS MacLibraryTests/S/t(a:): 3 -> 2", lines)
+        self.assertEqual(lost, ["MacLibraryTests/S/t(a:)"])
+        _, lost = r.compare_with_baseline(current, baseline, set(baseline), None, None,
+                                          {"MacLibraryTests/S/t(a:)": 3}, {"MacLibraryTests/S/t(a:)": 3})
+        self.assertEqual(lost, [])
+        # An older baseline without the per-test numbers: the expanded total of the target.
+        lines, lost = r.compare_with_baseline(current, baseline, set(baseline), None, None,
+                                              {"MacLibraryTests/S/t(a:)": 2}, None, {"MacLibraryTests": 3})
+        self.assertIn("  RUNS MacLibraryTests (all): 3 -> 2", lines)
+        self.assertEqual(lost, ["MacLibraryTests#expandedRuns"])
+
+    def test_the_counts_hold_the_declared_and_the_expanded(self):
+        counts = r.baseline_counts({"MacLibraryTests/S/t(a:)": "passed", "MacLibraryTests/S/u()": "passed"},
+                                   {"MacLibraryTests/S/t(a:)": 3, "MacLibraryTests/S/u()": 1})
+        self.assertEqual(counts["MacLibraryTests"], {"passed": 2, "runs": 4})
+
+    def test_the_runs_this_run_compares(self):
+        results = [{"test": "MacLibraryTests/S/t(a:)", "result": "passed", "runs": 3},
+                   {"test": "MacLibraryTests/S/u()", "result": "passed"},
+                   {"test": "MacLibraryTests#summary", "result": "failed"},
+                   {"test": "MacLibraryExampleUITests/DialogUITests/testD1_showDialogOK", "result": "passed"}]
+        runs = {"MacLibraryTests/S/t(a:)": 3, "MacLibraryTests/S/u()": 1}
+        self.assertEqual(r.runs_to_compare(results, {"runs": {"x": 1}, "expandedRuns": {"MacLibraryTests": 4}}),
+                         (runs, {"x": 1}, {}))
+        self.assertEqual(r.runs_to_compare(results, {"expandedRuns": {"MacLibraryTests": 4}}),
+                         (runs, None, {"MacLibraryTests": 4}))
+
+    def test_the_names_a_run_left_in_tmpdir(self):
+        before = ["a", "b"]
+        after = ["a", "b", "c", r.RUN_FOLDER_PREFIX + "x", r.PRIVATE_PREFIX + "y", r.STAGING_PREFIX + "z"]
+        self.assertEqual(r.tmp_new_names(before, after), ["c"])
 
     def test_names(self):
         self.assertEqual(r.baseline_name("vm", "15.8.3"), "test_mac.baseline.vm-15.8.3.json")
@@ -1566,6 +1665,13 @@ class Gate(unittest.TestCase):
         self.assertEqual(r.tree_problems(self.plan, self.repo, self.head), [])
 
 
+    def test_a_baseline_is_saved_only_from_the_planned_tree(self):
+        self.assertFalse(r.snapshot_changed(self.repo, self.plan))
+        (self.repo / "mac" / "a.txt").write_text("changed and committed")
+        git(self.repo, "commit", "-q", "-am", "y")  # clean again, but not the tree the VM built (Codex v3 A-4)
+        self.assertTrue(r.snapshot_changed(self.repo, self.plan))
+
+
 class Commands(unittest.TestCase):
     def test_an_unexpected_error_shows_no_path(self):
         err = io.StringIO()
@@ -1602,9 +1708,13 @@ class PreludeLauncher(unittest.TestCase):
         text = SCRIPT.read_text()
         prelude = text[:text.index("# --- end of the VM prelude ---")]
         sysctl, ioreg = self.dir / "fake-sysctl", self.dir / "fake-ioreg"
-        sysctl.write_text('#!/bin/sh\ncase "$2" in kern.hv_vmm_present) cat "%s/hv";; hw.model) cat "%s/model";; esac\n'
-                          % (self.dir, self.dir))
-        ioreg.write_text('#!/bin/sh\nprintf \'  "IOPlatformUUID" = "%%s"\\n\' "$(cat "%s/uuid")"\n' % self.dir)
+        # Each fact is read once before the restart and once after it; `<fact>.after`, when present, is
+        # what every read after the first returns (review v3: Codex B-4).
+        fact = ('fact() { n=$(cat "%(d)s/$1.count" 2>/dev/null || echo 0); echo $((n + 1)) > "%(d)s/$1.count"; '
+                'if [ "$n" -ge 1 ] && [ -f "%(d)s/$1.after" ]; then cat "%(d)s/$1.after"; else cat "%(d)s/$1"; fi; }\n'
+                % {"d": self.dir})
+        sysctl.write_text('#!/bin/sh\n' + fact + 'case "$2" in kern.hv_vmm_present) fact hv;; hw.model) fact model;; esac\n')
+        ioreg.write_text('#!/bin/sh\n' + fact + 'printf \'  "IOPlatformUUID" = "%s"\\n\' "$(fact uuid)"\n')
         for fake in (sysctl, ioreg):
             fake.chmod(0o700)
         self.facts(hv="1", model="VirtualMac2,1", uuid=self.UUID)
@@ -1651,6 +1761,27 @@ class PreludeLauncher(unittest.TestCase):
             self.assertNotIn("PRELUDE-PASSED", finished.stdout)
             self.facts(hv="1", model="VirtualMac2,1", uuid=self.UUID)
         self.assertEqual(self.run_copy("--in-vm", "clean", "20261123T000000Z-abcdef").returncode, 96)  # no UUID
+
+    def test_each_fact_changed_only_after_the_restart_stops_it(self):
+        args = ("--in-vm", "clean", "20261123T000000Z-abcdef", self.UUID)
+        self.assertEqual(self.run_copy(*args).returncode, 0)
+        for name, after in (("hv", "0"), ("model", "Mac15,6"), ("uuid", "00000000-0000-0000-0000-000000000000")):
+            for f in self.dir.glob("*.count"):
+                f.unlink()
+            (self.dir / (name + ".after")).write_text(after + "\n")
+            finished = self.run_copy(*args)
+            self.assertEqual(finished.returncode, 96, name)
+            self.assertNotIn("PRELUDE-PASSED", finished.stdout)
+            self.assertIn("2", (self.dir / (name + ".count")).read_text(), name)  # read again after the restart
+            (self.dir / (name + ".after")).unlink()
+
+    def test_a_copy_with_anything_destructive_is_never_run(self):
+        for line in ("rm -rf \"$HOME/x\"", "pkill -x Finder", "killall Dock", "kill 1", "defaults write a b c",
+                     "lsregister -u x"):
+            bad = self.dir / "bad.sh"
+            bad.write_text(self.copy.read_text().replace("echo \"PRELUDE-PASSED", line + "\necho \"PRELUDE-PASSED", 1))
+            with self.assertRaises(OsOperationReached, msg=line):
+                subprocess.run(["/bin/bash", str(bad), "--in-vm", "clean", "x", self.UUID], capture_output=True)
 
     def test_the_guard_refuses_the_real_script_with_in_vm(self):
         with self.assertRaises(OsOperationReached):
@@ -1719,10 +1850,14 @@ class ShellOrder(unittest.TestCase):
 
     def test_perl_signals_the_group_only_while_its_leader_is_its_own(self):
         perl = self.text[self.text.index("CAPPED_PERL='"):self.text.index("capped_group() {")]
+        gone = perl[perl.index("my $gone = sub {"):perl.index("};", perl.index("my $gone = sub {"))]
+        self.assertIn("return 1 if $reaped;", gone)
+        self.assertIn("if ($r == $pid || $r == -1) { $reaped = 1; return 1; }", gone)  # Codex v3 A-1, Claude C-3
         stop = perl[perl.index("my $stop = sub {"):perl.index("};", perl.index("my $stop = sub {"))]
-        self.assertLess(stop.index("return if $reaped;"), stop.index('kill "TERM", -$pid;'))
-        self.assertIn('if (waitpid($pid, 1) > 0) { $reaped = 1; return; }', stop)
-        self.assertLess(stop.index("return; }"), stop.index('kill "KILL", -$pid;'))
+        self.assertLess(stop.index("return if $gone->();"), stop.index('kill "TERM", -$pid;'))
+        self.assertIn("for (1..60) { return if $gone->();", stop)
+        kill = stop.index('kill "KILL", -$pid;')
+        self.assertEqual(stop[kill - len("return if $gone->();\n    "):kill], "return if $gone->();\n    ")
         self.assertIn("waitpid($pid, 0); $status = $?; $reaped = 1;", perl)
 
     def test_the_cleanup_stops_writers_before_anything_goes(self):
@@ -1740,12 +1875,34 @@ class ShellOrder(unittest.TestCase):
         self.assertLess(gate.index("runner check-call"), start)
         self.assertIn("|| exit 97", gate[gate.index("runner check-call"):start])
         self.assertIn('/usr/bin/env -i "${environment[@]}"', gate)   # Claude v2 C-2
-        self.assertIn('< /dev/null > "${log}" 2>&1 &\n  local waiter=$!', gate)  # $! is perl (Claude v2 B-1)
+        self.assertIn('< /dev/null > "${log}" 2>&1 &\n  MAC_WAITER=$!', gate)  # $! is perl (Claude v2 B-1)
+        self.assertIn('TMPDIR="${MAC_TMP}/tmp/"', gate)  # Claude v3 B-1
         self.assertNotIn("capped_group", gate)
         self.assertIn('runner marker --root "${MAC_TMP}" --pid', gate)
         self.assertIn('--expect-under "$(cd -P "${MAC_XCODE_DIR}" && pwd -P)"', gate)
-        self.assertIn('kill -TERM "${waiter}"', gate)
-        self.assertIn('fail "the xcodebuild could not be recorded', gate)
+        self.assertNotIn("kill", gate)
+        self.assertIn('    stop_waiter\n    fail "the xcodebuild could not be recorded', gate)
+        stop = function_body(self.text, "stop_waiter")
+        self.assertLess(stop.index('runner own-child --pid "${MAC_WAITER}" --parent "$$" --exe-name perl'),
+                        stop.index('kill -TERM "${MAC_WAITER}"'))
+        self.assertIn('  if runner own-child', stop)
+        cleanup = function_body(self.text, "mac_cleanup")
+        self.assertLess(cleanup.index("stop_waiter"), cleanup.index("runner stop-current"))
+
+    def test_the_vm_builds_the_tree_the_plan_names(self):
+        body = function_body(self.text, "vm_enumeration")
+        self.assertLess(body.index("vm_push"), body.index('"$(vm_op tree-hash "${RUN_ID}")" == "${mac_tree}"'))
+        self.assertLess(body.index('== "${mac_tree}"'), body.index("vm_op clean"))  # before the build (Codex v3 A-4)
+        self.assertIn('git -C "${ROOT_DIR}" rev-parse HEAD)" == "${head}"', body)
+        self.assertEqual(self.text.count('vm_enumeration "${head}" "${mac_tree}"'), 2)
+        self.assertIn('tree-hash) vrunner tree-hash --dir "${RUN_DIR}/src" ;;', self.text)
+
+    def test_tmpdir_names_are_counted_around_the_run(self):
+        body = function_body(self.text, "run_mac")
+        before = body.index('runner tmp-names --dir "${SCAN_ROOT}" --out "${MAC_TMP}/tmp-before.json"')
+        self.assertLess(before, body.index("mac_xcodebuild"))  # Claude v3 B-1
+        self.assertLess(body.rindex("mac_xcodebuild"),
+                        body.index('runner tmp-names --dir "${SCAN_ROOT}" --compare "${MAC_TMP}/tmp-before.json"'))
 
     def test_names_are_read_on_their_own(self):
         body = function_body(self.text, "read_only_testing")

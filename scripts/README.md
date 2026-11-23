@@ -225,7 +225,9 @@ again. The script's VM half (`--in-vm`) restarts itself in an empty environment 
 `kern.hv_vmm_present`, `hw.model` and the qualified VM's UUID say it is that VM; never call it on this Mac.
 On this Mac only the values of design 3.4 leave the run (test keys, results, the `NTK-` codes); the raw
 things (the VM's facts, LaunchServices dumps, DerivedData, result bundles) stay in private temporary
-folders that are removed on every exit, and every xcodebuild is checked to name only paths inside them.
+folders that are removed on every exit (xcodebuild's `TMPDIR` too), and every xcodebuild is checked to
+name only paths inside them. Every run, `--dry-run` too, first removes the runner's own private folders an
+earlier run left when it was killed. A message that still names a place is replaced by a fixed code.
 A run on this Mac needs an approval that is used once and is good for 12 hours
 (`~/Library/Application Support/native-toolkit/test_mac-approvals.log`), and the checks in the VM that
 `MAC_RUN_PREREQUISITES` lists must be recorded first. The hashes of the trusted test files are pinned in
