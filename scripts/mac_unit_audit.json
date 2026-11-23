@@ -4,7 +4,14 @@
   "auditedAt": "2026-11-23",
   "auditedBy": "Claude (stage 0d)",
   "auditedModel": "Claude",
-  "review": null,
+  "review": {
+    "by": "Codex",
+    "model": "Codex",
+    "file": "artifact/topics/macos-c-abi/reviews/2026-11-23-macos-c-abi-unit-audit-review-v2.md",
+    "date": "2026-11-23",
+    "treeHash": "50c3fda00d98bfc548517118d37a034355940f7176a58db96b21bc1fdce99259",
+    "tableDigest": "50d23b41254626b9db0bfb4d68e4591817d408458cad011b5ad164244b013cb6"
+  },
   "treeHash": "50c3fda00d98bfc548517118d37a034355940f7176a58db96b21bc1fdce99259",
   "suites": [
     {
