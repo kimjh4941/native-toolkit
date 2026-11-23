@@ -486,3 +486,23 @@ Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で�
 
 - `FinderFront` の一連のレビュー（Codex v1〜v3）は、v3 で致命的な A が 0 になって閉じた。記録は `reviews/2026-11-23-macos-c-abi-finderfront-review-v1.md`。信頼する部分のハッシュ（`NotificationCenterUI`・`NotificationRules`・`OtherApps`）を取り直し、この Mac の自己テストは 190 件のうち 182 件が通り 8 件が skip（VM の本物の分）
 
+## 18. VM の全件と基準の取り直し（2026-11-24。`4ceaec17` の木）
+
+- `scripts/test_mac.sh --where vm --baseline` を 1 回（run id `20261123T211442Z-49bcad`、06:14〜06:47、約 33 分）。ゲストは前の再起動から 49 分、load average は 0.5〜1.7 で始めた
+- **444/444 passed**。資格の 10 項目、VM の写しの木とランナーの写しの照合、組み立て（警告 0）、列挙（UI 118・選ぶ 113・除く 5）、単体を通った。通知の UI の立て直しは 3 回。`NTK-VM settle calls=45 left-after-15s=0 most=0 longest-wait=0.1s`
+- 前の基準との差: `changed=0, added=0, removed=0, excluded changed=0, fewer runs=0, more runs=0`
+- **基準を取り直した**（コミットしていない）: `source.head` は `4ceaec17`、`runnerFiles` の 3 つはそのコミットのファイルと一致した。前の基準（`d89f9d46` の木）からの変化は `macTree`（Support とテストの直し）と、テストごとの秒（合計 1742 → 1700 秒。最も延びたのは N6 の +4.1 秒）だけで、`results`・`runs`・`counts`・`eligible`/`executed`（113）・宣言・表・監査のハッシュは同じ。ランナーが前の基準を日付つきの名前に移したが、中身はコミット済みのものと同じで git の履歴にあるので消した
+
+## 19. この Mac で流す前に要る 4 項目（`MAC_RUN_PREREQUISITES`）の段取り
+
+どれも、確かめた記録を `artifact/topics/macos-c-abi/results/` に置き、その道を `MAC_RUN_PREREQUISITES` の値に書いて初めて数える（`prerequisite_status`）。一時の試験の道具は VM の写しにだけ置き、コミットしない（0c の合成の窓と同じ扱い）。
+
+| 項目 | どこで | 段取り | 通る条件 |
+|---|---|---|---|
+| `u8MonitorStopsTheTest`（U-8） | VM | 写しだけに一時の試験のクラスを置く。サンプルを前面にした後、別の合成のアプリ（押されたボタンをファイルに書く `NSAlert` だけのアプリ）に無害なアラートを出させ、続けてサンプルのボタンを押す手順にする。7 章の「監視」の変異（監視が押す枝を持つ形）も同じ場面で流す | 監視が来て何も押さず（合成のアプリのクリックの記録が 0）、サンプルを止め、テストが `NTK-STEP:interrupted` / `NTK-INTERRUPTED` で落ちる。押す枝を持つ変異では、合成のアプリにクリックが記録されて区別できる。3 回 |
+| `killDuringRecording`（9.1） | VM | VM の中で、この Mac の道と同じ形（`CAPPED_PERL` に PID のファイル、`settle`、`stop-current` の判定）で本物の UI テスト（長めの Dialog の 1 件）を流し、収録の途中（テストの開始から 5〜10 秒）で親のシェルを `KILL` する。その後、perl が親の居なくなったことで group を止めるか、group の外の書き手（UI テストのランナーのアプリ、サンプル、`testmanagerd`、`VTEncoderXPCService` など）が残るかを libproc の一覧で 30 秒追い、回のフォルダーの判定（`run_processes`）が「動いている」→「消せる」に移る時刻を記録する。消した後 30 秒、結果のバンドルや収録が作り直されないかを見る | 親の KILL の後、30 秒以内に回のものが何も動かなくなり、判定が「消せる」になる。消した後に作り直されない。捉えられない書き手があれば、その名前と止まり方を記録し、片付けの条件に足す（ランナーを直す）。2 回 |
+| `decoyNotificationRoot`（6c、7 章「根（動き）」） | VM | おとりのアプリを作る（別の bundle id。サンプルと同じ題・本文・category と `Open`・`Reply` を持つ通知を出し、`didReceive` と返信の文字をファイルに書く。0a の試作は label が `NtkProbe0a, ` で始まり錨に当たらないので作り直す）。通知のイベントとコールドスタートのクラスの前に、おとりの通知をサンプルの通知より前に並ぶ形と後に並ぶ形の両方で置いて、N20〜N24・NC1〜NC3 を流す。7 章の「根（動き）」「根（焦点と placeholder）」の変異（合成で根の差し替え・焦点の移動を入れる）もここで | おとりへのクリック・`Options` の展開・文字の入力・Return・`didReceive` がすべて 0 で、サンプルのテストは通る。変異ではおとりへの到達が記録されるか、テストが押す前に止まる。前と後の並びをそれぞれ 2 回 |
+| `windowOwnersReadableOn26`（U-30 mac26） | **この Mac**（VM は 15 なので確かめられない） | 許可の要る項目として計画に回す: `--where mac --qualification mac26 --dry-run` で一覧（U-30 の適格性の段）を作り、利用者に 4 つ（一覧、起きること、準備、時刻）を示して許可を得て、区切りの回に 1 回流す。窓の持ち主の PID・枠・層を `CGWindowListCopyWindowInfo` で読めるか、画面の収録の許可が要るか、署名と TCC の引き継ぎ（U-31）を見る | 26 で持ち主と枠が読め、押す前の確かめが働く。読めなければこの Mac では UI テストを流さない（設計 9.1 の 2 行目） |
+
+順は、VM の 3 つ（U-8 → KILL → おとり。どれも合成の道具を先に作る）を先にし、記録がそろってから、この Mac の `mac26` の許可を利用者に頼む。
+
