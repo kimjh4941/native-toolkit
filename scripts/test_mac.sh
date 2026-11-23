@@ -163,6 +163,9 @@ in_vm_main() {
   LOGS="${RUN_DIR}/logs"
   FX="/private/tmp/ntk-uitest-${run_id}"
   STATE="${HOME}/ntk/state"
+  # The result bundles of the VM's failed UI tests, kept until someone has written down what they say;
+  # then they are removed by hand (they hold screenshots of the VM's screen). Never removed by a run.
+  FAILED_KEEP="${HOME}/ntk/failed/${run_id}"
   TESTS_DIR="${SRC}/MacLibraryExample/MacLibraryExampleUITests"
   vrunner() { /usr/bin/python3 "${RUN_DIR}/runner/mac_ui_runner.py" "$@"; }
   mkdir -p "${RES}" "${LOGS}" "${STATE}"
@@ -379,6 +382,11 @@ vm_ui() {
     --tests-dir "${TESTS_DIR}" | tee "${RES}/ui-${index}.records"
   failed=0
   grep -q '"result": "failed"' "${RES}/ui-${index}.records" && failed=1
+  if [[ "${failed}" == 1 && -d "${RES}/ui-${index}.xcresult" ]]; then
+    mkdir -p "${FAILED_KEEP}"
+    cp -R "${RES}/ui-${index}.xcresult" "${FAILED_KEEP}/"
+    cp "${LOGS}/ui-${index}.log" "${FAILED_KEEP}/" 2>/dev/null || true
+  fi
   case "${class}" in
     NotificationPermissionUITests|NotificationUITests|NotificationEventUITests|NotificationColdStartUITests)
       # 6b: a notification test that failed may leave a banner expanded in the list; restart before the next.
@@ -434,6 +442,9 @@ vm_finish() {
     fi
   fi
   [[ -f "${RUN_DIR}/settle.log" ]] && vrunner settle-summary --log "${RUN_DIR}/settle.log"
+  if [[ -d "${FAILED_KEEP}" ]]; then
+    echo "NTK-VM kept $(ls -d "${FAILED_KEEP}"/*.xcresult 2>/dev/null | wc -l | tr -d ' ') failed result bundle(s) under ~/ntk/failed in the VM; remove them once written down"
+  fi
   vm_stop_sample || true
   pkill -x Mail 2>/dev/null || true
   for app in "${DD_UI}/Build/Products/Debug/MacLibraryExample.app" \

@@ -345,13 +345,16 @@ final class SupportRuleTests: SampleUITestCase {
     }
 
     func testSecondsWindowWaitsUntilFiveToThirty() {
-        let cases: [(Double, Double)] = [(30.0, 35), (30.5, 34.5), (31, 34), (59, 6), (4.9, 0.1), (5, 0), (28.9, 0),
-                                        (29.0, 36), (29.9, 35.1), (0, 5)]
+        let cases: [(Double, Double)] = [(30.0, 35.5), (30.5, 35), (31, 34.5), (59, 6.5), (4.9, 0.6), (5, 0),
+                                        (28.9, 0), (29.0, 36.5), (29.9, 35.6), (0, 5.5)]
         for (second, delay) in cases {
             XCTAssertEqual(SecondsWindow.delay(fromSecond: second), delay, accuracy: 0.0001, "second \(second)")
             XCTAssertLessThanOrEqual(SecondsWindow.delay(fromSecond: second), SecondsWindow.deadline)
             XCTAssertTrue(SecondsWindow.contains(second: (second + SecondsWindow.delay(fromSecond: second))
                 .truncatingRemainder(dividingBy: 60)))
+            // After a wait, a wall clock a few milliseconds behind the sleep still lands inside (stage 0d 17).
+            XCTAssertTrue(delay == 0 || SecondsWindow.contains(second: (second + SecondsWindow.delay(fromSecond: second) - 0.01 + 60)
+                .truncatingRemainder(dividingBy: 60)), "second \(second)")
         }
         XCTAssertFalse(SecondsWindow.contains(second: 30))
         XCTAssertFalse(SecondsWindow.contains(second: 4.99))

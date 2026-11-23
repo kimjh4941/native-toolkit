@@ -163,15 +163,16 @@ FROZEN_METHODS = {
 }
 
 # The trusted part (iOS design 2; macOS 6.1): the base file and the Support files, pinned per file.
-# Pinned in stage 0d (2026-11-23) from commit 623a919b, the end of stage 0c. Not yet reviewed by
-# another model (stage 0d working notes).
+# Pinned in stage 0d (2026-11-23) from commit 623a919b, the end of stage 0c. NotificationCenterUI,
+# NotificationRules and OtherApps pinned again on 2026-11-24 after Codex's FinderFront review v1-v3
+# (reviews/2026-11-23-macos-c-abi-finderfront-review-v1.md; stage 0d working notes 17).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/NotificationCenterUI.swift": "99b962c089f5a350742742ac5b17b325bc07df4c96db37572dc32f8c6e512bcf",
+    "Support/NotificationCenterUI.swift": "3f7f9d159d1ae6fa1b4e856709b1e30ea627b171f91553f7b9f1aefe7cf7acd0",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
-    "Support/NotificationRules.swift": "55d55dcfce4ea987f6835c98179590000e05b0a98a4ec933395cb0a5eb7d8d69",
+    "Support/NotificationRules.swift": "5826469d5a8e7f722a52cbd565b945746b89ea2f710a60cb5a476cbfd06908cd",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
-    "Support/OtherApps.swift": "1c3fa497b36bb0f342392f6e105e8ca9867d241264db1a3397f5b00be504a563",
+    "Support/OtherApps.swift": "165dfc696861f02159cc53a1fddeaacf156124a5929dd492936a524bd7bc56dc",
     "Support/Panels.swift": "5959023421beb3137940351e0444e396f0ee4847593bc81236af0b29d7aa7324",
     "Support/PrivacyPrompt.swift": "e552df65bbe391a0c4e5d6a003ef31c37d1847910168a300b2ea64384e01cf2c",
     "Support/RunnerPasteboard.swift": "7a4f14256a5808ebbcf0300aaa6370a1ac34d1fae8038b39bac20789fb336f27",

@@ -434,3 +434,55 @@ Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で�
 - 直すならテストの側（`FinderFront` が前面を `XCUIApplication.state` でなく前面のアプリの PID と、サンプルの窓が前面でないことで見る、など）。信頼する部分（Support）の変更でハッシュの固定の取り直しと別のモデルのレビューが要るので、この回では変えていない。基準も取り直していない
 - 調べのために `settle-report` の記録に、待った秒数と、最初に見た group の実行ファイルの名前（VM の中のファイルだけ）を足し、`finish` の要約に `longest-wait` を足した（コミットしていない）
 
+## 17. `FinderFront` の前面の確かめを直した（2026-11-24。コミットしていない）
+
+- **変えたテスト**（DoD「変えたテストは理由を記録」）: `MacLibraryExampleUITests/Support/OtherApps.swift` の `FinderFront.bringToFront`（55〜81 行）。理由: 16 章で読めた 2 件（N23・N24）は、Finder が前面にいるのにサンプルの `XCUIApplication.state` が 20 秒の間ずっと `runningForeground`（4）のままで落ちていた。前面の確かめに `XCUIApplication.state` を使うのをやめた
+- **選んだ形**: ウインドウサーバーの切り替えを見る。`NSWorkspace.shared.frontmostApplication` の PID が Finder のもので、サンプル（`NSRunningApplication.runningApplications(withBundleIdentifier:)` で毎回取り直す）が動いていて、どれも `isActive` でなく前面の PID でもないときに通す。待ちは `Thread.sleep` でなく `RunLoop.current.run(until:)` にして、workspace の見る前面が古いままにならないようにした。理由: 続く押下（通知のバナーを押してサンプルが前に来るか）が前提にするのは、XCTest の状態の写しではなくウインドウサーバーの前面と、サンプルが active でないことだから。窓が key でないことを accessibility で見る案は、サンプルの窓を読む口が増えて、押す前の確かめ（5.0）の範囲が広がるので採らなかった。落ちたときの文に、サンプルの active・inactive と、比べのために XCUITest の state も入れた
+- **0c の N21 の揺れ**: 同じ `FinderFront.bringToFront` を通る（N21・N23・N24、`NotificationUITests` の 1 か所）ので、この直しで同じに扱う
+- **VM の落ちた結果のバンドル**: VM の回で落ちた UI テストの結果のバンドルとログを `~/ntk/failed/<run id>/` に写して残し、`finish` がその数を `NTK-VM kept … failed result bundle(s)` で知らせる。回は消さない。書き写した後に手で消す（中に VM の画面のスクリーンショットがある）
+- **信頼する部分のハッシュ**: 固定は取り直していない（Codex のレビューの後に親が頼む）。そのため自己テストの `SourceRules` の 2 件（`test_the_real_folder_passes`、`test_breaking_the_trusted_part`）は、固定を取り直すまで落ちる。VM の回は `Warning: the trusted part changed: Support/OtherApps.swift` を出すだけで止まらないので、一時的な扱いは要らなかった
+
+### 17.1 確かめ
+
+| 回 | 結果 |
+|---|---|
+| `--where vm --feature Notification` 1 回目 | 60/60 |
+| 2 回目 | 60/60 |
+| 3 回目 | 60/60 |
+
+3 回とも落ちたものは無く、N14b `secondsWindow` と N23 `notificationRoot` の別の型も出なかった（出たら `~/ntk/failed` で読む）。VM の `~/ntk/runs` と `~/ntk/failed` は空。この Mac の自己テストは 190 件のうち上の 2 件が落ち、180 件が通り、8 件が skip。
+
+### 17.2 Codex のレビュー v1（`FinderFront`。A 0、B 1、C 2）の後
+
+- **B-1**（変えたテスト）: 通知を押す前の「サンプルが背景」の確かめも、同じ AppKit の見方にそろえた。`Support/NotificationCenterUI.swift` に `SampleStateAtPress.sampleIsBehind()`（98 行。main の run loop を一度回してから、サンプルが動いていて、どれも active でなく前面の PID でもない）を足し、`checkBeforePress`（452 行〜）は `.background` のときだけこれで照らす（`.foreground`・`.notRunning` は XCUITest の state のまま）。N24 の後条件（`NotificationEventUITests.swift` 149 行）も `sampleIsBehind()` にした。窓の持ち主・通知の根・入力の焦点の検査は変えていない。理由: Finder の待ちを抜けても、押す前の確かめが同じ食い違い（XCUITest の state が 4 のまま）で `notificationState` に移って落ちうるため
+- **C-1**: `FinderFront.bringToFront` を `@MainActor` にし、最初に見る前にも run loop を 0.05 秒回す。コメントは「見る前ごとに run loop を回して AppKit に更新の機会を与える。見たものはその瞬間のもので、押す直前の確かめが境界」と、実装どおりにした
+- **C-2**: 自己テストで、`finish` が残した数を知らせる行と、`vm_finish` の消すものが `"${FX}"` と `"${RUN_DIR}"` だけであること（残したバンドルを消さない）を確かめる
+- **N14b の `secondsWindow`**（変えたテスト）: 1 回目の 3 回の 3 回目で出たので、`~/ntk/failed` に残したバンドルを読んだ。`NotificationScreen.swift:142`「the clock is not in the window after waiting」。手順の時刻では、待ちに入ったのが 29 秒台で、約 33.6 秒後の 35 分 04.998 秒に「窓の外」と判定していた。待ちは窓の始まり（5.000 秒）ちょうどを狙っており、sleep が数える時計（単調）と壁の時計のずれで 2 ms 手前に起きた。`Support/NotificationRules.swift` の `SecondsWindow` に `aimInside = 0.5` を足し、待ちは窓の始まりから 0.5 秒中を狙う（171〜181 行。最長の待ちは 36.5 秒で、期限 40 秒の内）。`SupportRuleTests.swift`（347 行〜）の期待値を直し、壁の時計が 10 ms 遅れても窓の中に着くことを足した。読んだバンドルは消した
+- N23 の `notificationRoot` は、この間に出なかったので、まだ読めていない（出たら `~/ntk/failed` で読む）
+- ハッシュの固定はまだ取り直していない（`SourceRules` の 2 件は取り直すまで落ちる。VM の回は警告だけで止まらない）
+
+| 回 | 直し | 結果 |
+|---|---|---|
+| 1〜3 回目 | B-1・C-1・C-2 | 60/60、60/60、59/60（N14b `secondsWindow`） |
+| 4〜6 回目 | ＋ `SecondsWindow.aimInside` | 60/60、60/60、60/60 |
+
+### 17.3 Codex の確かめ v2（A 1）の後
+
+- **A-1**（変えたテスト）: 押す前を AppKit で見るようにしたので、押した後の「前面に来た」が XCUITest の古い `runningForeground` で通りうる。`Support/NotificationCenterUI.swift` に、`sampleIsBehind` の逆の `sampleIsInFront`（110 行。main の run loop を回してから、サンプルがちょうど 1 つのプロセスで、active で、`frontmostApplication` の PID であること）と、それを待つ `waitForSampleInFront`（122 行。`@MainActor`。待つ間も run loop を回す。前面に出す操作はしない）を足し、N21（`NotificationEventUITests.swift` 107 行）と N23（135 行）の押した後に、XCUITest の待ちに続けて呼ぶ。`sample.activate()` はその前に呼ばない
+- 押す前に XCUITest と AppKit が食い違ったら、`noteDisagreement`（134 行。`checkBeforePress` の 494 行から）が、テストの手順に `NTK-NOTE sample state: XCUITest <n>, AppKit behind|not behind at before <name>` を書く（結果のバンドルの手順で読める）
+- 後処理の押下: N21・N23 の `assertEvent` は読み取りと待ちだけで、押下は無い（`NotificationScreen.waitForEvent`、`SampleApp.waitForNextResult` など）。押下があるのは別の経路の後始末（`NotificationCleanup`）で、サンプルが背景なら前面に出し（`activate`）、押す前の窓の持ち主の検査（`SampleApp.swift` の `overlayVerdict`）を通る。どちらも新しい後条件（`waitForSampleInFront`）より後なので、前面化が確かめの不足を覆う順にはなっていない（Codex の確かめ v3 C-1 で直した）
+- **回帰の確かめ**（VM だけ。確かめた後にすぐ元に戻した）: サンプルの Open を `isForeground: false` にした回では、N23 は XCUITest の待ち（`SampleApp.swift:506`「did not become 4 in 10.0s (now 3)」）で落ちた。さらに N23 の XCUITest の待ちも外した回では、新しい確かめが「the sample did not come to the front for AppKit in 10.0s after Open」（`NotificationCenterUI.swift:126`）で落とした
+- **VM の負荷の急な上がり**（2 回目の回帰の回）: N14b の途中から、ゲストで `AXVisualSupportAgent`（99%）と `spindump`（95%）が回り、load average が 150 に上がり、ssh が一度時間切れになった。xcodebuild やサンプルの増殖は無かった。`AXVisualSupportAgent` を VM の中で止めると数分で下がった。その回の N14b（`notificationRoot`、根を 57 秒待って無し。3 分 52 秒）と N15（2 分の時間切れ）はこの負荷による。この Mac には何もしていない
+- その後の 2 回（ゲストの再起動の前）は、どちらも NP2 の許可の戻しが効かず（`NTK-RUNNER:permissionReset` と `notNotDetermined`）、ほかの 59 件は通った。負荷の後の VM の状態によると見て、ゲストを再起動して流し直した
+
+| 回 | 条件 | 結果 |
+|---|---|---|
+| 回帰 1 | Open を `isForeground: false`（一時） | 59/60。N23 が XCUITest の待ちで落ちた |
+| 回帰 2 | ＋ N23 の XCUITest の待ちを外した（一時） | 57/60。N23 が新しい AppKit の確かめで落ちた。N14b・N15 は VM の負荷による |
+| 確かめ 1・2 | 直した形。ゲストの再起動の前 | 59/61、59/61（どちらも NP2 の許可の戻しだけ） |
+| 確かめ 3・4 | 直した形。ゲストを再起動した後 | **60/60、60/60** |
+
+`git diff` で、サンプルと N23 の一時の変更が残っていないことを確かめた。VM の `~/ntk/runs` と `~/ntk/failed` は空。
+
+- `FinderFront` の一連のレビュー（Codex v1〜v3）は、v3 で致命的な A が 0 になって閉じた。記録は `reviews/2026-11-23-macos-c-abi-finderfront-review-v1.md`。信頼する部分のハッシュ（`NotificationCenterUI`・`NotificationRules`・`OtherApps`）を取り直し、この Mac の自己テストは 190 件のうち 182 件が通り 8 件が skip（VM の本物の分）
+

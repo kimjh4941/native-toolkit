@@ -2208,6 +2208,22 @@ class ShellOrder(unittest.TestCase):
         self.assertLess(perl.index("$pid = $child; setpgrp($pid, $pid);"), unblock)
         self.assertIn('if ($f) { unless ((print {$f} "$pid\\n") && close($f)) { $stop->(); exit 125; } }', perl)
 
+    def test_the_vm_keeps_a_failed_result_bundle_until_it_is_written_down(self):
+        ui = function_body(self.text, "vm_ui")
+        keep = ui.index('if [[ "${failed}" == 1 && -d "${RES}/ui-${index}.xcresult" ]]; then')
+        self.assertLess(ui.index('grep -q \'"result": "failed"\' "${RES}/ui-${index}.records" && failed=1'), keep)
+        self.assertIn('cp -R "${RES}/ui-${index}.xcresult" "${FAILED_KEEP}/"', ui[keep:])
+        self.assertIn('FAILED_KEEP="${HOME}/ntk/failed/${run_id}"', self.text)
+        self.assertNotIn("ntk/failed", function_body(self.text, "vm_clean"))  # a run never removes them
+        finish = function_body(self.text, "vm_finish")
+        told = finish.index('if [[ -d "${FAILED_KEEP}" ]]; then')
+        self.assertIn('echo "NTK-VM kept $(ls -d "${FAILED_KEEP}"/*.xcresult 2>/dev/null | wc -l | tr -d \' \') failed result bundle(s)',
+                      finish[told:])                                          # the count is told (Codex v1 C-2)
+        removals = sorted(l.strip() for l in finish.splitlines() if re.search(r"\brm\b", l))
+        self.assertEqual(removals, ['rm -rf "${FX}"', 'rm -rf "${RUN_DIR}"'])  # never the kept ones
+        self.assertFalse(re.search(r"FAILED_KEEP=", finish))
+        self.assertNotIn("${HOME}/ntk/failed", self.text.replace('FAILED_KEEP="${HOME}/ntk/failed/${run_id}"', ""))
+
     def test_the_vm_writes_down_what_each_xcodebuild_left(self):
         capped = function_body(self.text, "capped_group")
         self.assertLess(capped.index('/usr/bin/perl -e "${CAPPED_PERL}"'),

@@ -90,6 +90,53 @@ enum SampleStateAtPress {
         case .notRunning: return .notRunning
         }
     }
+
+    /// Whether the sample runs behind, as AppKit sees it: it runs, none of its processes is active, and
+    /// none is the frontmost application. `XCUIApplication.state` is not used for "behind": on the VM it
+    /// stayed `runningForeground` while Finder was already in front (stage 0d 16, 17). The main run loop is
+    /// given a turn first, so the values are the ones of its latest pass (on the main thread only).
+    static func sampleIsBehind() -> Bool {
+        if Thread.isMainThread {
+            RunLoop.current.run(until: Date())
+        }
+        let samples = NSRunningApplication.runningApplications(withBundleIdentifier: SystemLabels.sampleBundleIdentifier)
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        return !samples.isEmpty && samples.allSatisfy { !$0.isActive && $0.processIdentifier != front }
+    }
+
+    /// The reverse of `sampleIsBehind`, by the same observation: the sample runs as exactly one process,
+    /// it is active, and it is the frontmost application (Codex FinderFront review v2 A-1: a stale
+    /// `runningForeground` of XCUITest must not pass "came to the front").
+    static func sampleIsInFront() -> Bool {
+        if Thread.isMainThread {
+            RunLoop.current.run(until: Date())
+        }
+        let samples = NSRunningApplication.runningApplications(withBundleIdentifier: SystemLabels.sampleBundleIdentifier)
+        let front = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        return samples.count == 1 && samples[0].isActive && samples[0].processIdentifier == front
+    }
+
+    /// Waits until `sampleIsInFront`, giving the main run loop a turn between looks. Nothing here brings the
+    /// sample to the front: the press under test must have done it.
+    @MainActor
+    static func waitForSampleInFront(timeout: TimeInterval, after name: String) throws {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !sampleIsInFront() {
+            guard Date() < deadline else {
+                throw SampleUITestError(.notificationState, "the sample did not come to the front for AppKit in \(timeout)s after \(name)")
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+    }
+
+    /// Writes into the test's activity log when XCUITest and AppKit disagree about the sample, so a later
+    /// look at a failure can tell (the result bundle's activities; nothing else is affected).
+    static func noteDisagreement(xcuiState: XCUIApplication.State, appKitBehind: Bool, at name: String) {
+        let xcuiBehind = xcuiState == .runningBackground
+        guard xcuiBehind != appKitBehind else { return }
+        XCTContext.runActivity(named: "NTK-NOTE sample state: XCUITest \(xcuiState.rawValue), AppKit "
+                               + (appKitBehind ? "behind" : "not behind") + " at \(name)") { _ in }
+    }
 }
 
 // MARK: - Notification Center
@@ -441,8 +488,13 @@ struct NotificationCenterUI {
         let start = Date()
         while true {
             if let expected {
-                guard sample.state == expected.state else {
-                    throw SampleUITestError(.notificationState, "the sample is \(sample.state.rawValue), not \(expected) before \(name)")
+                // "Behind" is AppKit's view (SampleStateAtPress.sampleIsBehind); the other states stay
+                // XCUITest's (Codex FinderFront review v1 B-1).
+                let behind = SampleStateAtPress.sampleIsBehind()
+                SampleStateAtPress.noteDisagreement(xcuiState: sample.state, appKitBehind: behind, at: "before \(name)")
+                let matches = expected == .background ? behind : sample.state == expected.state
+                guard matches else {
+                    throw SampleUITestError(.notificationState, "the sample is \(sample.state.rawValue) (behind for AppKit: \(SampleStateAtPress.sampleIsBehind())), not \(expected) before \(name)")
                 }
             }
             let frame = element.frame

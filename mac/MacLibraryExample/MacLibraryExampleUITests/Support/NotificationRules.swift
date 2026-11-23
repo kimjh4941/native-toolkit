@@ -165,14 +165,19 @@ enum SecondsWindow {
     /// A wait is not started this close to the end: the clock moves on between reading it and the
     /// press (the VM read 30.0 right after reading 29.9x. Stage 0c 2.3).
     static let margin: Double = 1
-    /// The longest wait (from second 29.0 to the next 5) is 36 s; the deadline is 40 s.
+    /// A wait aims this far inside the window, not at its edge: the sleep counts on the monotonic clock,
+    /// and after a 35 s sleep the VM's wall clock read 4.998, 2 ms short of the window (stage 0d 17:
+    /// N14b `secondsWindow`).
+    static let aimInside: Double = 0.5
+    /// The longest wait (from second 29.0 to the next 5.5) is 36.5 s; the deadline is 40 s.
     static let deadline: TimeInterval = 40
 
-    /// How long to wait from `second` (0 ≤ second < 60, with fractions) until the window opens.
+    /// How long to wait from `second` (0 ≤ second < 60, with fractions) until `aimInside` past the
+    /// window's start.
     static func delay(fromSecond second: Double) -> TimeInterval {
         if second >= start && second < end - margin { return 0 }
-        if second < start { return start - second }
-        return 60 - second + start
+        if second < start { return start + aimInside - second }
+        return 60 - second + start + aimInside
     }
 
     static func contains(second: Double) -> Bool {

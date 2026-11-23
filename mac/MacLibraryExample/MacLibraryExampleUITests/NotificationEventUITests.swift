@@ -103,6 +103,8 @@ final class NotificationEventUITests: SampleUITestCase {
         let root = try center.waitForRoot(.immediate, timeout: SampleApp.elementTimeout)
         try center.clickBody(root, sampleIs: .background)
         try sample.waitForState(.runningForeground, timeout: SampleApp.elementTimeout, step: .notificationState)
+        // XCUITest's state may be a stale foreground from before the press; AppKit must see it too.
+        try SampleStateAtPress.waitForSampleInFront(timeout: SampleApp.elementTimeout, after: "the body click")
         try assertEvent(kind: "action", actionId: ExpectedEvent.defaultAction, userText: "-", resultBefore: before)
     }
 
@@ -129,6 +131,8 @@ final class NotificationEventUITests: SampleUITestCase {
         try center.openOptions(root, sampleIs: .background)
         try center.choose(SampleNotification.openTitle, of: root, sampleIs: .background)
         try sample.waitForState(.runningForeground, timeout: SampleApp.elementTimeout, step: .notificationState)
+        // XCUITest's state may be a stale foreground from before the press; AppKit must see it too.
+        try SampleStateAtPress.waitForSampleInFront(timeout: SampleApp.elementTimeout, after: "Open")
         try assertEvent(kind: "action", actionId: SampleNotification.openAction, userText: "-", resultBefore: before)
     }
 
@@ -146,7 +150,7 @@ final class NotificationEventUITests: SampleUITestCase {
         try center.reply("hello reply", in: root)
         try screen.waitForEvent(expected(kind: "textInput", actionId: SampleNotification.replyAction,
                                          userText: "hello reply"))
-        XCTAssertEqual(sample.state, .runningBackground, "the sample came to the front after the reply")
+        XCTAssertTrue(SampleStateAtPress.sampleIsBehind(), "the sample came to the front after the reply")
         try sample.activate()
         try assertEvent(kind: "textInput", actionId: SampleNotification.replyAction, userText: "hello reply",
                         resultBefore: before)
