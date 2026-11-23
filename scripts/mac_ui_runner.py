@@ -2245,72 +2245,76 @@ def _under(path, root):
     return bool(path) and bool(root) and path.startswith(root.rstrip("/") + "/")
 
 
-def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
-    """What to do about a previous run's folder whose marker is left.
+# What of a run still runs, by kind (the closed vocabulary of NTK-STALE:alive; review v5).
+RUNNING_KINDS = ("xcodebuild", "tool", "group", "sample", "unknown")
 
-    marker: {"boottime", "created", "root", "writers": [{"pid", "start", "exe"}], "pgid"}
-    processes: [{"pid", "pgid", "start", "exe"}] of this Mac now (exe is the real path or None).
-    tool_roots: the folders of xcodebuild and the XCTest tools (the Xcode apps' Contents).
 
-    Returns {"removeOnly": bool, "signal": [pid], "group": pgid or None, "refuse": reason or None}.
-    A marker from an earlier boot: every writer ended, nothing is signalled (PIDs are reused).
-    Otherwise a writer is a process whose PID, start time and real executable all match, or whose
-    executable is under the previous run's folder and started after the marker was made (a sample
-    woken by a notification). The group is signalled only when its leader is a writer and every
-    process of the group is a tool or under the folder.
+def run_processes(marker, boottime_now, processes, tool_roots, folder=None, uid=None, launched_pid=None):
+    """What of a run is still running on this Mac. The runner never signals any of it here (review v5:
+    it signals only its own unreaped children); a run folder is removed only when this shows that nothing
+    of the run runs, and stays otherwise.
 
-    With `folder` (the folder the marker was found in), the marker's root must be that folder's real
-    path and carry the run-folder prefix; otherwise the plan refuses (Claude B-5: a root of `/` would
-    make every later process a writer). A missing or unreadable marker is refused by the caller."""
+    marker: {"boottime", "created", "root", "writers": [{"pid", "start", "exe", "pgid"}], "groups", "launching"}
+    processes: [{"pid", "pgid", "start", "exe", "uid", "zombie"}] of this Mac now (exe: the real path, or None
+    when it cannot be read). launched_pid: the number in the run's pid file, for a marker still `launching`.
+
+    Returns {"refuse": reason or None, "running": {kind: count}}:
+      xcodebuild  a recorded writer, by PID and start time (whatever its executable reads now: Codex v5 A-1)
+      tool        a process of a recorded xcodebuild group under an Xcode (every group the run made: v5 A-2)
+      group       any other process of those groups, its executable read or not
+      sample      a process whose executable is under the folder and that started after the marker
+      unknown     a process of this user that started after the marker and whose executable cannot be read
+    A marker of an earlier boot runs nothing. A marker that names another folder, is later than this boot or
+    is malformed is refused; so is one still `launching` whose started number is not known."""
     try:
         boot = int(marker["boottime"])
         created = float(marker["created"])
         root = str(marker["root"])
-        writers = list(marker.get("writers", []))
+        writers = [w for w in marker.get("writers", []) if isinstance(w, dict)]
+        groups = {int(g) for g in marker.get("groups") or []}
     except (KeyError, TypeError, ValueError, AttributeError):
-        return {"removeOnly": False, "signal": [], "group": None, "refuse": "malformed marker", "unverified": []}
+        return {"refuse": "malformed marker", "running": {}}
     if folder is not None and (os.path.realpath(folder) != root or
                                not os.path.basename(root).startswith(RUN_FOLDER_PREFIX)):
-        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker names another folder",
-                "unverified": []}
-    if boot < boottime_now:
-        return {"removeOnly": True, "signal": [], "group": None, "refuse": None, "unverified": []}
+        return {"refuse": "the marker names another folder", "running": {}}
     if boot > boottime_now:
-        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker's boot time is later than now",
-                "unverified": []}
+        return {"refuse": "the marker's boot time is later than now", "running": {}}
+    if boot < boottime_now:
+        return {"refuse": None, "running": {}}
+    if marker.get("pgid") is not None:
+        groups.add(int(marker["pgid"]))
+    groups |= {int(w["pgid"]) for w in writers if isinstance(w.get("pgid"), int)}
     if marker.get("launching"):
-        return {"removeOnly": False, "signal": [], "group": None, "unverified": [],
-                "refuse": "an xcodebuild was started and never recorded; nothing is signalled and the folder stays "
-                          "until the Mac restarts"}
+        if not isinstance(launched_pid, int):
+            return {"refuse": "an xcodebuild was started and never recorded, and its number is not known; the folder "
+                              "stays until the Mac restarts", "running": {}}
+        groups.add(launched_pid)  # the started child leads its own group
+    running = {}
 
-    def matches(p, w):
-        return p.get("pid") == w.get("pid") and p.get("start") == w.get("start") and p.get("exe") == w.get("exe") \
-            and p.get("exe") is not None
+    def add(kind):
+        running[kind] = running.get(kind, 0) + 1
 
-    alive = []
-    unverified = []
     for p in processes:
-        if any(matches(p, w) for w in writers):
-            alive.append(p)
-        elif _under(p.get("exe"), root) and isinstance(p.get("start"), (int, float)) and p["start"] >= created:
-            alive.append(p)
-    group = None
-    pgid = marker.get("pgid")
-    if pgid is not None:
-        leader = [p for p in processes if p.get("pid") == pgid]
-        members = [p for p in processes if p.get("pgid") == pgid]
-        members_ok = bool(members) and all(
-            _under(p.get("exe"), root) or any(_under(p.get("exe"), t) for t in tool_roots) for p in members)
-        leader_ok = len(leader) == 1 and any(matches(leader[0], w) for w in writers)
-        if members_ok and leader_ok:
-            group = pgid
-        elif not leader and members:
-            # A group whose leader is gone cannot be shown to be this run's by the three-way match: it is not
-            # signalled as a group, and its members that are not writers shown one by one are reported and
-            # keep the folder (review v3: Codex A-2; v4 C-1).
-            unverified = sorted(p["pid"] for p in members if p not in alive)
-    return {"removeOnly": not alive and not unverified, "signal": sorted(p["pid"] for p in alive), "group": group,
-            "refuse": None, "unverified": unverified}
+        if p.get("zombie"):
+            continue
+        start = p.get("start")
+        after = isinstance(start, (int, float)) and start >= created
+        if any(p.get("pid") == w.get("pid") and start == w.get("start") for w in writers) or \
+                (marker.get("launching") and p.get("pid") == launched_pid):
+            add("xcodebuild")
+        elif p.get("pgid") in groups:
+            add("tool" if any(_under(p.get("exe"), t) for t in tool_roots) else "group")
+        elif _under(p.get("exe"), root) and after:
+            add("sample")
+        elif p.get("exe") is None and after and (uid is None or p.get("uid") == uid):
+            add("unknown")
+    return {"refuse": None, "running": running}
+
+
+def describe_running(running):
+    """`NTK-STALE:alive` with the counts by kind: never a place, a name or a number of a process."""
+    parts = [f"{running[k]} {k}" for k in RUNNING_KINDS if running.get(k)]
+    return f"NTK-STALE:alive {sum(running.values())} process(es) ({', '.join(parts)})"
 
 
 MARKER_NAME = "ntk-run-marker.json"
@@ -2324,9 +2328,10 @@ RUN_APPS = ("dd-ui/Build/Products/Debug/MacLibraryExample.app",
 
 
 class OsPort:
-    """The operating system as the stale-run and current-run cleanup see it. The self-tests on this Mac
-    pass a fake port, so that no real signal, process list or removal is reached (review v1: Codex A-5,
-    Claude A-3); the runner passes this one."""
+    """The operating system as the stale-run and current-run cleanup see it: it reads the process list and
+    removes only a run's own folder, fixture and registrations; it has no way to signal (review v5). The
+    self-tests on this Mac pass a fake port, so that no real process list or removal is reached (review
+    v1: Codex A-5, Claude A-3); the runner passes this one."""
 
     def processes(self):
         return _processes()
@@ -2334,17 +2339,8 @@ class OsPort:
     def boottime(self):
         return _boottime()
 
-    def signal(self, pid, number):
-        try:
-            os.kill(pid, number)
-        except ProcessLookupError:
-            pass
-
-    def signal_group(self, pgid, number):
-        try:
-            os.killpg(pgid, number)
-        except ProcessLookupError:
-            pass
+    def uid(self):
+        return os.getuid()
 
     def remove(self, folder):
         _remove_run_folder(folder)
@@ -2355,97 +2351,41 @@ class OsPort:
     def unregister(self, app):
         subprocess.run([LSREGISTER, "-u", app], capture_output=True)
 
-    def sleep(self, seconds):
-        time.sleep(seconds)
 
-    def now(self):
-        return time.time()
+PIDFILE_NAME = "xcodebuild.pid"
 
 
-def _identity(process):
-    return (process.get("pid"), process.get("start"), _mark(process.get("exe")))
+def launched_pid(folder):
+    """The number the supervisor wrote for the xcodebuild it started (the pid file in the run folder), or
+    None."""
+    try:
+        text = (pathlib.Path(folder) / PIDFILE_NAME).read_text().strip()
+    except OSError:
+        return None
+    return int(text) if re.fullmatch(r"[1-9][0-9]*", text) else None
 
 
-def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0, approved=None):
-    """Stops the writers of a run folder: TERM, wait, KILL, wait. The plan is made again right before
-    each signal from the process list of that moment (PID, start time and real executable), so a PID that
-    ended and was reused in between is never signalled (Codex A-5, v2 A-2). With `approved` (the
-    identities a stopped run's approval listed), only those are signalled, one by one, and a process
-    that is not among them stops the cleanup instead (review v3: Codex B-1). Returns None when no writer
-    is left, or the reason the folder must stay. A group whose leader is gone is never signalled as a group;
-    its writers shown one by one (three-way match, or under the folder and started after the marker) are,
-    and the members that cannot be shown are not and keep the folder (Codex v3 A-2, v4 C-1)."""
-    allowed = None if approved is None else {tuple(a) for a in approved}
-
-    def fresh():
-        return stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
-
-    def outsider(plan):
-        if allowed is None:
-            return False
-        current = {p["pid"]: p for p in port.processes()}
-        return any(pid in current and _identity(current[pid]) not in allowed for pid in plan["signal"])
-
-    for number, wait in ((15, term_wait), (9, kill_wait)):
-        plan = fresh()
-        if plan["refuse"]:
-            return plan["refuse"]
-        if not plan["signal"]:
-            break
-        if outsider(plan):
-            return "a process the approval did not list belongs to the stopped run; plan and ask again"
-        if plan["group"] is not None and allowed is None:
-            port.signal_group(plan["group"], number)
-        # Each process is checked again right before its own signal (review v2: Codex A-2): one that ended
-        # with the group, or whose number was taken meanwhile, is no longer in the fresh plan.
-        for pid in plan["signal"]:
-            current = fresh()
-            if current["refuse"]:
-                return current["refuse"]
-            if pid in current["signal"] and not outsider({"signal": [pid]}):
-                port.signal(pid, number)
-        deadline = port.now() + wait
-        while port.now() < deadline:
-            if not fresh()["signal"]:
-                break
-            port.sleep(0.5)
-        else:
-            continue
-        break
-    plan = fresh()
-    if plan["refuse"]:
-        return plan["refuse"]
-    if plan["signal"]:
-        return "writers are still running"
-    if plan["unverified"]:
-        # How many, and whether they are Xcode's tools (never their places; review v4: Claude C-4).
-        left = [p for p in port.processes() if p.get("pid") in plan["unverified"]]
-        tools = sum(1 for p in left if any(_under(p.get("exe"), t) for t in tool_roots))
-        return (f"{len(plan['unverified'])} process(es) of the run's xcodebuild group ({tools} of them Xcode tools) "
-                "are left whose identity cannot be shown; nothing was signalled to them")
-    return None
-
-
-def clean_run_folder(folder, port, tool_roots, read_marker, approved_entry=None):
-    """A run folder of this Mac (a stopped one, or the current one at its end): its marker must be
-    there and name it; its writers are stopped and found gone; then its fixture and the folder go.
-    Returns None, or the reason nothing was removed (Codex A-6: a folder without a readable marker
-    is never removed)."""
+def clean_run_folder(folder, port, tool_roots, read_marker):
+    """A run folder of this Mac (a stopped one, or the current one at its end): its marker must be there
+    and name it, and nothing of the run may run (run_processes); then its registrations, its fixture and
+    the folder go. Nothing is ever signalled. Returns None, or the reason the folder stays (Codex A-6: a
+    folder without a readable marker is never removed; v5: one where something runs, or where that
+    cannot be shown, stays)."""
     try:
         marker = read_marker(folder)
     except (OSError, ValueError):
-        return "the run folder has no readable marker"
+        return "NTK-STALE:refused the run folder has no readable marker"
     if not isinstance(marker, dict):
-        return "the run folder has no readable marker"
-    approved = None
-    if approved_entry is not None:
-        # The marker is the one the approval saw (review v3: Codex B-1).
-        if sha256_bytes(json.dumps(marker, sort_keys=True).encode())[:16] != approved_entry.get("marker"):
-            return "the stopped run's marker changed after the approval"
-        approved = [(w.get("pid"), w.get("start"), w.get("exe")) for w in approved_entry.get("writers", [])]
-    problem = stop_writers(marker, folder, port, tool_roots, approved=approved)
-    if problem:
-        return problem
+        return "NTK-STALE:refused the run folder has no readable marker"
+    try:
+        state = run_processes(marker, port.boottime(), port.processes(), tool_roots, folder, port.uid(),
+                              launched_pid(folder))
+    except RunnerError:
+        return "NTK-STALE:refused the process list could not be read"
+    if state["refuse"]:
+        return f"NTK-STALE:refused {state['refuse']}"
+    if state["running"]:
+        return describe_running(state["running"])
     for app in RUN_APPS:
         path = os.path.join(folder, app)
         if os.path.isdir(path) and not os.path.islink(path):
@@ -2455,6 +2395,16 @@ def clean_run_folder(folder, port, tool_roots, read_marker, approved_entry=None)
         port.remove_fixture(f"/private/tmp/ntk-uitest-{run_id}")
     port.remove(folder)
     return None
+
+
+def settle_problem(marker, processes, tool_roots, boottime_now, folder=None):
+    """After an xcodebuild of this Mac ended (perl reaped it): whether anything of the run's xcodebuild groups
+    still runs. The next one starts only when nothing does (review v5: Codex A-2)."""
+    state = run_processes(marker, boottime_now, processes, tool_roots, folder)
+    if state["refuse"]:
+        return f"NTK-STALE:refused {state['refuse']}"
+    left = {k: n for k, n in state["running"].items() if k in ("xcodebuild", "tool", "group")}
+    return describe_running(left) if left else None
 
 
 def writer_entry(pid, processes, expect_under):
@@ -2889,10 +2839,15 @@ def dry_run_text(plan, durations, now_text):
             lines.append(f"  COPY    {copy['mark']} ({copy['place']})")
         lines.append("  (to see them yourself: lsregister -dump | grep -B2 -A2 " + SAMPLE_BUNDLE_ID + ")")
     if plan["stale"]:
-        alive = sum(len(entry.get("writers", [])) for entry in plan["stale"])
-        lines.append(f"[dry-run] stopped runs left {len(plan['stale'])} folder(s)"
-                     + (f" and NTK-STALE:alive {alive} process(es)" if alive else "")
-                     + "; the approved run stops those processes, then removes the folders and their fixtures")
+        stay = [e for e in plan["stale"] if isinstance(e, dict) and e.get("state") != "removable"]
+        lines.append(f"[dry-run] stopped runs left {len(plan['stale'])} folder(s); the approved run removes those "
+                     "where nothing of their run runs, with their registrations and fixtures. The runner never stops "
+                     "a process of an earlier run on this Mac")
+        for entry in stay:
+            lines.append(f"  STALE   {entry.get('state')}")
+        if stay:
+            lines.append("  (quit what still runs of them, or restart the Mac, before the approved run: "
+                         "it stops before it builds while any of them stays)")
     unchecked = sorted(k for k, v in plan.get("prerequisites", {}).items() if not v)
     if unchecked:
         lines.append(f"[dry-run] NOT READY: checks in the VM that must come first are not recorded ({', '.join(unchecked)}); "
@@ -3356,40 +3311,31 @@ def cmd_lsregister(args):
 
 
 def _processes():
-    """[{"pid", "pgid", "start", "exe"}] of this Mac (read only: ps and proc_pidpath)."""
+    """[{"pid", "pgid", "ppid", "uid", "zombie", "start", "exe"}] of this Mac (read only: ps and proc_pidpath).
+    A process list that cannot be read is an error, never an empty list (review v5: Codex A-1)."""
     import ctypes
     libproc = ctypes.CDLL("/usr/lib/libproc.dylib")
-    out = subprocess.run(["/bin/ps", "-axo", "pid=,pgid=,ppid=,lstart="], capture_output=True, text=True,
-                         env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"}).stdout
+    done = subprocess.run(["/bin/ps", "-axo", "pid=,pgid=,ppid=,uid=,stat=,lstart="], capture_output=True, text=True,
+                          env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"})
+    if done.returncode != 0 or not done.stdout.strip():
+        raise RunnerError("the process list could not be read")
     processes = []
-    for line in out.splitlines():
-        parts = line.split(None, 3)
-        if len(parts) != 4:
-            continue
-        ppid = int(parts[2])
-        parts = [parts[0], parts[1], parts[3]]
+    for line in done.stdout.splitlines():
+        parts = line.split(None, 5)
+        if len(parts) != 6:
+            raise RunnerError("the process list could not be read")
         try:
-            start = int(time.mktime(time.strptime(parts[2].strip(), "%a %b %d %H:%M:%S %Y")))
+            pid, pgid, ppid, uid = (int(x) for x in parts[:4])
+            start = int(time.mktime(time.strptime(parts[5].strip(), "%a %b %d %H:%M:%S %Y")))
         except ValueError:
-            continue
+            raise RunnerError("the process list could not be read")
         buf = ctypes.create_string_buffer(4096)
         exe = None
-        if libproc.proc_pidpath(int(parts[0]), buf, 4096) > 0:
+        if libproc.proc_pidpath(pid, buf, 4096) > 0:
             exe = os.path.realpath(buf.value.decode(errors="replace"))
-        processes.append({"pid": int(parts[0]), "pgid": int(parts[1]), "ppid": ppid, "start": start, "exe": exe})
+        processes.append({"pid": pid, "pgid": pgid, "ppid": ppid, "uid": uid, "zombie": parts[4].startswith("Z"),
+                          "start": start, "exe": exe})
     return processes
-
-
-# The real executables of the system perl the shell starts as /usr/bin/perl (review v4: Codex B-1, Claude C-6).
-PERL_EXE = re.compile(r"/usr/bin/perl(5\.[0-9]+)?")
-
-
-def own_child(pid, parent, processes):
-    """Whether the process of that number is now the parent's own child running the system perl (the shell's
-    background perl), by its real executable path: only then may the shell signal it (review v3: Codex A-1)."""
-    found = [p for p in processes if p.get("pid") == pid]
-    return len(found) == 1 and found[0].get("ppid") == parent and \
-        PERL_EXE.fullmatch(str(found[0].get("exe") or "")) is not None
 
 
 def cmd_approval_stale(args):
@@ -3405,10 +3351,6 @@ def cmd_approval_stale(args):
         return _fail("the approval file could not be read as an approval list")
     _write_json(args.out, stale)
     return 0
-
-
-def cmd_own_child(args):
-    return 0 if own_child(args.pid, args.parent, _processes()) else 1
 
 
 def tmp_new_names(before, after):
@@ -3438,11 +3380,12 @@ def _boottime():
 
 
 def record_writer(marker, entry, role):
-    """The marker with this writer recorded: its identity, its group, and no longer `launching` (review v4:
-    Codex A-2)."""
+    """The marker with this writer recorded: its identity and its group (kept with every group the run made
+    before), and no longer `launching` (review v4: Codex A-2)."""
     marker = dict(marker)
     marker["writers"] = list(marker.get("writers", [])) + [
-        {"role": role, "pid": entry["pid"], "start": entry["start"], "exe": entry["exe"]}]
+        {"role": role, "pid": entry["pid"], "start": entry["start"], "exe": entry["exe"], "pgid": entry["pgid"]}]
+    marker["groups"] = sorted(set(marker.get("groups") or []) | {entry["pgid"]})  # every group (review v5: Codex A-2)
     marker["pgid"] = entry["pgid"]
     marker.pop("launching", None)
     return marker
@@ -3500,105 +3443,90 @@ def _read_marker(folder):
 
 
 STALE_HINT = ("look for folders whose names start with `ntk-test-mac.` in your temporary folder ($TMPDIR); "
-              "each holds ntk-run-marker.json. If it stays because processes of its xcodebuild could not be shown "
-              "or stopped, restart the Mac (the next run then removes the folder) or look at the processes "
-              "yourself (Activity Monitor) before planning again")
+              "each holds ntk-run-marker.json. The runner never stops a process of a run on this Mac after its own "
+              "supervisor ended: quit what still runs (Activity Monitor: xcodebuild, xctest, MacLibraryExample) or "
+              "restart the Mac, and the next run removes the folder")
 
 
 def _mark(text):
     return sha256_bytes(str(text).encode())[:12]
 
 
-def stale_entry(folder, marker, plan):
-    """What the approval fixes about one previous run folder (review v2: Codex A-3): the folder (an
-    opaque mark of its real path), its run ID, a digest of its marker, and each process to stop by PID,
-    start time and an opaque mark of its executable. Not a count, so another folder with as many
-    processes is not the same entry."""
-    return {"folder": _mark(os.path.realpath(folder)), "runId": str(marker.get("runId", "")),
-            "marker": sha256_bytes(json.dumps(marker, sort_keys=True).encode())[:16],
-            "writers": sorted(({"pid": p["pid"], "start": p["start"], "exe": _mark(p.get("exe"))}
-                               for p in plan["processes"]), key=lambda w: (w["pid"], w["start"]))}
+def stale_entry(folder, state):
+    """What --dry-run shows and the approval holds about one previous run folder: an opaque mark of its
+    real path and what of it still runs (counts by kind) or why it cannot be cleaned. Never its place."""
+    return {"folder": _mark(os.path.realpath(folder)), "state": state}
+
+
+def stale_state(folder, port, tool_roots, read_marker):
+    """removable, or NTK-STALE:alive / NTK-STALE:refused with the reason (review v5: a previous run is never
+    stopped on this Mac; what runs is shown and stopping it is the user's, a restart also ends it)."""
+    try:
+        marker = read_marker(folder)
+    except (OSError, ValueError):
+        return "NTK-STALE:refused the run folder has no readable marker"
+    if not isinstance(marker, dict):
+        return "NTK-STALE:refused the run folder has no readable marker"
+    try:
+        state = run_processes(marker, port.boottime(), port.processes(), tool_roots, folder, port.uid(),
+                              launched_pid(folder))
+    except RunnerError:
+        return "NTK-STALE:refused the process list could not be read"
+    if state["refuse"]:
+        return f"NTK-STALE:refused {state['refuse']}"
+    return describe_running(state["running"]) if state["running"] else "removable"
 
 
 def stale_listing(folders, port, tool_roots, read_marker):
-    """The entries of the previous run folders (stale_entry), or RunnerError when a folder has no
-    readable marker or its marker cannot be trusted (Codex A-6). The message says where to look
-    without naming the place (Claude v2 B-3)."""
-    listing = []
-    boot = port.boottime()
-    for folder in folders:
-        try:
-            marker = read_marker(folder)
-        except (OSError, ValueError):
-            raise RunnerError("NTK-STALE:refused a previous run folder has no readable marker; check it by hand: "
-                              + STALE_HINT)
-        processes = port.processes()
-        plan = stale_plan(marker, boot, processes, tool_roots, folder)
-        if plan["refuse"]:
-            raise RunnerError(f"NTK-STALE:refused a previous run folder's marker cannot be trusted ({plan['refuse']}): "
-                              + STALE_HINT)
-        plan["processes"] = [p for p in processes if p["pid"] in plan["signal"]]
-        listing.append(stale_entry(folder, marker, plan))
-    return sorted(listing, key=lambda e: e["folder"])
-
-
-def stale_changes(approved, now):
-    """Problems between the approved entries and the ones of now. A folder that went away, or a process
-    that ended, is fine; a new folder, another marker or run, or a process not in the approval is not."""
-    if not isinstance(approved, list):
-        return ["the approved list of stopped runs is missing"]
-    by_folder = {e.get("folder"): e for e in approved if isinstance(e, dict)}
-    problems = []
-    for entry in now:
-        was = by_folder.get(entry["folder"])
-        if was is None:
-            problems.append("a stopped run folder that was not approved")
-            continue
-        if (was.get("runId"), was.get("marker")) != (entry["runId"], entry["marker"]):
-            problems.append("a stopped run folder whose marker changed")
-        approved_writers = [(w.get("pid"), w.get("start"), w.get("exe")) for w in was.get("writers", [])]
-        for w in entry["writers"]:
-            if (w["pid"], w["start"], w["exe"]) not in approved_writers:
-                problems.append("a process to stop that was not approved")
-    return problems
+    return sorted((stale_entry(f, stale_state(f, port, tool_roots, read_marker)) for f in folders),
+                  key=lambda e: e["folder"])
 
 
 def cmd_stale(args):
-    """Previous run folders of this Mac. `--list` writes the entries --dry-run puts into the approval;
-    `--stop` runs only with a consumed approval whose plan holds those entries (the same gate as every
-    xcodebuild), checks that nothing new is there, then stops the writers and removes each folder, its
-    registrations and its fixture (review v2: Codex A-3). Exactly one of the two."""
-    if args.list == args.stop:
-        return _fail("give exactly one of --list and --stop")
+    """Previous run folders of this Mac. `--list` writes what --dry-run shows (and the approval holds);
+    `--clean` runs only with a consumed approval (the same gate as every xcodebuild) and removes each
+    folder where nothing of its run runs, with its registrations and fixture. Nothing is signalled: a
+    folder where something runs, or where that cannot be shown, stays, and the run stops before it builds
+    (review v5). Exactly one of the two."""
+    if args.list == args.clean:
+        return _fail("give exactly one of --list and --clean")
     port = OsPort()
     tools = _tool_roots()
     folders = _run_folders(args.scan_root, args.current_root)
-    listing = stale_listing(folders, port, tools, _read_marker)
     if args.list:
+        listing = stale_listing(folders, port, tools, _read_marker)
         _write_json(args.out, listing)
-        alive = sum(len(x["writers"]) for x in listing)
-        if alive:
-            print(f"NTK-STALE:alive {alive} process(es) of a stopped run")
+        for entry in listing:
+            if entry["state"] != "removable":
+                print(f"{entry['state']} (a stopped run)")
         return 0
     if not (args.plan and args.approved and args.repo):
-        return _fail("--stop needs --plan, --approved and --repo")
+        return _fail("--clean needs --plan, --approved and --repo")
     plan = json.loads(_read(args.plan))
     approval = json.loads(_read(args.approved))
     ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
-    problems = gate_problems(plan, approval, args.repo, _head(args.repo), ledger)
-    problems += stale_changes(plan.get("stale"), listing)
-    if problems:
-        return _fail("NTK-STALE:changed the stopped runs or the approval differ; plan and ask again")
-    by_folder = {e.get("folder"): e for e in plan.get("stale") or [] if isinstance(e, dict)}
+    if gate_problems(plan, approval, args.repo, _head(args.repo), ledger):
+        return _fail("NTK-STALE:changed the approval or the plan differ; plan and ask again")
+    lines, problem = clean_stale(folders, port, tools, _read_marker)
+    for line in lines:
+        print(line)
+    return _fail(problem) if problem else 0
+
+
+def clean_stale(folders, port, tool_roots, read_marker):
+    """(lines to print, the reason the run stops or None): each earlier run folder where nothing of its run
+    runs goes; any other stays, and then the run stops before it builds (review v5)."""
+    lines, left = [], 0
     for folder in folders:
-        entry = by_folder.get(_mark(os.path.realpath(folder)))
-        if entry is None:
-            return _fail("NTK-STALE:changed a stopped run folder that was not approved")
-        problem = clean_run_folder(folder, port, tools, _read_marker, entry)
+        problem = clean_run_folder(folder, port, tool_roots, read_marker)
         if problem:
-            return _fail(f"NTK-STALE:alive a stopped run's folder stays ({problem})")
-        print("[stale] a stopped run's folder was removed")
-    return 0
+            left += 1
+            lines.append(f"{problem} (a stopped run; its folder stays)")
+        else:
+            lines.append("[stale] a stopped run's folder was removed")
+    stop = (f"{left} stopped run folder(s) stay: quit what still runs of them or restart the Mac, then plan and ask "
+            "again; " + STALE_HINT)
+    return lines, stop if left else None
 
 
 def current_run_problem(marker, approval, ledger_text):
@@ -3618,8 +3546,9 @@ def current_run_problem(marker, approval, ledger_text):
 
 def cmd_stop_current(args):
     """The end of a run on this Mac: the folder must be the one the approval made (its marker names the
-    consumed approval), its writers stopped and found gone by the same three-way match, then its
-    registrations, fixture and folder removed; otherwise nothing is removed and the run fails (Codex A-4)."""
+    consumed approval) and nothing of the run may run; then its registrations, fixture and folder are
+    removed. Nothing is signalled here: the run's xcodebuilds were stopped by their own supervisor (perl,
+    its unreaped child) before this; otherwise the folder stays and the run fails (Codex A-4, review v5)."""
     root = os.path.realpath(args.root)
     if not os.path.basename(root).startswith(RUN_FOLDER_PREFIX):
         return _fail("not a run folder")
@@ -3635,8 +3564,22 @@ def cmd_stop_current(args):
         return _fail(f"the run's private folder stays ({problem}); " + STALE_HINT)
     problem = clean_run_folder(root, OsPort(), _tool_roots(), _read_marker)
     if problem:
-        return _fail(f"the run's private folder stays because its writers did not stop ({problem}); its place is not shown")
+        return _fail(f"the run's private folder stays: {problem}; " + STALE_HINT)
     return 0
+
+
+def cmd_settle(args):
+    """Waits (up to --seconds) until nothing of the run's xcodebuild groups runs; otherwise fails and the
+    run stops with its folder kept (review v5: Codex A-2)."""
+    root = os.path.realpath(args.root)
+    deadline = time.time() + args.seconds
+    while True:
+        problem = settle_problem(_read_marker(root), _processes(), _tool_roots(), _boottime(), root)
+        if problem is None:
+            return 0
+        if time.time() >= deadline:
+            return _fail(f"{problem} of this run's xcodebuild after it ended; the run stops and its folder stays")
+        time.sleep(0.5)
 
 
 STAGING_PREFIX = "ntk-test-mac-staging."
@@ -4099,7 +4042,7 @@ def main(argv=None):
     p.add_argument("--scan-root", required=True)
     p.add_argument("--current-root", default="")
     p.add_argument("--list", action="store_true")
-    p.add_argument("--stop", action="store_true")
+    p.add_argument("--clean", action="store_true")
     p.add_argument("--plan")
     p.add_argument("--approved")
     p.add_argument("--repo")
@@ -4120,11 +4063,10 @@ def main(argv=None):
     p.add_argument("--ledger-for-self-test", help=argparse.SUPPRESS)
     p.set_defaults(func=cmd_make_run_folder)
 
-    p = sub.add_parser("own-child")
-    p.add_argument("--pid", type=int, required=True)
-    p.add_argument("--parent", type=int, required=True)
-    p.add_argument("--exe-name", required=True, choices=["perl"])
-    p.set_defaults(func=cmd_own_child)
+    p = sub.add_parser("settle")
+    p.add_argument("--root", required=True)
+    p.add_argument("--seconds", type=float, default=15.0)
+    p.set_defaults(func=cmd_settle)
 
     p = sub.add_parser("runner-hashes")
     p.add_argument("--dir", required=True)

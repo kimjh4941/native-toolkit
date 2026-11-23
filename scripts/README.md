@@ -228,13 +228,18 @@ things (the VM's facts, LaunchServices dumps, DerivedData, result bundles) stay 
 folders that are removed on every exit (xcodebuild's `TMPDIR` too), and every xcodebuild is checked to
 name only paths inside them. Every run, `--dry-run` too, first removes the runner's own private folders an
 earlier run left when it was killed. A message that still names a place is replaced by a fixed code.
+On this Mac the runner signals only its own children it has not reaped (the perl that supervises each
+xcodebuild stops its group on the time limit, on the run's stop file, or when the runner's shell is gone);
+it never stops what an earlier run left: it says what still runs (`NTK-STALE:alive`, counts by kind) and
+removes a run's folder only when nothing of that run runs (quit it, or restart the Mac).
 A run on this Mac needs an approval that is used once and is good for 12 hours
 (`~/Library/Application Support/native-toolkit/test_mac-approvals.log`), and the checks in the VM that
 `MAC_RUN_PREREQUISITES` lists must be recorded first. The hashes of the trusted test files are pinned in
 `mac_ui_runner.py`; change them only after another model has reviewed the change.
 
-`tests/test_mac_ui_runner.py` reaches no real signal, process list, removal, LaunchServices or ssh (it
-replaces them with guards that fail the test). `tests/mac_ui_runner_mutations.py` runs only in the VM:
+On this Mac `tests/test_mac_ui_runner.py` reaches no real signal, process list, removal, LaunchServices or
+ssh (it replaces them with guards that fail the test); only in the VM, `RealProcessesInTheVM` runs the
+supervisor perl with its own sh and sleep children. `tests/mac_ui_runner_mutations.py` runs only in the VM:
 copy the runner, its tests and fixtures, the UI test folder, the sample's sources and the project file
 there and run it with `/usr/bin/python3`.
 

@@ -70,20 +70,26 @@ TIME_FLAGS=(-parallel-testing-enabled NO -test-timeouts-enabled YES -default-tes
   -maximum-test-execution-time-allowance 240)
 RUN_ID_PATTERN='^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$'
 
-# Runs a command in its own process group with a time limit. When the time is up, the group is stopped
-# (TERM, up to 30 s, KILL) and the exit status is 142; INT, TERM and HUP do the same. The group is signalled
-# only while its leader is this perl's own child that has not been reaped (alive or a zombie): until then
-# its number cannot belong to anything else, so no PID check is needed; once the leader is reaped, perl
-# sends nothing more and the rest is the runner's three-way match (review v2: Codex A-2). With a pid
-# file, the leader's PID is written there first. stdin is /dev/null.
-CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds\n" unless $seconds =~ /^[1-9][0-9]*$/;
-  my $pid = 0; my $reaped = 0; my $status = 0;
+# Runs a command in its own process group with a time limit: perl starts it and waits for it, polling.
+# The group is signalled (TERM, up to 30 s, KILL) only by this perl and only while its leader is perl's own
+# child that it has not reaped (alive or a zombie): until then the number cannot belong to anything else.
+# Once the leader is reaped nothing more is sent to anything (review v5). The group is stopped when the
+# time is up (142), when the stop file appears (143; how the shell asks: the shell never signals a
+# number, review v5: Codex A-3), when perl's parent (the shell) is gone (129), and on HUP, INT and TERM.
+# The pid file is opened and the handlers set before the fork, and the three signals are blocked across
+# it, so a signal never finds a child perl does not know (review v4: Codex A-2; v5: Claude C-1).
+# Arguments: <seconds> <pid file or -> <stop file or -> <command...>. stdin is /dev/null.
+CAPPED_PERL='use POSIX ();
+  my $seconds = shift; my $pidfile = shift; my $stopfile = shift;
+  die "time limit: $seconds\n" unless $seconds =~ /^[1-9][0-9]*$/;
+  my $pid = 0; my $reaped = 0; my $status = 0; my $parent = getppid();
   # Before every signal: is the leader still the own unreaped child of this perl? waitpid with WNOHANG answers
-  # it even when the main waitpid already reaped it and a handler ran before $reaped was set (-1, ECHILD).
+  # it even when it was reaped already (-1, ECHILD).
   my $gone = sub {
     return 1 if $reaped;
-    my $r = waitpid($pid, 1);
-    if ($r == $pid || $r == -1) { $reaped = 1; return 1; }
+    my $r = waitpid($pid, POSIX::WNOHANG());
+    if ($r == $pid) { $status = $?; $reaped = 1; return 1; }
+    if ($r == -1) { $reaped = 1; return 1; }
     return 0;
   };
   my $stop = sub {
@@ -95,22 +101,34 @@ CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds
     kill "KILL", -$pid;
     waitpid($pid, 0); $reaped = 1;
   };
-  # The handlers come before the fork, and the pid file is opened before it: a pid file that cannot be made
-  # starts nothing, and one that cannot be written stops the child before perl ends (review v4: Codex A-2).
-  $SIG{ALRM} = sub { $stop->(); exit 142; };
   my %number = (HUP => 1, INT => 2, TERM => 15);
   for my $name (keys %number) { $SIG{$name} = sub { $stop->(); exit 128 + $number{$name}; }; }
   my $f;
   if ($pidfile ne "-") { open($f, ">", $pidfile) or die "pid file: $!\n"; }
-  $pid = fork; die "fork: $!\n" unless defined $pid;
-  if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
-  setpgrp($pid, $pid);
+  my $blocked = POSIX::SigSet->new(POSIX::SIGHUP(), POSIX::SIGINT(), POSIX::SIGTERM());
+  my $before = POSIX::SigSet->new();
+  POSIX::sigprocmask(POSIX::SIG_BLOCK(), $blocked, $before);
+  my $child = fork;
+  if (defined $child && $child == 0) {
+    $SIG{$_} = "DEFAULT" for keys %number;
+    POSIX::sigprocmask(POSIX::SIG_SETMASK(), $before);
+    setpgrp(0, 0); exec @ARGV or POSIX::_exit(127);
+  }
+  die "fork: $!\n" unless defined $child;
+  $pid = $child; setpgrp($pid, $pid);
+  POSIX::sigprocmask(POSIX::SIG_SETMASK(), $before);
   if ($f) { unless ((print {$f} "$pid\n") && close($f)) { $stop->(); exit 125; } }
-  alarm $seconds; waitpid($pid, 0); $status = $?; $reaped = 1; alarm 0;
+  my $deadline = time + $seconds;
+  until ($gone->()) {
+    if (time >= $deadline) { $stop->(); exit 142; }
+    if ($stopfile ne "-" && -e $stopfile) { $stop->(); exit 143; }
+    if (getppid() != $parent) { $stop->(); exit 129; }
+    select(undef, undef, undef, 0.2);
+  }
   exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);'
 capped_group() {  # <seconds> <pid file or -> <command...>
   local seconds="$1" pidfile="$2"; shift 2
-  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${pidfile}" "$@" < /dev/null
+  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${pidfile}" - "$@" < /dev/null
 }
 
 # ============================================================================================
@@ -142,7 +160,10 @@ in_vm_main() {
   case "${op}" in
     clean) vm_clean "${run_id}" ;;
     tree-hash) vrunner tree-hash --dir "${RUN_DIR}/src" ;;
-    runner-hashes) vrunner runner-hashes --dir "${RUN_DIR}/runner" ;;
+    # The copy's hashes come from shasum, not from the copied runner itself (review v5: Claude C-2).
+    runner-hashes) printf '{"scripts/mac_ui_runner.py": "%s", "scripts/test_mac.sh": "%s"}\n' \
+      "$(/usr/bin/shasum -a 256 "${RUN_DIR}/runner/mac_ui_runner.py" | /usr/bin/awk '{print $1}')" \
+      "$(/usr/bin/shasum -a 256 "${RUN_DIR}/runner/test_mac.sh" | /usr/bin/awk '{print $1}')" ;;
     build) vm_build ;;
     enumerate) vm_enumerate "${DD_UI}" enumeration ;;
     enumerate-lib) vm_enumerate "${DD_LIB}" unit-enumeration ;;
@@ -418,106 +439,12 @@ vm_finish() {
   fi
 }
 
-if [[ "${1:-}" == "--in-vm-clean" ]]; then
-  shift
-  in_vm_main "$@"
-  exit 0
-fi
 
 # ============================================================================================
 # On this Mac.
 # ============================================================================================
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MAC_DIR="${ROOT_DIR}/mac"
-TESTS_DIR="${MAC_DIR}/MacLibraryExample/MacLibraryExampleUITests"
-PBXPROJ="${MAC_DIR}/MacLibraryExample/MacLibraryExample.xcodeproj/project.pbxproj"
-OUT_ROOT="${MAC_DIR}/MacLibraryExample/build/test_mac"
-BASELINE_DIR="${ROOT_DIR}/scripts"
-ACCOUNT_HOME="$(python3 -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')"
-VM_KEYS="${ACCOUNT_HOME}/.tart/ntk-ssh"
-MAC_XCODE_DIR="/Applications/Xcode26.6.app/Contents/Developer"
-
-runner() { python3 "${ROOT_DIR}/scripts/mac_ui_runner.py" "$@"; }
-fail() { echo "Error: $*" >&2; exit 1; }
-
-WHERE=""; VM_NAME="ntk-macos-15-new"; FEATURE=""; SKIP_UNIT=0; ALLOW=""; ALLOW_LSREGISTER=0; DRY_RUN=0; APPROVED=""
-BASELINE=0; NAME_EACH_TEST=0; QUALIFICATION=""; KEEP_VM_RUN=0
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --where) WHERE="${2:-}"; shift 2 ;;
-    --vm) VM_NAME="${2:-}"; shift 2 ;;
-    --feature) FEATURE="${2:-}"; shift 2 ;;
-    --skip-unit) SKIP_UNIT=1; shift ;;
-    --allow) ALLOW="${2-}"; shift 2 ;;
-    --allow-lsregister) ALLOW_LSREGISTER=1; shift ;;
-    --dry-run) DRY_RUN=1; shift ;;
-    --approved) APPROVED="${2:-}"; shift 2 ;;
-    --baseline) BASELINE=1; shift ;;
-    --name-each-test) NAME_EACH_TEST=1; shift ;;
-    --qualification) QUALIFICATION="${2:-}"; shift 2 ;;
-    --keep-vm-run) KEEP_VM_RUN=1; shift ;;
-    *) fail "unknown option $1 (see the header of scripts/test_mac.sh)" ;;
-  esac
-done
-
-[[ "${WHERE}" == vm || "${WHERE}" == mac ]] || fail "--where vm|mac is required (design 6.3)"
-[[ "${VM_NAME}" =~ ^[A-Za-z0-9._-]+$ ]] || fail "malformed --vm"
-case "${FEATURE}" in ""|Dialog|Notification|Share|Clipboard) ;; *) fail "--feature must be Dialog, Notification, Share or Clipboard" ;; esac
-case "${QUALIFICATION}" in ""|mac26|mac26-reply|vm-ja) ;; *) fail "--qualification must be mac26, mac26-reply or vm-ja" ;; esac
-if [[ "${WHERE}" == vm ]]; then
-  [[ -z "${ALLOW}" && "${ALLOW_LSREGISTER}" == 0 && "${DRY_RUN}" == 0 && -z "${APPROVED}" ]] || \
-    fail "--allow, --allow-lsregister, --dry-run and --approved are for --where mac"
-  [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" == vm-ja ]] || fail "--qualification ${QUALIFICATION} runs on this Mac"
-else
-  [[ "${NAME_EACH_TEST}" == 0 && "${KEEP_VM_RUN}" == 0 ]] || fail "--name-each-test and --keep-vm-run are for --where vm"
-  [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" != vm-ja ]] || fail "--qualification vm-ja runs in the VM"
-  [[ "${ALLOW_LSREGISTER}" == 0 ]] || fail "--allow-lsregister is not implemented: remove the extra registered copies yourself, then plan and ask again"
-  if [[ "${DRY_RUN}" == 1 ]]; then
-    [[ -z "${APPROVED}" ]] || fail "--dry-run and --approved go to separate runs"
-  else
-    [[ -n "${APPROVED}" ]] || fail "this Mac runs only with --approved <file> (run --dry-run first and ask the user)"
-    # Its place is never shown (design 3.4; review v4: Codex A-1); every read of it is the runner's.
-    [[ -f "${APPROVED}" && -r "${APPROVED}" ]] || fail "the approval file does not exist or cannot be read"
-  fi
-fi
-[[ -z "${FEATURE}" ]] || SKIP_UNIT=1
-UNIT=1; [[ "${SKIP_UNIT}" == 1 ]] && UNIT=0
-[[ -n "${QUALIFICATION}" ]] && UNIT=0
-
-# The raw things of this run on this Mac (the VM's facts, LaunchServices dumps, the tart arguments are
-# never written at all) stay in a private temporary folder outside the repository, removed on every
-# exit (Codex A-9, Claude A-2, B-7). One EXIT trap for everything the run may leave.
-SCAN_ROOT="${TMPDIR:-/tmp}"; SCAN_ROOT="${SCAN_ROOT%/}"
-PRIVATE="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac-private.XXXXXX")"
-MAC_TMP=""; MAC_WAITER=""; MAC_KEEP=0; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
-on_exit() {
-  local code=$?
-  trap - EXIT INT TERM HUP
-  if [[ -n "${MAC_TMP}" ]]; then
-    mac_cleanup || code=1
-  fi
-  if [[ -n "${VM_UUID}" && "${VM_FINISHED}" != 1 ]]; then
-    VM_FINISHED=1
-    vm_op finish "${RUN_ID}" "${KEEP_VM_RUN}" 2>/dev/null | grep '^NTK-VM' | sed 's/^/  /' || true
-  fi
-  rm -rf "${PRIVATE}"
-  exit "${code}"
-}
-trap on_exit EXIT
-trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
-# A run killed without its trap leaves its private folder; the next run removes the ones whose owner (the
-# runner's shell, by PID and start time) is gone (Claude v2 B-3).
-runner private --dir "${PRIVATE}" --own "$$"
-runner private --scan-root "${SCAN_ROOT}" --dir "${PRIVATE}"
-
-RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
-OUT="${OUT_ROOT}/${RUN_ID}-${WHERE}"
-mkdir -p "${OUT}"
-chmod 700 "${OUT}"
-RESULTS="${OUT}/results.jsonl"
-: > "${RESULTS}"
-echo "[run] ${RUN_ID} (${WHERE})"
+# The run on this Mac starts in main (at the end of this file).
 
 # --- The VM: qualification, identity and the commands sent to it ------------------------------
 
@@ -729,7 +656,7 @@ PY
 
 # --- This Mac ------------------------------------------------------------------------------------
 
-MAC_PIDFILE=""
+MAC_PIDFILE=""; MAC_STOPFILE=""
 
 # Before any xcodebuild on this Mac: the approved plan, the ledger, the runner and the tree (R-19).
 mac_gate() {
@@ -740,15 +667,16 @@ mac_gate() {
 # Runs one xcodebuild on this Mac: the gate, then the call's own paths and names (Claude A-1, Codex A-2),
 # then the call in its own group with nothing from outside in its environment (Codex A-3). Its PID,
 # start time, real executable and group go into the run's marker once it is the Xcode 26.6 xcodebuild;
-# if that cannot be recorded, the call is stopped and the run fails (Claude B-4).
+# if that cannot be recorded, the call is stopped and the run fails (Claude B-4). The next call starts only
+# after perl reaped this one and nothing of its group runs (review v5: Codex A-2).
 mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild arguments...>
   local seconds="$1" log="$2" kind="$3" index="$4"; shift 4
   mac_gate
   runner check-call --plan "${MAC_TMP}/plan.approved.json" --root "${MAC_TMP}" --kind "${kind}" --index "${index}" "$@" \
     || exit 97
-  rm -f "${MAC_PIDFILE}"
-  # The marker says an xcodebuild is starting until it is recorded: a run that cannot record it keeps its
-  # folder (review v4: Codex A-2, Claude C-5).
+  rm -f "${MAC_PIDFILE}" "${MAC_STOPFILE}"
+  # The marker says an xcodebuild is starting until it is recorded; with the pid file left in the folder,
+  # a later run can still show whether it runs (review v4: Codex A-2; v5: Claude C-3).
   runner marker --root "${MAC_TMP}" --launching || fail "the run's marker could not be written; nothing was started"
   # Only what the run sets reaches xcodebuild (Claude v2 C-2): an empty environment with HOME, USER,
   # LOGNAME, TMPDIR, a fixed PATH, the Xcode, and the runner's TEST_RUNNER_NTK_ values.
@@ -757,53 +685,39 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
   for name in TEST_RUNNER_NTK_HOST TEST_RUNNER_NTK_ALLOW TEST_RUNNER_NTK_FIXTURE_DIR TEST_RUNNER_NTK_EXPECTED_COPY; do
     [[ -n "${!name+set}" ]] && environment+=("${name}=${!name}")
   done
-  # perl itself goes to the background (not a shell function in a subshell), so `$!` is perl: a TERM to
-  # it stops the xcodebuild group while the group's leader is still perl's own child (Claude v2 B-1).
-  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${MAC_PIDFILE}" /usr/bin/env -i "${environment[@]}" \
+  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${MAC_PIDFILE}" "${MAC_STOPFILE}" /usr/bin/env -i "${environment[@]}" \
     "${MAC_XCODE_DIR}/usr/bin/xcodebuild" "$@" < /dev/null > "${log}" 2>&1 &
   MAC_WAITER=$!
   local i code=0
   for i in $(seq 1 100); do [[ -s "${MAC_PIDFILE}" ]] && break; sleep 0.1; done
   if ! { [[ -s "${MAC_PIDFILE}" ]] && runner marker --root "${MAC_TMP}" --pid "$(cat "${MAC_PIDFILE}")" \
            --role xcodebuild --expect-under "$(cd -P "${MAC_XCODE_DIR}" && pwd -P)"; }; then
-    MAC_KEEP=1
     stop_waiter
-    fail "the xcodebuild could not be recorded as a writer; the run's folder stays"
+    fail "the xcodebuild could not be recorded as a writer; stopped"
   fi
   wait "${MAC_WAITER}" || code=$?
   MAC_WAITER=""
+  runner settle --root "${MAC_TMP}" || exit 1
   rm -f "${MAC_PIDFILE}"
   return "${code}"
 }
 
-# Stops the background perl of the current xcodebuild, and nothing else (review v3: Codex A-1, Claude
-# C-1, C-2). If perl already ended, bash may have reaped it and its number may be free; so the TERM goes
-# only when the process of that number is still this shell's own child running perl (its parent and
-# executable read right before). Otherwise nothing is sent and the run says so. The EXIT trap calls this
-# too (through mac_cleanup), so a TERM to the shell while the marker is written still stops perl first.
+# Asks the background perl of the current xcodebuild to stop its group, and waits for it. The shell never
+# signals a number (review v5: Codex A-3): it makes the stop file perl polls, and perl, which has not
+# reaped its child, stops the group itself. The EXIT trap comes here first too (through mac_cleanup).
 stop_waiter() {
   [[ -n "${MAC_WAITER}" ]] || return 0
-  if runner own-child --pid "${MAC_WAITER}" --parent "$$" --exe-name perl; then
-    kill -TERM "${MAC_WAITER}" 2>/dev/null || true
-    wait "${MAC_WAITER}" 2>/dev/null || true
-  else
-    # perl may still run with an xcodebuild nobody recorded: the folder is not removed (review v4: Codex A-2).
-    MAC_KEEP=1
-    echo "Note: the background xcodebuild supervisor could not be confirmed as this run's; nothing was signalled" >&2
-  fi
+  : > "${MAC_STOPFILE}"
+  wait "${MAC_WAITER}" 2>/dev/null || true
   MAC_WAITER=""
 }
 
-# The end of a run on this Mac (6.3 step 4): the writers of this run (three-way match, again right
-# before every signal), then this run's registrations, fixture and folder. If a writer does not stop,
-# nothing is removed and the run fails (Codex A-4).
+# The end of a run on this Mac (6.3 step 4): perl stops and reaps the current xcodebuild; then, only when
+# nothing of the run runs, this run's registrations, fixture and folder go. Nothing is signalled; if
+# something runs, or that cannot be shown, the folder stays and the run fails (Codex A-4, review v5).
 mac_cleanup() {
   [[ -n "${MAC_TMP}" && -d "${MAC_TMP}" ]] || return 0
   stop_waiter
-  if [[ "${MAC_KEEP}" == 1 ]]; then
-    echo "Error: the run's private folder stays: an xcodebuild of this run could not be shown stopped. Restart the Mac (the next run then removes the folder) or look at the processes yourself" >&2
-    return 1
-  fi
   runner stop-current --root "${MAC_TMP}"
 }
 
@@ -871,10 +785,11 @@ run_mac() {
   # approval are made complete under another name and then renamed (Claude v2 B-3, Codex v3 B-3).
   MAC_TMP="$(umask 077; runner make-run-folder --scan-root "${SCAN_ROOT}" --run-id "${RUN_ID}" --approved "${APPROVED}" \
     --plan "${plan}")"
-  MAC_PIDFILE="${MAC_TMP}/xcodebuild.pid"
+  MAC_PIDFILE="${MAC_TMP}/xcodebuild.pid"; MAC_STOPFILE="${MAC_TMP}/xcodebuild.stop"
   plan="${MAC_TMP}/plan.approved.json"
-  # The stopped runs are stopped only as the approval lists them: folder, marker and processes (Codex v2 A-3).
-  runner stale --scan-root "${SCAN_ROOT}" --current-root "${MAC_TMP}" --stop --plan "${plan}" \
+  # The folders of earlier runs go only where nothing of their run runs; nothing is stopped, and the run
+  # stops here (before it builds) while any of them stays (review v5).
+  runner stale --scan-root "${SCAN_ROOT}" --current-root "${MAC_TMP}" --clean --plan "${plan}" \
     --approved "${MAC_TMP}/approval.approved.json" --repo "${ROOT_DIR}"
   # The sources this Mac builds are the same list the VM got, copied into the run folder, and must hash
   # to the approved tree (Claude B-12: nothing git ignores, such as a user scheme in xcuserdata).
@@ -995,8 +910,109 @@ PY
   return "${code}"
 }
 
-if [[ "${WHERE}" == vm ]]; then
-  run_vm
-else
-  run_mac
-fi
+# The one EXIT trap of a run (set in main).
+on_exit() {
+  local code=$?
+  trap - EXIT INT TERM HUP
+  if [[ -n "${MAC_TMP}" ]]; then
+    mac_cleanup || code=1
+  fi
+  if [[ -n "${VM_UUID}" && "${VM_FINISHED}" != 1 ]]; then
+    VM_FINISHED=1
+    vm_op finish "${RUN_ID}" "${KEEP_VM_RUN}" 2>/dev/null | grep '^NTK-VM' | sed 's/^/  /' || true
+  fi
+  rm -rf "${PRIVATE}"
+  exit "${code}"
+}
+
+# What runs on this Mac: the options, the private folder and its trap, then the VM's or this Mac's run.
+main() {
+  ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  MAC_DIR="${ROOT_DIR}/mac"
+  TESTS_DIR="${MAC_DIR}/MacLibraryExample/MacLibraryExampleUITests"
+  PBXPROJ="${MAC_DIR}/MacLibraryExample/MacLibraryExample.xcodeproj/project.pbxproj"
+  OUT_ROOT="${MAC_DIR}/MacLibraryExample/build/test_mac"
+  BASELINE_DIR="${ROOT_DIR}/scripts"
+  ACCOUNT_HOME="$(python3 -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')"
+  VM_KEYS="${ACCOUNT_HOME}/.tart/ntk-ssh"
+  MAC_XCODE_DIR="/Applications/Xcode26.6.app/Contents/Developer"
+
+  runner() { python3 "${ROOT_DIR}/scripts/mac_ui_runner.py" "$@"; }
+  fail() { echo "Error: $*" >&2; exit 1; }
+
+  WHERE=""; VM_NAME="ntk-macos-15-new"; FEATURE=""; SKIP_UNIT=0; ALLOW=""; ALLOW_LSREGISTER=0; DRY_RUN=0; APPROVED=""
+  BASELINE=0; NAME_EACH_TEST=0; QUALIFICATION=""; KEEP_VM_RUN=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --where) WHERE="${2:-}"; shift 2 ;;
+      --vm) VM_NAME="${2:-}"; shift 2 ;;
+      --feature) FEATURE="${2:-}"; shift 2 ;;
+      --skip-unit) SKIP_UNIT=1; shift ;;
+      --allow) ALLOW="${2-}"; shift 2 ;;
+      --allow-lsregister) ALLOW_LSREGISTER=1; shift ;;
+      --dry-run) DRY_RUN=1; shift ;;
+      --approved) APPROVED="${2:-}"; shift 2 ;;
+      --baseline) BASELINE=1; shift ;;
+      --name-each-test) NAME_EACH_TEST=1; shift ;;
+      --qualification) QUALIFICATION="${2:-}"; shift 2 ;;
+      --keep-vm-run) KEEP_VM_RUN=1; shift ;;
+      *) fail "unknown option $1 (see the header of scripts/test_mac.sh)" ;;
+    esac
+  done
+
+  [[ "${WHERE}" == vm || "${WHERE}" == mac ]] || fail "--where vm|mac is required (design 6.3)"
+  [[ "${VM_NAME}" =~ ^[A-Za-z0-9._-]+$ ]] || fail "malformed --vm"
+  case "${FEATURE}" in ""|Dialog|Notification|Share|Clipboard) ;; *) fail "--feature must be Dialog, Notification, Share or Clipboard" ;; esac
+  case "${QUALIFICATION}" in ""|mac26|mac26-reply|vm-ja) ;; *) fail "--qualification must be mac26, mac26-reply or vm-ja" ;; esac
+  if [[ "${WHERE}" == vm ]]; then
+    [[ -z "${ALLOW}" && "${ALLOW_LSREGISTER}" == 0 && "${DRY_RUN}" == 0 && -z "${APPROVED}" ]] || \
+      fail "--allow, --allow-lsregister, --dry-run and --approved are for --where mac"
+    [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" == vm-ja ]] || fail "--qualification ${QUALIFICATION} runs on this Mac"
+  else
+    [[ "${NAME_EACH_TEST}" == 0 && "${KEEP_VM_RUN}" == 0 ]] || fail "--name-each-test and --keep-vm-run are for --where vm"
+    [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" != vm-ja ]] || fail "--qualification vm-ja runs in the VM"
+    [[ "${ALLOW_LSREGISTER}" == 0 ]] || fail "--allow-lsregister is not implemented: remove the extra registered copies yourself, then plan and ask again"
+    if [[ "${DRY_RUN}" == 1 ]]; then
+      [[ -z "${APPROVED}" ]] || fail "--dry-run and --approved go to separate runs"
+    else
+      [[ -n "${APPROVED}" ]] || fail "this Mac runs only with --approved <file> (run --dry-run first and ask the user)"
+      # Its place is never shown (design 3.4; review v4: Codex A-1); every read of it is the runner's.
+      [[ -f "${APPROVED}" && -r "${APPROVED}" ]] || fail "the approval file does not exist or cannot be read"
+    fi
+  fi
+  [[ -z "${FEATURE}" ]] || SKIP_UNIT=1
+  UNIT=1; [[ "${SKIP_UNIT}" == 1 ]] && UNIT=0
+  [[ -n "${QUALIFICATION}" ]] && UNIT=0
+
+  # The raw things of this run on this Mac (the VM's facts, LaunchServices dumps, the tart arguments are
+  # never written at all) stay in a private temporary folder outside the repository, removed on every
+  # exit (Codex A-9, Claude A-2, B-7). One EXIT trap for everything the run may leave.
+  SCAN_ROOT="${TMPDIR:-/tmp}"; SCAN_ROOT="${SCAN_ROOT%/}"
+  PRIVATE="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac-private.XXXXXX")"
+  MAC_TMP=""; MAC_WAITER=""; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
+  trap on_exit EXIT
+  trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+  # A run killed without its trap leaves its private folder; the next run removes the ones whose owner (the
+  # runner's shell, by PID and start time) is gone (Claude v2 B-3).
+  runner private --dir "${PRIVATE}" --own "$$"
+  runner private --scan-root "${SCAN_ROOT}" --dir "${PRIVATE}"
+
+  RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
+  OUT="${OUT_ROOT}/${RUN_ID}-${WHERE}"
+  mkdir -p "${OUT}"
+  chmod 700 "${OUT}"
+  RESULTS="${OUT}/results.jsonl"
+  : > "${RESULTS}"
+  echo "[run] ${RUN_ID} (${WHERE})"
+  if [[ "${WHERE}" == vm ]]; then
+    run_vm
+  else
+    run_mac
+  fi
+}
+
+# The last two lines. bash reads a line whole before it runs it, and each of these ends the script, so
+# nothing after them is ever read: a file changed while a run goes on (it takes long) is not read on
+# (review v5: Claude B-1). The VM half runs only after the prelude above let it through.
+if [[ "${1:-}" == "--in-vm-clean" ]]; then shift; in_vm_main "$@"; exit 0; fi
+main "$@"; exit $?
