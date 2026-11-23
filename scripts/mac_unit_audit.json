@@ -1,10 +1,10 @@
 {
   "schema": 1,
-  "about": "U-29 of artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md: the MacLibraryTests suites that may run on this Mac without approval. A suite is listed only after reading its body and what it builds; the word counts are a helper check, not the audit. Default-scope calls (copy without a scope) were looked for by hand in the listed suites.",
+  "about": "U-29 of artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md: the MacLibraryTests suites that may run on this Mac without approval. A suite is listed only after reading its body and what it builds; the word counts are a helper check, not the audit. Default-scope calls (copy without a scope) were looked for by hand in the listed suites. review: null until another model has reviewed this table; then {\"by\", \"date\", \"treeHash\"} naming the same tree.",
   "auditedAt": "2026-11-23",
   "auditedBy": "Claude (stage 0d)",
   "review": null,
-  "treeHash": "5f7ddc2d384442120bd6821b8517d7bc8f071562060f5fdbb3341202168bfc52",
+  "treeHash": "884fb80508a032252d9de67bfb0027e9bf17ed14e787b10ec8d58f167df3a114",
   "suites": [
     {
       "suite": "MacLibraryTests",
@@ -142,6 +142,34 @@
       "suite": "ShareUseCasesTests",
       "file": "Share/ShareUseCasesTests.swift",
       "reason": "use cases over MockShareRepository",
+      "allowed": []
+    }
+  ],
+  "helpers": [
+    {
+      "file": "Clipboard/Mock/MockClipboardPromiseRegistry.swift",
+      "allowed": []
+    },
+    {
+      "file": "Clipboard/Mock/MockClipboardRepository.swift",
+      "allowed": [
+        {
+          "word": ".general",
+          "count": 1,
+          "reason": "a scope value a mock records or returns; the mock never resolves a pasteboard"
+        }
+      ]
+    },
+    {
+      "file": "Clipboard/Mock/MockClipboardTypeIdentifierValidating.swift",
+      "allowed": []
+    },
+    {
+      "file": "Notification/MockNotificationRepository.swift",
+      "allowed": []
+    },
+    {
+      "file": "Share/Mock/MockShareRepository.swift",
       "allowed": []
     }
   ],

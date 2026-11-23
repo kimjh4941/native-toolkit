@@ -4,12 +4,19 @@ The runner keeps the UI tests off the parts of the user's own Mac they were not 
 checks that the VM is the qualified one (macOS UI test design, U-9, 3.4 and 6.3). A runner that
 quietly selects too much, or a check that quietly stops checking, looks exactly like one that works,
 so every case here breaks one decision on purpose (design chapter 7, the runner's rows) and asserts
-that it is caught, next to the near-miss that must pass. Nothing here starts the VM, a UI test or an
-app on this Mac; the stale-run case starts a copy of /bin/sleep in a temporary folder.
+that it is caught, next to the near-miss that must pass.
+
+Nothing here reaches the operating system's real operations: before the runner is imported, os.kill,
+os.killpg and every subprocess but `git` and a `/bin/bash` with a PATH of three harmless tools are
+replaced by guards that fail the test (review v1: Claude A-3, Codex B-4). The stopping of writers is
+tested through a fake port. The script's VM half (`--in-vm`) is only read, never run. The mutation
+harness runs these tests in the VM only (scripts/tests/mac_ui_runner_mutations.py).
 
 The fixtures in fixtures/mac_ui_runner/ are real output of Xcode 26.3 in the VM (macOS 15.8.3), stage
 0d (2026-11-23), with the VM's home folder replaced by <home>:
   enumeration.json        -enumerate-tests -test-enumeration-style flat -test-enumeration-format json
+                          (the UI tests and MacLibraryExampleTests)
+  unit-enumeration.json   the same for the MacLibrary scheme (MacLibraryTests)
   otool-ov.txt, otool-l.txt
                           otool -arch arm64 -ov / -l of MacLibraryExampleUITests.xctest
   xcresult-dialog-tests.json, xcresult-dialog-summary.json
@@ -17,9 +24,10 @@ The fixtures in fixtures/mac_ui_runner/ are real output of Xcode 26.3 in the VM 
   xcresult-unit-tests.json
                           the same for MacLibraryTests (Swift Testing)
 
-Run: python3 -m unittest discover -s scripts/tests -p 'test_mac_ui_runner.py'
+Run: python3 -m unittest scripts/tests/test_mac_ui_runner.py
 """
 
+import io
 import json
 import os
 import pathlib
@@ -28,12 +36,50 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
+from contextlib import redirect_stderr
+
+# --- Guards: no real signal, process list, removal, LaunchServices or ssh from these tests -------------
+
+_REAL_POPEN = subprocess.Popen
+
+
+class OsOperationReached(AssertionError):
+    pass
+
+
+def _guard_kill(*args, **kwargs):
+    raise OsOperationReached("a self-test reached os.kill / os.killpg")
+
+
+def _allowed_command(args, env):
+    argv = [args] if isinstance(args, str) else list(args)
+    if not argv:
+        return False
+    if argv[0] == "git":
+        return True
+    if argv[0] == "/bin/bash" and env is not None and set(env.get("PATH", "").split(":")) <= {env.get("HOME")}:
+        return True
+    return False
+
+
+class _GuardedPopen(_REAL_POPEN):
+    def __init__(self, args, *rest, **kwargs):
+        if not _allowed_command(args, kwargs.get("env")):
+            raise OsOperationReached(f"a self-test reached a subprocess: {args!r}"[:200])
+        super().__init__(args, *rest, **kwargs)
+
+
+os.kill = _guard_kill
+os.killpg = _guard_kill
+subprocess.Popen = _GuardedPopen
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import mac_ui_runner as r  # noqa: E402
+
+# Every plan of this Mac needs the VM checks recorded; the tests that approve set them here.
+READY = {k: "recorded in a test" for k in r.MAC_RUN_PREREQUISITES}
 
 HERE = pathlib.Path(__file__).resolve().parent
 FIXTURES = HERE / "fixtures" / "mac_ui_runner"
@@ -290,10 +336,23 @@ class Selection(unittest.TestCase):
             r.QUALIFICATION_ONLY_TESTS = old
 
 
-def mac_plan(allowed=r.MAC_CATEGORIES, audit=None):
-    return r.make_plan("mac", enumeration(), declarations(), allowed, None, "26", "a" * 40, "b" * 64, [], True,
-                       audit or {"suites": ["DetectionUseCaseTests"], "expired": False, "hash": "c" * 64},
-                       runner_files={"scripts/mac_ui_runner.py": "d" * 64}, declarations_hash="e" * 64)
+def unit_keys():
+    return r.parse_unit_enumeration(fixture("enumeration.json"), (r.EXAMPLE_UNIT_TARGET,)) + \
+        r.parse_unit_enumeration(fixture("unit-enumeration.json"), (r.LIBRARY_UNIT_TARGET,))
+
+
+def mac_plan(allowed=r.MAC_CATEGORIES, audit=None, ready=True):
+    old = dict(r.MAC_RUN_PREREQUISITES)
+    try:
+        if ready:
+            r.MAC_RUN_PREREQUISITES.update(READY)
+        return r.make_plan("mac", enumeration(), declarations(), allowed, None, "26", "a" * 40, "b" * 64, [], True,
+                           audit or {"suites": ["DetectionUseCaseTests"], "expired": False, "hash": "c" * 64},
+                           runner_files={"scripts/mac_ui_runner.py": "d" * 64}, declarations_hash="e" * 64,
+                           unit_keys=unit_keys(), environment={"osBuild": "25G342", "xcode": "26.6"})
+    finally:
+        r.MAC_RUN_PREREQUISITES.clear()
+        r.MAC_RUN_PREREQUISITES.update(old)
 
 
 class Approval(unittest.TestCase):
@@ -302,6 +361,19 @@ class Approval(unittest.TestCase):
         approval = r.make_approval(plan)
         self.assertEqual(r.approval_problems(approval, plan), [])
         self.assertEqual(approval["unitTests"], ["MacLibraryTests/DetectionUseCaseTests"])
+        self.assertTrue(plan["unitInvocations"][0]["expected"])
+        self.assertTrue(all(k.startswith("MacLibraryTests/DetectionUseCaseTests/")
+                            for k in plan["unitInvocations"][0]["expected"]))
+
+    def test_an_old_approval_or_unchecked_preconditions_are_refused(self):
+        import datetime
+        plan = mac_plan()
+        approval = r.make_approval(plan)
+        later = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=r.APPROVAL_HOURS, minutes=1)
+        self.assertTrue(any("older than" in p for p in r.approval_problems(approval, plan, now=later)))
+        not_ready = mac_plan(ready=False)
+        self.assertTrue(any("not checked yet" in p for p in r.approval_problems(r.make_approval(not_ready), not_ready)))
+        self.assertTrue(all(v is None for v in r.MAC_RUN_PREREQUISITES.values()))
 
     def test_any_change_is_refused(self):
         plan = mac_plan()
@@ -312,7 +384,9 @@ class Approval(unittest.TestCase):
                        lambda a: a.__setitem__("extra", 1),
                        lambda a: a.pop("unitTests"),
                        lambda a: a.__setitem__("approvalId", "nothex"),
-                       lambda a: a["tests"].reverse()):
+                       lambda a: a["tests"].reverse(),
+                       lambda a: a.__setitem__("baseline", True),
+                       lambda a: a["environment"].__setitem__("xcode", "26.3")):
             changed = json.loads(json.dumps(approval))
             change(changed)
             self.assertTrue(r.approval_problems(changed, plan), change)
@@ -361,6 +435,7 @@ def good_facts():
     return {"hvVmmPresent": "1", "hwModel": "VirtualMac2,1", "osVersion": "15.8.3", "osBuild": "24H241",
             "mobileMeAccounts": "absent", "virtiofsMounts": "0", "xcodeVersion": "26.3", "xcodeBuild": "17C529",
             "language": "en-US", "platformUUID": "B8805D5E-AF5A-4C28-B721-5D49A04BCCE4", "arch": "arm64",
+            "vmBoottime": "1795358134",
             "accounts": [{"type": "com.apple.account.iTunesStore", "authenticated": "0"},
                          {"type": "com.apple.account.HolidayCalendar", "authenticated": "1"},
                          {"type": "com.apple.account.OnMyDevice", "authenticated": "0"}],
@@ -385,14 +460,15 @@ class VMQualification(unittest.TestCase):
             "osVersion": ("osVersion", "15.8.2"), "noAppleAccount": ("mobileMeAccounts", "present"),
             "noSharedFolder": ("virtiofsMounts", "1"), "xcode": ("xcodeBuild", "17F113"),
             "identity": ("platformUUID", "not-a-uuid"), "tartRunArgs": ("tartProblems", ["x"]),
+            "identity ": ("vmBoottime", "soon"),
         }
         for item, (key, value) in cases.items():
             facts = good_facts()
             facts[key] = value
-            self.assertIn(item, self.failing(facts), key)
+            self.assertIn(item.strip(), self.failing(facts), key)
             facts = good_facts()
             facts.pop(key)
-            self.assertIn(item, self.failing(facts), f"{key} missing")
+            self.assertIn(item.strip(), self.failing(facts), f"{key} missing")
 
     def test_accounts(self):
         for accounts in ([], None,
@@ -442,6 +518,14 @@ class OutputBoundary(unittest.TestCase):
             record.update(change)
             with self.assertRaises(r.RunnerError, msg=change):
                 r.public_record(record)
+
+    def test_preconditions_and_runner_names_are_closed_lists(self):
+        self.assertEqual(r.public_codes("NTK-PRECONDITION:userHomeIsJohn", VOCABULARY), [])
+        good = {"test": "MacLibraryExampleUITests/DialogUITests/testD1_showDialogOK", "result": "failed"}
+        for code in ("NTK-PRECONDITION:userHomeIsJohn", "NTK-RUNNER:mailFromAlice"):
+            with self.assertRaises(r.RunnerError):
+                r.public_record(dict(good, codes=[code]))
+        self.assertTrue(r.public_record(dict(good, codes=["NTK-PRECONDITION:notAuthorized", "NTK-RUNNER:noResult"])))
 
     def test_the_step_vocabulary_comes_from_the_trusted_file(self):
         self.assertIn("overlay", VOCABULARY)
@@ -545,6 +629,37 @@ class Results(unittest.TestCase):
         self.assertEqual(sum(x["runs"] for x in records), 352)
         self.assertEqual(len(records), 308)
 
+    def test_unit_results_must_be_the_planned_set(self):
+        text = fixture("xcresult-unit-tests.json")
+        planned = [k for k in unit_keys() if k.startswith("MacLibraryTests/")]
+        records = r.unit_records("MacLibraryTests", text, 0, VOCABULARY, planned)
+        self.assertFalse([x for x in records if "#" in x["test"]])
+        records = r.unit_records("MacLibraryTests", text, 0, VOCABULARY, planned[1:])
+        self.assertIn("MacLibraryTests#namedSet", [x["test"] for x in records])
+        records = r.unit_records("MacLibraryTests", text, 0, VOCABULARY, planned + ["MacLibraryTests/Gone/test"])
+        self.assertIn("MacLibraryTests#namedSet", [x["test"] for x in records])
+
+    def test_unit_shapes_and_folded_names(self):
+        def unit(cases):
+            return json.dumps({"testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests",
+                                              "children": cases}]})
+        records = r.unit_records("MacLibraryTests", unit([case("S/t()", "Passed", [{"nodeType": "Repetition"}])]), 0,
+                                 VOCABULARY)
+        self.assertIn("MacLibraryTests#unknownShape", [x["test"] for x in records])
+        records = r.unit_records("MacLibraryTests", unit([case("S/t(a:)", "Passed"), case("S/t(b:)", "Passed")]), 0,
+                                 VOCABULARY)
+        self.assertIn("MacLibraryTests#readable", [x["test"] for x in records])
+
+    def test_a_result_of_no_or_two_destinations_stops(self):
+        cases = [case(D1 + "()", "Passed")]
+        for devices in ([], [{"deviceId": "a"}, {"deviceId": "b"}]):
+            data = json.loads(tests_json(cases))
+            data["devices"] = devices
+            records, stop = r.record_invocation({"name": "x", "expected": [D1], "timeout": 1}, json.dumps(data),
+                                                summary_json(cases), 0, False, VOCABULARY)
+            self.assertTrue(stop)
+            self.assertTrue(any(x["test"].endswith("#destination") for x in records))
+
     def test_argument_values_never_leave(self):
         tests = json.dumps({"testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests", "children": [
             case("Suite/check(value:)", "Passed", [{"nodeType": "Arguments", "name": "/Users/x/secret"},
@@ -611,65 +726,174 @@ class Stale(unittest.TestCase):
     def test_a_malformed_marker_is_refused(self):
         self.assertIsNotNone(r.stale_plan({"root": "x"}, 1000, [], [])["refuse"])
 
-    def test_a_real_left_process_is_found_stopped_and_its_folder_removed(self):
-        scan = pathlib.Path(tempfile.mkdtemp(prefix="ntk-stale-scan."))
-        try:
-            folder = scan / (r.RUN_FOLDER_PREFIX + "selftest")
-            folder.mkdir()
-            self.assertEqual(r.main(["marker", "--root", str(folder), "--run-id", "x"]), 0)
-            time.sleep(1.1)
-            sleeper = folder / "sleeper"
-            # A copy of /bin/sleep is killed by code signing; a fresh ad-hoc build runs.
-            built = subprocess.run(["xcrun", "clang", "-x", "c", "-o", str(sleeper), "-"], capture_output=True,
-                                   input=b"#include <unistd.h>\nint main(void) { sleep(60); return 0; }\n")
-            if built.returncode != 0:
-                self.skipTest("no C compiler to build the stand-in writer")
-            child = subprocess.Popen([str(sleeper)])
-            try:
-                time.sleep(0.5)
-                out = folder.parent / "list.json"
-                self.assertEqual(r.main(["stale", "--scan-root", str(scan), "--list", "--out", str(out)]), 0)
-                self.assertEqual(json.loads(out.read_text()), [{"processes": 1}])
-                self.assertEqual(r.main(["stale", "--scan-root", str(scan)]), 0)
-                self.assertIsNotNone(child.wait(timeout=40))
-                self.assertFalse(folder.exists())
-            finally:
-                if child.poll() is None:
-                    child.kill()
-        finally:
-            shutil.rmtree(scan, ignore_errors=True)
+    def test_a_marker_that_names_another_folder_is_refused(self):
+        plan = r.stale_plan(self.marker(root="/"), 1000, [], [self.XCODE], folder=self.ROOT_DIR)
+        self.assertIsNotNone(plan["refuse"])
+        plan = r.stale_plan(self.marker(), 1000, [], [self.XCODE], folder="/private/var/folders/x/T/other")
+        self.assertIsNotNone(plan["refuse"])
+
+
+class FakePort:
+    """The operating system for stop_writers and clean_run_folder: a process table that changes on
+    signals and over time, and a log of what would have been done."""
+
+    def __init__(self, processes, boot=1000, on_term=None, on_kill=None, reuse_after=None):
+        self.table = [dict(p) for p in processes]
+        self.boot = boot
+        self.log = []
+        self.clock = 0.0
+        self.on_term = on_term or (lambda port, pid: None)
+        self.on_kill = on_kill or (lambda port, pid: port.drop(pid))
+        self.reuse_after = reuse_after
+
+    def drop(self, pid):
+        self.table = [p for p in self.table if p["pid"] != pid]
+
+    def processes(self):
+        if self.reuse_after and self.clock >= self.reuse_after[0]:
+            pid, entry = self.reuse_after[1], self.reuse_after[2]
+            if not any(p["pid"] == pid for p in self.table):
+                self.table.append(dict(entry))
+        return [dict(p) for p in self.table]
+
+    def boottime(self):
+        return self.boot
+
+    def signal(self, pid, number):
+        self.log.append(("signal", pid, number))
+        (self.on_term if number == 15 else self.on_kill)(self, pid)
+
+    def signal_group(self, pgid, number):
+        self.log.append(("group", pgid, number))
+
+    def remove(self, folder):
+        self.log.append(("remove", folder))
+
+    def remove_fixture(self, path):
+        self.log.append(("fixture", path))
+
+    def unregister(self, app):
+        self.log.append(("unregister", app))
+
+    def sleep(self, seconds):
+        self.clock += seconds
+
+    def now(self):
+        return self.clock
+
+
+class Stopping(unittest.TestCase):
+    ROOT_DIR = Stale.ROOT_DIR
+    XCODE = Stale.XCODE
+    XB = XCODE + "/Developer/usr/bin/xcodebuild"
+    SAMPLE = ROOT_DIR + "/dd-ui/Build/Products/Debug/MacLibraryExample.app/Contents/MacOS/MacLibraryExample"
+
+    def marker(self):
+        return {"boottime": 1000, "created": 5000.0, "root": self.ROOT_DIR, "pgid": 300, "runId": "20261123T000000Z-abcdef",
+                "writers": [{"pid": 300, "start": 5001, "exe": self.XB}]}
+
+    def test_a_writer_that_ends_on_term_is_not_killed(self):
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}], on_term=lambda p, pid: p.drop(pid))
+        self.assertIsNone(r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE]))
+        self.assertEqual([e for e in port.log if e[0] == "signal"], [("signal", 300, 15)])
+
+    def test_a_pid_reused_during_the_wait_is_never_signalled(self):
+        # 301 (the sample) ends on TERM and its number is taken by an unrelated process; 300 stays until KILL.
+        stranger = {"pid": 301, "pgid": 301, "start": 9000, "exe": "/System/Applications/Mail.app/Contents/MacOS/Mail"}
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB},
+                         {"pid": 301, "pgid": 300, "start": 5003, "exe": self.SAMPLE}],
+                        on_term=lambda p, pid: p.drop(pid) if pid == 301 else None, reuse_after=(1.0, 301, stranger))
+        self.assertIsNone(r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE], term_wait=5, kill_wait=5))
+        kills = [e for e in port.log if e[0] == "signal" and e[2] == 9]
+        self.assertEqual(kills, [("signal", 300, 9)])
+        self.assertNotIn(("signal", 301, 9), port.log)
+
+    def test_a_writer_that_never_stops_keeps_the_folder(self):
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}], on_kill=lambda p, pid: None)
+        problem = r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], lambda folder: self.marker())
+        self.assertIsNotNone(problem)
+        self.assertFalse([e for e in port.log if e[0] in ("remove", "fixture", "unregister")])
+
+    def test_a_folder_without_a_readable_marker_is_never_removed(self):
+        def broken(folder):
+            raise ValueError("not JSON")
+        port = FakePort([])
+        self.assertIsNotNone(r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], broken))
+        self.assertEqual(port.log, [])
+        with self.assertRaises(r.RunnerError):
+            r.stale_listing([self.ROOT_DIR], port, [self.XCODE], broken)
+
+    def test_a_clean_folder_goes_with_its_fixture(self):
+        port = FakePort([])
+        self.assertIsNone(r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], lambda folder: self.marker()))
+        self.assertEqual(port.log, [("fixture", "/private/tmp/ntk-uitest-20261123T000000Z-abcdef"),
+                                    ("remove", self.ROOT_DIR)])
+
+    def test_the_listing_counts_processes_per_folder(self):
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}])
+        self.assertEqual(r.stale_listing([self.ROOT_DIR], port, [self.XCODE], lambda f: self.marker()),
+                         [{"processes": 1}])
+
+    def test_a_writer_is_recorded_only_as_the_expected_xcode(self):
+        processes = [{"pid": 300, "pgid": 300, "start": 5001, "exe": "/usr/bin/perl"}]
+        self.assertIsNone(r.writer_entry(300, processes, "/Applications/Xcode26.6.app/Contents/Developer"))
+        processes[0]["exe"] = self.XB
+        self.assertEqual(r.writer_entry(300, processes, "/Applications/Xcode26.6.app/Contents/Developer")["pgid"], 300)
 
 
 class Audit(unittest.TestCase):
+    MOCK = "struct MacClipboardManagerTests {}\nrepo.copy(scope: .general)\nrepo.read(scope: .general)\n"
+
     def audit(self, **change):
-        audit = {"schema": 1, "treeHash": "t", "review": {"by": "another model"},
+        audit = {"schema": 1, "treeHash": "t", "review": {"by": "another model", "date": "2026-11-24", "treeHash": "t"},
                  "suites": [{"suite": "MacClipboardManagerTests", "file": "M.swift",
-                             "allowed": [{"word": ".general", "count": 2, "reason": "passed to the mock"}]}]}
+                             "allowed": [{"word": ".general", "count": 2, "reason": "passed to the mock"}]}],
+                 "helpers": [{"file": "Mock/MockRepo.swift", "allowed": []}]}
         audit.update(change)
         return audit
 
+    def state(self, audit=None, text=None, helpers=None, tree="t"):
+        return r.audit_state(audit or self.audit(), tree, {"M.swift": self.MOCK if text is None else text},
+                             {"Mock/MockRepo.swift": "struct MockRepo {}"} if helpers is None else helpers)
+
     def test_word_counts(self):
-        counts = r.audit_word_counts("let p = NSPasteboard.general\nresolve(.general)\nx(scope: .general)\nMacShareManager.shared")
-        self.assertEqual(counts, {"NSPasteboard.general": 1, ".general": 2, "MacShareManager.shared": 1})
+        counts = r.audit_word_counts("let p = NSPasteboard.general\nresolve(.general)\nx(scope: .general)\n"
+                                     "MacShareManager.shared\nNSSharingServicePicker\nNSGeneralPboard\nNSPasteboard(name: x)")
+        self.assertEqual(counts, {"NSPasteboard.general": 1, ".general": 2, "MacShareManager.shared": 1,
+                                  "NSSharingService": 1, "NSGeneralPboard": 1, "NSPasteboard(name:": 1})
 
     def test_allowed_occurrences_must_match(self):
-        mock = "repo.copy(scope: .general)\nrepo.read(scope: .general)\n"
-        self.assertEqual(r.audit_state(self.audit(), "t", {"M.swift": mock})["suites"], ["MacClipboardManagerTests"])
-        for text in (mock + "PasteboardResolver.resolve(.general)\n", mock + "MacClipboardManager.shared.copy()\n",
-                     "repo.copy(scope: .general)\n", mock + "NSPasteboard.general.clearContents()\n"):
-            self.assertEqual(r.audit_state(self.audit(), "t", {"M.swift": text})["suites"], [], text)
+        self.assertEqual(self.state()["suites"], ["MacClipboardManagerTests"])
+        for text in (self.MOCK + "PasteboardResolver.resolve(.general)\n", self.MOCK + "MacClipboardManager.shared.copy()\n",
+                     "struct MacClipboardManagerTests {}\nrepo.copy(scope: .general)\n",
+                     self.MOCK + "NSPasteboard.general.clearContents()\n"):
+            self.assertEqual(self.state(text=text)["suites"], [], text)
+
+    def test_the_file_must_declare_the_suite(self):
+        self.assertEqual(self.state(text=self.MOCK.replace("MacClipboardManagerTests", "PasteboardResolverTests"))["suites"], [])
+
+    def test_a_suite_twice_or_also_not_listed(self):
+        audit = self.audit()
+        audit["suites"].append(dict(audit["suites"][0]))
+        self.assertEqual(self.state(audit=audit)["suites"], [])
+        self.assertEqual(self.state(audit=self.audit(notListed=[{"suite": "MacClipboardManagerTests"}]))["suites"], [])
+
+    def test_helpers_are_counted(self):
+        self.assertEqual(self.state(helpers={"Mock/MockRepo.swift": "NSPasteboard.general"})["suites"], [])
+        self.assertEqual(self.state(helpers={"Mock/MockRepo.swift": "struct MockRepo {}",
+                                             "Mock/Other.swift": "UNUserNotificationCenter.current()"})["suites"], [])
 
     def test_a_reason_is_required(self):
         audit = self.audit()
         audit["suites"][0]["allowed"][0]["reason"] = ""
-        self.assertEqual(r.audit_state(audit, "t", {"M.swift": "a(.general)\nb(.general)\n"})["suites"], [])
+        self.assertEqual(self.state(audit=audit)["suites"], [])
 
     def test_an_expired_or_unreviewed_table_selects_nothing(self):
-        mock = "repo.copy(scope: .general)\nrepo.read(scope: .general)\n"
-        state = r.audit_state(self.audit(), "other", {"M.swift": mock})
+        state = self.state(tree="other")
         self.assertEqual((state["suites"], state["expired"]), ([], True))
-        state = r.audit_state(self.audit(review=None), "t", {"M.swift": mock})
-        self.assertEqual((state["suites"], state["expired"]), ([], True))
+        for review in (None, True, {"by": "x"}, {"by": "x", "date": "d", "treeHash": "older"}):
+            state = self.state(audit=self.audit(review=review))
+            self.assertEqual((state["suites"], state["expired"]), ([], True), review)
         plan = mac_plan(audit=state)
         self.assertEqual(plan["unitInvocations"], [])
         self.assertEqual(plan["unitExcluded"], [{"target": "MacLibraryTests", "reason": "auditExpired"}])
@@ -680,6 +904,12 @@ class Audit(unittest.TestCase):
         self.assertTrue(all(a["reason"] for s in audit["suites"] for a in s["allowed"]))
         self.assertNotIn("SharePickerPresenterTests", [s["suite"] for s in audit["suites"]])
         self.assertNotIn("PasteboardResolverTests", [s["suite"] for s in audit["suites"]])
+        if subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--git-dir"], capture_output=True).returncode != 0:
+            self.skipTest("not a git checkout (the mutation harness's copy)")
+        self.assertEqual(audit["treeHash"], r.tree_hash(ROOT, r.AUDIT_TREE_PATHS),
+                         "the audited tree changed: audit the change, then update treeHash and the review")
+        state = r._audit_for(ROOT, "mac")
+        self.assertFalse([p for p in state["problems"] if "review" not in p], state["problems"])
 
 
 class ReplyState(unittest.TestCase):
@@ -748,19 +978,55 @@ class Baseline(unittest.TestCase):
     def test_refusals(self):
         vm_env = {"os": "15.8.3", "osBuild": "24H241", "language": "en-US"}
         full = r.make_plan("vm", enumeration(), declarations(), (), None, "15", "a", "b", [], True, None)
-        self.assertIsNone(r.baseline_refusal(vm_env, full, False, False))
-        self.assertIsNotNone(r.baseline_refusal(vm_env, full, True, False))
-        self.assertIsNotNone(r.baseline_refusal(vm_env, full, False, True))
-        self.assertIsNotNone(r.baseline_refusal(dict(vm_env, language="ja"), full, False, False))
+        every = keys_of(full["selected"])
+        self.assertIsNone(r.baseline_refusal(vm_env, full, False, False, every, []))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, full, True, False, every, []))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, full, False, True, every, []))
+        self.assertIsNotNone(r.baseline_refusal(dict(vm_env, language="ja"), full, False, False, every, []))
+        # Every eligible test executed exactly once, and nothing lost (Codex A-7, Claude A-4).
+        self.assertIsNotNone(r.baseline_refusal(vm_env, full, False, False, every[1:], []))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, full, False, False, every + every[:1], []))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, full, False, False, None, []))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, full, False, False, every, ["x"]))
         feature = r.make_plan("vm", enumeration(), declarations(), (), "Dialog", "15", "a", "b", [], False, None)
-        self.assertIsNotNone(r.baseline_refusal(vm_env, feature, False, False))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, feature, False, False, keys_of(feature["selected"]), []))
         no_unit = r.make_plan("vm", enumeration(), declarations(), (), None, "15", "a", "b", [], False, None)
-        self.assertIsNotNone(r.baseline_refusal(vm_env, no_unit, False, False))
+        self.assertIsNotNone(r.baseline_refusal(vm_env, no_unit, False, False, every, []))
         mac_env = {"os": "26.7.3"}
-        self.assertIsNone(r.baseline_refusal(mac_env, mac_plan(), False, False))
-        self.assertIsNotNone(r.baseline_refusal(mac_env, mac_plan(allowed=("panels",)), False, False))
+        plan = mac_plan()
+        self.assertIsNone(r.baseline_refusal(mac_env, plan, False, False, keys_of(plan["selected"]), []))
+        narrow = mac_plan(allowed=("panels",))
+        self.assertIsNotNone(r.baseline_refusal(mac_env, narrow, False, False, keys_of(narrow["selected"]), []))
         expired = mac_plan(audit={"suites": [], "expired": True, "hash": None})
-        self.assertIsNotNone(r.baseline_refusal(mac_env, expired, False, False))
+        self.assertIsNotNone(r.baseline_refusal(mac_env, expired, False, False, keys_of(expired["selected"]), []))
+
+    def test_completeness(self):
+        plan = r.make_plan("vm", enumeration(), declarations(), (), "Dialog", "15", "a", "b", [], False, None)
+        records = [{"test": f"MacLibraryExampleUITests/{k}", "result": "passed"} for k in keys_of(plan["selected"])]
+        records.append({"test": "MacLibraryExampleUITests#fixture", "result": "passed"})
+        self.assertEqual(r.completeness_problems(plan, records), [])
+        self.assertTrue(r.completeness_problems(plan, records[1:]))            # a call that gave nothing
+        self.assertTrue(r.completeness_problems(plan, records + records[:1]))  # twice
+        self.assertTrue(r.completeness_problems(plan, records[:-1]))            # the fixture result is missing
+        full = r.make_plan("vm", enumeration(), declarations(), (), None, "15", "a", "b", [], True, None,
+                           unit_keys=unit_keys())
+        records = [{"test": f"MacLibraryExampleUITests/{k}", "result": "passed"} for k in keys_of(full["selected"])]
+        records += [{"test": f"MacLibraryExampleUITests#{n}", "result": "passed"}
+                    for n in ("fixture", "buttonCoverage", "privacyRestore")]
+        self.assertEqual(r.completeness_problems(full, records),
+                         ["no record of MacLibraryTests", "no record of MacLibraryExampleTests"])
+
+    def test_the_excluded_map_holds_the_unit_targets(self):
+        expired = mac_plan(audit={"suites": [], "expired": True, "hash": None})
+        self.assertEqual(r.excluded_map(expired)["MacLibraryTests"], "auditExpired")
+
+    def test_the_latest_baseline_of_the_same_kind(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name in ("test_mac.baseline.mac-26.7.3.json", "test_mac.baseline.mac-26.10.json",
+                         "test_mac.baseline.mac-26.11.2026-11-23.json", "test_mac.baseline.vm-27.json"):
+                (pathlib.Path(d) / name).write_text("{}")
+            self.assertEqual(r.latest_baseline(d, "mac").name, "test_mac.baseline.mac-26.10.json")
+            self.assertIsNone(r.latest_baseline(d + "/none", "mac"))
 
     def test_the_baseline_keeps_eligible_executed_and_excluded(self):
         plan = r.make_plan("vm", enumeration(), declarations(), (), None, "15", "a", "b", [], True, None)
@@ -814,6 +1080,27 @@ class Coverage(unittest.TestCase):
 
 
 class Fixture(unittest.TestCase):
+    def test_the_fixture_is_made_anew_without_following_links(self):
+        root = "/private/tmp/ntk-uitest-selftest-" + os.urandom(3).hex()
+        try:
+            r.fixture_create(root)
+            manifest = r.fixture_manifest(root)
+            self.assertEqual(sorted(manifest), sorted(r.FIXTURE_ITEMS))
+            with self.assertRaises(r.RunnerError):
+                r.fixture_create(root)  # never reused
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+        with tempfile.TemporaryDirectory() as elsewhere:
+            os.symlink(elsewhere, root)
+            try:
+                with self.assertRaises(r.RunnerError):
+                    r.fixture_create(root)
+                with self.assertRaises(r.RunnerError):
+                    r.fixture_manifest(root)
+                self.assertEqual(os.listdir(elsewhere), [])
+            finally:
+                os.unlink(root)
+
     def make(self):
         root = pathlib.Path("/private/tmp/ntk-uitest-selftest-" + os.urandom(3).hex())
         (root / "dirA").mkdir(parents=True)
@@ -917,6 +1204,7 @@ class SourceRules(unittest.TestCase):
             ("DialogUITests.swift", "import XCTest\n", "import XCTest\nlet s = \"dialog.button.ShowDialog\"\n"),
             ("DialogUITests.swift", "import XCTest\n", "import XCTest\nfunc g() { XCTExpectFailure(\"x\") }\n"),
             ("DialogUITests.swift", "import XCTest\n", "import XCTest\nextension DialogUITests {}\n"),
+            ("DialogUITests.swift", "try alert.typeKey(key)", "try sample.typeKey(key)"),
             ("NavigationUITests.swift", "    func testM1a_menuOpensEachScreen() throws {",
              "    func testM1a_menuOpensEachScreen() async throws {"),
         ]
@@ -962,54 +1250,263 @@ def function_body(text, name):
     return m.group(1)
 
 
+class Calls(unittest.TestCase):
+    """The checks right before every xcodebuild on this Mac (Claude A-1, Codex A-2, B-2, Claude B-10)."""
+    ROOT_DIR = "/private/var/folders/x/T/ntk-test-mac.abc"
+    NAMES = ["MacLibraryExampleUITests/DialogUITests/testD1_showDialogOK()"]
+
+    def test_call(self, *extra, drop=None, names=None):
+        args = ["test-without-building", "-xctestrun", self.ROOT_DIR + "/dd-ui/Build/Products/x.xctestrun",
+                "-destination", "platform=macOS,arch=arm64"] + ["-only-testing:" + n for n in (names or self.NAMES)] + \
+            ["-derivedDataPath", self.ROOT_DIR + "/dd-test", "-resultBundlePath", self.ROOT_DIR + "/ui-0.xcresult"]
+        if drop:
+            i = args.index(drop)
+            del args[i:i + 2]
+        return args + list(extra)
+
+    def test_the_planned_call_passes(self):
+        self.assertEqual(r.call_problems(self.ROOT_DIR, self.test_call(), "test", self.NAMES), [])
+        build = ["build-for-testing", "-workspace", self.ROOT_DIR + "/src/mac/MacWorkspace.xcworkspace", "-scheme",
+                 "MacLibraryExample", "-derivedDataPath", self.ROOT_DIR + "/dd-ui"]
+        self.assertEqual(r.call_problems(self.ROOT_DIR, build, "build"), [])
+
+    def test_paths_outside_twice_or_missing(self):
+        for args in (self.test_call(drop="-derivedDataPath"), self.test_call(drop="-resultBundlePath"),
+                     self.test_call("-derivedDataPath", self.ROOT_DIR + "/again"),
+                     self.test_call("-derivedDataPath=" + self.ROOT_DIR + "/x"),
+                     [a.replace(self.ROOT_DIR + "/dd-test", "/Users/x/Library/Developer/Xcode/DerivedData") for a in self.test_call()],
+                     [a.replace(self.ROOT_DIR + "/dd-test", self.ROOT_DIR + "/../escape") for a in self.test_call()],
+                     [a.replace(self.ROOT_DIR + "/dd-test", self.ROOT_DIR) for a in self.test_call()],
+                     self.test_call("build-for-testing"), self.test_call("test")):
+            self.assertTrue(r.call_problems(self.ROOT_DIR, args, "test", self.NAMES), args)
+
+    def test_names_must_be_the_plans(self):
+        self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call(names=[]), "test", self.NAMES)
+                        if False else r.call_problems(self.ROOT_DIR, [a for a in self.test_call() if not a.startswith("-only")],
+                                                      "test", self.NAMES))
+        self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call(names=["MacLibraryExampleUITests/ShareUITests/testS2_shareTextCopy()"]),
+                                        "test", self.NAMES))
+        self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call("-skip-testing:X"), "test", self.NAMES))
+        self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call("-only-testing", "X"), "test", self.NAMES))
+        self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call(), "test", []))
+        # No names on either side is still refused: a test call without -only-testing runs everything.
+        self.assertTrue(r.call_problems(self.ROOT_DIR, [a for a in self.test_call() if not a.startswith("-only")], "test", []))
+
+    def test_symlinks_in_the_paths(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = os.path.realpath(d)
+            os.mkdir(root + "/real")
+            os.symlink(root + "/real", root + "/dd-test")
+            args = ["-derivedDataPath", root + "/dd-test/x"]
+            self.assertTrue(r.path_symlink_problems(root, args))
+            self.assertEqual(r.path_symlink_problems(root, ["-derivedDataPath", root + "/real/x"]), [])
+
+    def test_unit_names_on_this_mac_are_the_audited_suites(self):
+        plan = mac_plan()
+        self.assertEqual(r.unit_only_testing_arguments(plan, 0), ["-only-testing:MacLibraryTests/DetectionUseCaseTests"])
+        for names in (["MacLibraryTests"], ["MacLibraryTests/PasteboardResolverTests"], ["MacLibraryExampleTests"], []):
+            plan["unitInvocations"][0]["onlyTesting"] = names
+            with self.assertRaises(r.RunnerError, msg=names):
+                r.unit_only_testing_arguments(plan, 0)
+
+
+def git(repo, *args):
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True,
+                   env={"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid", "GIT_COMMITTER_NAME": "t",
+                        "GIT_COMMITTER_EMAIL": "t@example.invalid", "HOME": str(repo), "PATH": os.environ.get("PATH", "")})
+
+
+class Gate(unittest.TestCase):
+    """R-19 before every xcodebuild on this Mac, and the approval's wiring (Claude B-8), in a temporary git
+    repository with a temporary ledger."""
+
+    def setUp(self):
+        plan = mac_plan()
+        self.repo = pathlib.Path(tempfile.mkdtemp(prefix="ntk-gate."))
+        self.addCleanup(shutil.rmtree, self.repo, True)
+        for relative in r.RUNNER_FILES:
+            path = self.repo / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("runner file " + relative)
+        (self.repo / "mac").mkdir()
+        (self.repo / "mac" / "a.txt").write_text("a")
+        git(self.repo, "init", "-q")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-q", "-m", "x")
+        self.head = subprocess.run(["git", "-C", str(self.repo), "rev-parse", "HEAD"], capture_output=True,
+                                   text=True).stdout.strip()
+        plan["head"] = self.head
+        plan["macTree"] = r.tree_hash(self.repo, ["mac"])
+        plan["runnerFiles"] = r.runner_file_hashes(self.repo)
+        self.plan = plan
+        self.approval = r.make_approval(plan)
+        self.ledger = self.repo.parent / (self.repo.name + ".ledger")
+        r.consume_approval(self.ledger, self.approval["approvalId"])
+
+    def tearDown(self):
+        shutil.rmtree(self.repo, ignore_errors=True)
+        for path in (self.ledger, self.ledger.with_name(self.ledger.name + ".lock")):
+            if path.exists():
+                path.unlink()
+
+    def problems(self, plan=None, approval=None, ledger=None):
+        return r.gate_problems(plan or self.plan, approval or self.approval, self.repo, self.head, ledger or self.ledger)
+
+    def test_the_approved_plan_passes(self):
+        self.assertEqual(self.problems(), [])
+
+    def test_each_change_stops(self):
+        changed = json.loads(json.dumps(self.plan))
+        changed["invocations"][0]["onlyTesting"].append("x")
+        self.assertTrue(self.problems(plan=changed))
+        other = self.repo.parent / (self.repo.name + ".other-ledger")
+        self.assertTrue(self.problems(ledger=other))
+        (self.repo / "scripts" / "mac_ui_runner.py").write_text("changed")
+        self.assertTrue(self.problems())
+        git(self.repo, "checkout", "--", "scripts/mac_ui_runner.py")
+        self.assertEqual(self.problems(), [])
+        (self.repo / "mac" / "a.txt").write_text("changed")
+        self.assertTrue(self.problems())
+
+    def test_a_plan_of_other_runner_files_or_another_tree(self):
+        # git is clean here; only the hashes tell the plan was made from something else.
+        other = json.loads(json.dumps(self.plan))
+        other["runnerFiles"] = dict(other["runnerFiles"], **{"scripts/test_mac.sh": "0" * 64})
+        self.assertTrue(r.runner_problems(other, self.repo))
+        other = json.loads(json.dumps(self.plan))
+        other["macTree"] = "0" * 64
+        self.assertTrue(r.tree_problems(other, self.repo, self.head))
+        self.assertEqual(r.tree_problems(self.plan, self.repo, self.head), [])
+
+
+class Commands(unittest.TestCase):
+    def test_an_unexpected_error_shows_no_path(self):
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = r.main(["fixture-compare", "--before", "/nonexistent/before.json", "--after", "/nonexistent/after.json"])
+        self.assertEqual(code, 2)
+        self.assertNotIn("/nonexistent", err.getvalue())
+        self.assertIn("NTK-RUNNER:internal", err.getvalue())
+
+    def test_stale_needs_exactly_one_mode(self):
+        err = io.StringIO()
+        with redirect_stderr(err):
+            self.assertNotEqual(r.main(["stale", "--scan-root", "/nonexistent"]), 0)
+
+    def test_the_guards_are_in_place(self):
+        with self.assertRaises(OsOperationReached):
+            os.kill(os.getpid(), 0)
+        with self.assertRaises(OsOperationReached):
+            subprocess.run(["/bin/ps", "-ax"], capture_output=True)
+        with self.assertRaises(OsOperationReached):
+            r.OsPort().processes()
+
+
 class ShellOrder(unittest.TestCase):
-    """Design 7 "中断": the trap before the first xcodebuild, HUP included, the children stopped
-    before the folder goes; every xcodebuild of this Mac behind the gate."""
+    """The order of the script (design 7 "中断", review v1): read, never run."""
 
     def setUp(self):
         self.text = SCRIPT.read_text()
 
-    def test_the_trap_comes_before_the_first_xcodebuild_of_this_mac(self):
-        body = function_body(self.text, "run_mac")
-        trap = body.index("trap mac_cleanup EXIT")
-        self.assertLess(trap, body.index("mac_xcodebuild "))
-        self.assertLess(body.index("trap 'exit 129' HUP"), body.index("mac_xcodebuild "))
-        self.assertLess(body.index("runner approve"), trap)
+    def test_the_vm_half_starts_clean_and_checks_three_facts_first(self):
+        lines = [l for l in self.text.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+        self.assertEqual(lines[0], "set -euo pipefail")
+        self.assertTrue(lines[1].startswith('if [[ "${1:-}" == "--in-vm" && "${NTK_IN_VM_CLEAN:-}" != 1 ]]; then'))
+        self.assertIn("exec /usr/bin/env -i NTK_IN_VM_CLEAN=1", lines[2])
+        body = [l.strip() for l in function_body(self.text, "in_vm_main").splitlines()]
+        self.assertTrue(body[0].startswith('[[ "$(command /usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || {'))
+        self.assertTrue(body[0].endswith("exit 96; }"))
+        self.assertTrue(body[1].startswith('case "$(command /usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *)'))
+        self.assertIn("command /usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice", body[2])
+        self.assertIn('== "$3" ]]', body[2])
+        self.assertTrue(body[3].endswith("exit 96; }"))
 
-    def test_the_cleanup_stops_before_it_removes(self):
-        body = function_body(self.text, "mac_cleanup")
-        self.assertLess(body.index('kill -TERM "-${pid}"'), body.index('rm -rf "${MAC_TMP}"'))
-        self.assertLess(body.index("pkill -KILL"), body.index('rm -rf "${MAC_TMP}"'))
-        self.assertLess(body.index('"${LSREGISTER}" -u'), body.index('rm -rf "${MAC_TMP}"'))
+    def test_nothing_destructive_runs_before_the_vm_dispatch(self):
+        top = self.text[:self.text.index('if [[ "${1:-}" == "--in-vm" ]]; then\n  shift')]
+        outside = re.sub(r"^[a-z_]+\(\) \{.*?^\}\n", "", top, flags=re.S | re.M)
+        for line in outside.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or re.match(r"^[A-Z_]+=\"[^\"$`]*\"$", stripped):
+                continue
+            self.assertIsNone(re.search(r"\b(rm|pkill|killall|kill|defaults|lsregister|ssh|tart|xcodebuild|mkdir|tee)\b",
+                                        stripped), stripped)
 
-    def test_every_xcodebuild_of_this_mac_passes_the_gate(self):
+    def test_one_trap_covers_every_exit_before_anything_is_made(self):
+        main = self.text[self.text.index("# On this Mac."):]
+        self.assertLess(main.index("trap on_exit EXIT"), main.index('RUN_ID="$(date'))
+        self.assertIn("trap 'exit 129' HUP", main)
+        self.assertLess(main.index('PRIVATE="$(umask 077; mktemp -d'), main.index("trap on_exit EXIT"))
+        body = function_body(self.text, "on_exit")
+        self.assertLess(body.index("mac_cleanup"), body.index('rm -rf "${PRIVATE}"'))
+        run_mac = function_body(self.text, "run_mac")
+        self.assertLess(run_mac.index("runner approve"), run_mac.index('MAC_TMP="$(umask 077'))
+        self.assertLess(run_mac.index("runner marker --root"), run_mac.index("mac_xcodebuild "))
+
+    def test_the_cleanup_stops_writers_before_anything_goes(self):
+        self.assertIn('runner stop-current --root "${MAC_TMP}"', function_body(self.text, "mac_cleanup"))
+        self.assertNotIn("pkill", function_body(self.text, "mac_cleanup"))
+
+    def test_every_xcodebuild_of_this_mac_passes_the_gate_and_the_call_check(self):
         body = function_body(self.text, "run_mac")
         direct = [line for line in body.splitlines() if re.search(r"(^|\s)xcodebuild\s", line)
-                  and "mac_xcodebuild" not in line and "-version" not in line]
+                  and "mac_xcodebuild" not in line and "-version" not in line and not line.strip().startswith("#")]
         self.assertEqual(direct, [])
         gate = function_body(self.text, "mac_xcodebuild")
-        self.assertLess(gate.index("mac_gate"), gate.index("capped_group"))
+        self.assertLess(gate.index("mac_gate"), gate.index("runner check-call"))
+        self.assertLess(gate.index("runner check-call"), gate.index("capped_group"))
+        self.assertIn("|| exit 97", gate[gate.index("runner check-call"):gate.index("capped_group")])
+        self.assertIn('runner marker --root "${MAC_TMP}" --pid', gate)
+        self.assertIn('fail "the xcodebuild could not be recorded', gate)
+        self.assertIn("-u XCODE_XCCONFIG_FILE -u TOOLCHAINS", gate)
 
-    def test_every_ssh_command_checks_the_identity(self):
+    def test_names_are_read_on_their_own(self):
+        body = function_body(self.text, "read_only_testing")
+        self.assertIn('|| fail "the planned names could not be read"', body)
+        self.assertIn('[[ ${#ONLY_TESTING[@]} -gt 0 ]] || fail', body)
+        for name in ("vm_unit", "vm_ui"):
+            vm_body = function_body(self.text, name)
+            self.assertIn('[[ -n "${args}" ]] || exit 1', vm_body)
+        self.assertNotIn("$(runner only-testing", function_body(self.text, "run_mac"))
+
+    def test_every_ssh_command_checks_the_vm(self):
         body = function_body(self.text, "vm_ssh")
-        self.assertIn("IOPlatformUUID", body)
-        self.assertIn("[ \\\"\\$u\\\" = '${VM_UUID}' ] || {", body)
+        self.assertIn('ps -axo args= | runner tart-check --ps - --vm "${VM_NAME}" || exit 96', body)
+        self.assertIn("[ \\\"\\$u\\\" = '${VM_UUID}' ] && [ \\\"\\$b\\\" = '${VM_BOOT}' ] || {", body)
         self.assertIn("exit 96; }; $*", body)
         self.assertEqual(function_body(self.text, "vm_op").count("vm_ssh "), 1)
+        self.assertIn("--in-vm ${op} ${id} ${VM_UUID}", function_body(self.text, "vm_op"))
+        self.assertIn("ssh -F /dev/null", function_body(self.text, "vm_ssh_raw"))
 
-    def test_the_in_vm_half_refuses_this_mac(self):
-        body = function_body(self.text, "in_vm_main")
-        self.assertIn('sysctl -n kern.hv_vmm_present', body.splitlines()[1])
+    def test_the_boot_time_is_the_sec_field(self):
+        # `{ sec = 1795358134, usec = 232279 } ...`: a greedy `.*sec =` took the usec (found in the VM).
+        self.assertEqual(self.text.count("sed -E 's/^\\{ sec = ([0-9]+),.*/\\1/'"), 1)
+        self.assertEqual(self.text.count("sed -E 's/^\\\\{ sec = ([0-9]+),.*/\\\\1/'"), 1)
+        self.assertNotIn(".*sec = ", self.text)
+
+    def test_raw_things_stay_private(self):
+        self.assertNotIn(".ps.txt", self.text)
+        body = function_body(self.text, "vm_qualify")
+        self.assertIn("ps -axo args= | runner vm-qualify", body)
+        self.assertNotIn("${OUT}/.", body)
+        self.assertIn('"${PRIVATE}/lsregister.txt"', function_body(self.text, "run_mac"))
+
+    def test_a_call_without_results_stops_the_vm_run(self):
+        body = function_body(self.text, "run_vm")
+        self.assertIn('    if [[ "${rc}" != 0 || "$((status + passed))" == 0 ]]; then\n', body)
+        self.assertIn('[[ "${rc}" != 96 ]] || fail', body)
+        self.assertIn('--kind runStopped', body)
+        self.assertIn('"${passed}" != 1', body)
 
     def test_where_is_required(self):
         # The script runs with a PATH that holds only what its argument checks need: whatever a
-        # broken check (or a mutation) lets through cannot reach ssh, tart, xcodebuild, pkill, defaults
-        # or the clock. The in-VM half is never run here (the check above reads it instead).
+        # broken check lets through cannot reach ssh, tart, xcodebuild, pkill, defaults or the clock.
         with tempfile.TemporaryDirectory() as tools:
-            for name in ("dirname", "basename", "python3"):
+            for name in ("dirname", "basename"):
                 found = shutil.which(name)
                 if found:
                     os.symlink(found, pathlib.Path(tools) / name)
+            # The interpreter itself, not /usr/bin/python3 (in the VM a shim that looks for Xcode).
+            os.symlink(os.path.realpath(sys.executable), pathlib.Path(tools) / "python3")
             env = {"PATH": tools, "HOME": tools}
 
             def run(*args):
@@ -1021,7 +1518,7 @@ class ShellOrder(unittest.TestCase):
             self.assertIn("--approved", run("--where", "mac").stderr)
             self.assertIn("for --where mac", run("--where", "vm", "--allow", "panels").stderr)
             self.assertIn("separate runs", run("--where", "mac", "--dry-run", "--approved", "x").stderr)
-
+            self.assertIn("not implemented", run("--where", "mac", "--dry-run", "--allow-lsregister").stderr)
 
 if __name__ == "__main__":
     unittest.main()

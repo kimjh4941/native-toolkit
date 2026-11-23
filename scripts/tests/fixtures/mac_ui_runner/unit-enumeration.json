@@ -1,0 +1,939 @@
+{
+  "errors" : [
+
+  ],
+  "values" : [
+    {
+      "disabledTests" : [
+
+      ],
+      "enabledTests" : [
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/acceptsBoundaryInterval()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/failedRestartKeepsExistingObservation()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/rejectsInvalidInterval(interval:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/repeatedStartsLeaveOnePoller()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/reportsChangeOnce()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/restartDoesNotDuplicate()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/staleGenerationIsDiscarded()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/stopEndsDelivery()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/stopIsIdempotent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/trackerIsShared()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/unchangedProducesNoEvent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeMonitorTests/unreadableScopeStopsObservation()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeTrackerTests/firstObservationIsAChange()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeTrackerTests/incrementIsAChange()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeTrackerTests/resetAllForgetsEverything()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeTrackerTests/resetForgetsOneScope()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeTrackerTests/sameValueIsNotAChange()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardChangeTrackerTests/scopesAreIndependent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/acceptsRepresentationAtLimit()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/acceptsRepresentationAtWarnThreshold()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/acceptsTotalAtLimit()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/acceptsValidContent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/checksEveryIdentifier()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/rejectsEmptyContent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/rejectsEmptyRepresentations()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/rejectsInvalidIdentifier()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/rejectsRepresentationOverLimit()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/rejectsTotalOverLimit()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardContentValidatorTests/representationLimitTakesPrecedence()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/accessBehaviorRejectsBadScope()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/accessBehaviorReturnsValue()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/detectOnEmptyPasteboard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/detectedValuesKeepFields()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/detectsEmailAddress()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/detectsMetadataForFileReference()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/metadataFailsForPlainText()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/metadataKeyPaths()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/patternRoundTrip()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/patternsMapOneToOne()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/unknownKeyPathIsIgnored()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDetectionMapperTests/unmatchedPatternIsNil()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentationIsEnglish()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentsAppendOwnership()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentsLocalOnlyUnverified()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentsMetadataFailure()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentsPasteButtonValidation()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentsPasteboardLifetime()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/documentsReadSuperset()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/doesNotPromiseSilence()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/errorContractIsComplete()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/everyPublicSymbolIsDocumented()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardDocumentationTests/sourcesAreReadable()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/caseCount()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/codesAreUnique()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/codesInBand()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/localizedDescriptionMatches()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/messagesCarryContext()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/messagesWellFormed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/noBridgeCollision()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardErrorTests/spotCheckCodes()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLimitsTests/acceptsEqualThresholds()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLimitsTests/defaultIsValid()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLimitsTests/rejectsMaxAboveTotal()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLimitsTests/rejectsNonPositive(warn:max:total:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLimitsTests/rejectsWarnAboveMax()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLogAuditTests/auditHasSubjects()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLogAuditTests/noValueReachesTheLogVerbatim()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardLogAuditTests/requestIsHashed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/emptyContent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/emptyRepresentations()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/preservesItemOrder()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/producesFreshItems()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/readsEmpty()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/readsEveryRepresentation()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/rejectsMalformedIdentifier()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/reportsTypesOnly()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/roundTrips()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardMappersTests/writesEveryRepresentation()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelAfterProgressInstalled()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelBeforeProgressInstalled()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelledLoadThrows()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/loadsThroughRealProvider()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/allHangingStillTimesOut()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/cancelAfterDelivery()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/cancelIsIdempotent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/cancelSuppressesDelivery()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/cancelSuppressesSubsequentPresses()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/completeFailure()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/emptyInputIsEmptyResult()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/everyIndexAccountedFor()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/hangingProviderStillTimesOut()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/loadsEveryProvider()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/newPressSupersedesRunning()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/partialFailure()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/rejectsEmptyAcceptedTypes()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/rejectsInvalidTimeout(timeout:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/rejectsMalformedAcceptedType()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/resultsAreInInputOrder()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/secondPressDelivers()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/timeoutDeliversOnce()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/typePriorityIsDeterministic()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/typePriorityReversed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardPasteLoaderTests/unmatchedProviderFails()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/appendAddsItems()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/appendAfterOwnershipLost()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/clearEmptiesPasteboard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/createsAndReleasesUniquePasteboard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/createsNamedPasteboard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/multipleItemsArePreserved()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/readDataMissingTypeIsNil()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/readDataReturnsBytes()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/readReportsDerivedRepresentations()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/refusesToReleaseGeneral()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/refusesToReleaseStandardNames()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/rejectedWriteLeavesContentsIntact()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/rejectsEmptyName()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/repeatedAppends()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/repeatedIdenticalWrites()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/snapshotMatchesByConformance()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/snapshotMatchesNothing()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/snapshotMatchesUndeclaredType()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/snapshotRejectsEmptyFilter()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/snapshotUnfiltered()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/writeReadRoundTrip()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardRepositoryImplTests/writeTakesOwnershipOnce()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardSystemCoordinatorTests/lazyProviderKeepsItsTypes()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardSystemCoordinatorTests/lazyProviderLifecycle()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardSystemCoordinatorTests/lazyProviderReleaseIsIdempotent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardSystemCoordinatorTests/unknownLazyProviderResolvesToNil()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsKnownIdentifiers(identifier:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsLongIdentifier()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsUndeclaredIdentifier(identifier:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsUppercaseAndDigits(identifier:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformanceIsDirectional()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToAnyOf()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToNoneOf()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToSelf()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToSupertype()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/emptyFilterMatchesNothing()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/hyphenPlacement(identifier:expected:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/malformedDoesNotConformToItself()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsDisallowedCharacters(identifier:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsEmptySegments(identifier:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsMalformedIdentifiers(identifier:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsSingleSegment()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsUnrelated()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/undeclaredTypeMatchesItself()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ClipboardTypeIdentifierValidatorTests/unresolvableConformsToNothing()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/accessBehaviorPropagatesInvalidScope()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/accessBehaviorReturnsUnavailable()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/detectMetadataForwards()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/detectPatternsForwards()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/detectPatternsPropagatesUnavailable()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/detectPatternsRejectsEmpty()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/detectValuesPropagatesDenial()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/detectValuesRejectsEmpty()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/foregroundFirstLookIsAChange()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/foregroundSharesTracker()"
+        },
+        {
+          "identifier" : "MacLibraryTests/DetectionUseCaseTests/foregroundUnchanged()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/failedWriteReleasesProvider()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/finishReleasesRegistration()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/largeCopyUsesProvider()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/multiItemIsDirect()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/promisedWriteRejectsEmptyTypes()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/promisedWriteRoundTrips()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/providerCanDecline()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/providerSuppliesOnDemand()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/registeredTypesMatchContent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/smallContentIsDirect()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/smallCopyRegistersNothing()"
+        },
+        {
+          "identifier" : "MacLibraryTests/LazyDataProviderTests/thresholdIsExclusive()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/accessBehaviorIsSynchronous()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/asyncCallbackFailure()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/asyncCallbackIsMainActor()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/callbackFailureShape()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/callbackSuccessShape()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/copyDefaults()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/copyReturnsOwnership()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/defaultGraphBuilds()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/emptyPatternsRejected()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/foregroundFirstLook()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/nativeThrowsDomainError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/nilCallbackIsSafe()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/readDataCallbackMissingType()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/readDataMissingIsNil()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacClipboardManagerTests/voidCallbackShape()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacLibraryTests/example()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/canPerformReturnsStubbedValue()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareAsyncReturnsResult()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareAsyncThrowsTypedError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareCompletionReflectsCancellation()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareCompletionReturnsFailureMessageOnError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareCompletionSucceedsWithChosenService()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareViaServiceCompletionReturnsFailureMessageOnError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/MacShareManagerTests/shareViaServiceCompletionSucceeds()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationCategoryUseCasesTests/registerCategoryCallsSetCategories()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationCategoryUseCasesTests/registerCategoryFailsOnEmptyId()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationCategoryUseCasesTests/removeCategoryFailsOnEmptyId()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationCategoryUseCasesTests/removeCategoryRemovesFromRegisteredSet()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/showFailsOnEmptyTitle()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/showFailsOnInvalidId()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/showFailsOnTriggerBelowOneSecond()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/showPropagatesRepositoryError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/showSuccessCallsAdd()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/updateFailsOnInvalidContent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDispatchUseCasesTests/updateSuccessCallsAdd()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/addFailedHasCode1201()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/invalidCategoryHasCode1103()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/invalidContentErrorMessageContainsReason()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/invalidContentHasCode1101()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/invalidTriggerHasCode1102()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/notificationNotFoundErrorMessageContainsIdentifier()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/notificationNotFoundHasCode1104()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/openSettingsFailedHasCode1205()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/permissionDeniedHasCode1002()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/permissionRequestFailedHasCode1003()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/queryFailedHasCode1203()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/removeFailedHasCode1202()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/setBadgeFailedHasCode1204()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/unknownHasCode1999()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/unsupportedOSErrorMessageContainsMinimum()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationDomainErrorTests/unsupportedOSHasCode1001()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationQueryUseCasesTests/getDeliveredPropagatesQueryFailure()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationQueryUseCasesTests/getDeliveredSuccessReturnsEmpty()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationQueryUseCasesTests/removeAllDeliveredCallsRepository()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationQueryUseCasesTests/removeDeliveredCallsRepositoryWithIdentifier()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationScheduleUseCasesTests/cancelAllScheduledCallsRemoveAllPending()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationScheduleUseCasesTests/cancelScheduledCallsRemovePending()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationScheduleUseCasesTests/getScheduledPropagatesQueryFailure()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationScheduleUseCasesTests/getScheduledSuccessReturnsEmpty()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationScheduleUseCasesTests/scheduleRejectsImmediateTrigger()"
+        },
+        {
+          "identifier" : "MacLibraryTests/NotificationScheduleUseCasesTests/scheduleSuccessWithTimeInterval()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteButtonLifetimeTests/cancelPasteIsIdempotent()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteButtonLifetimeTests/coordinatorOwnsLoader()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteButtonLifetimeTests/declaredAcceptedTypesSucceed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteButtonLifetimeTests/deinitCancelsPaste()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteButtonLifetimeTests/undeclaredAcceptedTypeThrows()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/createNamed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/createRejectsEmptyName()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/createUnique()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/customNameIsNotStandard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/generalIsStandard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/rejectsEmptyName(scope:)"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/resolvesGeneral()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/resolvesNamed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/resolvesStableIdentity()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/systemNamesAreStandard()"
+        },
+        {
+          "identifier" : "MacLibraryTests/PasteboardResolverTests/uniqueNamesDiffer()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/alreadyInProgressHasCode1408()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/alreadyInProgressMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/errorDescriptionMatchesErrorMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/fileNotFoundHasCode1404()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/fileNotFoundMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/imageLoadFailedHasCode1403()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/imageLoadFailedMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/invalidURLHasCode1402()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/invalidURLMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/noAnchorViewHasCode1405()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/noAnchorViewMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/noValidItemsHasCode1401()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/noValidItemsMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/presentationFailedHasCode1407()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/serviceUnavailableHasCode1406()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/serviceUnavailableMessage()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareErrorTests/unknownHasCode1499()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/conversionPreservesInputOrder()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/emptyURLThrowsInvalidURL()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/existingFileConverts()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/fileURLConverts()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/ftpURLThrowsInvalidURL()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/httpURLConverts()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/httpsURLConverts()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/httpsURLWithoutHostThrowsInvalidURL()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/missingFileThrowsFileNotFound()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/missingImageFileThrowsImageLoadFailed()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/schemelessURLThrowsInvalidURL()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/textConvertsToString()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareItemConverterTests/whitespaceOnlyURLThrowsInvalidURL()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SharePickerPresenterTests/performServiceThrowsAlreadyInProgressWhenBusy()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SharePickerPresenterTests/presentPickerThrowsAlreadyInProgressWhenBusy()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/canPerformReturnsFalseForEmptyItemsWithoutCallingRepository()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/canPerformReturnsStubbedValue()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/pickerExecutePropagatesRepositoryError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/pickerExecuteReturnsStubbedResultAndCallsRepositoryOnce()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/pickerExecuteThrowsNoValidItemsForEmptyItems()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/serviceExecuteReturnsStubbedResult()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/serviceExecuteThrowsNoValidItemsForEmptyItems()"
+        },
+        {
+          "identifier" : "MacLibraryTests/ShareUseCasesTests/serviceExecuteThrowsServiceUnavailableForEmptyName()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/appendForwardsOwnership()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/appendPropagatesAppendRejected()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/appendPropagatesOwnershipLost()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/appendValidatesFirst()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/clearReturnsChangeCount()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/copyPropagatesError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/copyValidatesFirst()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/copyWrites()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/createPropagatesInvalidName()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/createReturnsScope()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/readDataMissingIsNil()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/readDataReturnsBytes()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/readEmptyIsNotAnError()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/readPropagatesUnavailable()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/readReturnsItems()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/removeForwardsScope()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/removePropagatesRefusal()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/snapshotForwardsFilter()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/snapshotForwardsNilFilter()"
+        },
+        {
+          "identifier" : "MacLibraryTests/SynchronousUseCaseTests/snapshotPropagatesEmptyFilter()"
+        }
+      ],
+      "testPlan" : "MacLibrary"
+    }
+  ]
+}

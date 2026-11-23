@@ -17,7 +17,8 @@
 #   --skip-unit         no unit tests
 #   --allow             mac only: the categories allowed on this Mac (none by default):
 #                       notification,settings,badge,clipboard,sharepicker,panels,coldstart
-#   --allow-lsregister  mac only: remove the extra registered copies the --dry-run list showed (U-21)
+#   --allow-lsregister  mac only: NOT IMPLEMENTED; the run stops. Remove the extra registered copies
+#                       yourself, then plan and ask again (U-21)
 #   --dry-run           mac only: enumerates in the VM, starts nothing on this Mac (no build), prints
 #                       the list, what happens, what to prepare and the time, and writes the approval list
 #   --approved          mac only: the approval list the user approved; an approval runs once
@@ -27,9 +28,23 @@
 #   --keep-vm-run       vm only: leave the VM's run folder (sources, DerivedData, result bundles) for a look
 set -euo pipefail
 
+# The VM half never runs in the caller's environment: it starts again with an empty one (no PATH
+# shims, no exported functions, no BASH_ENV) before anything else, and then checks three facts of the
+# VM with absolute paths (review v1: Codex A-1, Claude B-1).
+if [[ "${1:-}" == "--in-vm" && "${NTK_IN_VM_CLEAN:-}" != 1 ]]; then
+  exec /usr/bin/env -i NTK_IN_VM_CLEAN=1 HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" LC_ALL=C \
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+    /bin/bash --noprofile --norc "${BASH_SOURCE[0]}" "$@"
+fi
+
 # What a test may touch reaches it only through the runner's own xcodebuild (U-9).
-unset TEST_RUNNER_NTK_HOST TEST_RUNNER_NTK_ALLOW TEST_RUNNER_NTK_FIXTURE_DIR TEST_RUNNER_NTK_EXPECTED_COPY \
-  NTK_HOST NTK_ALLOW NTK_FIXTURE_DIR NTK_EXPECTED_COPY
+# Nothing from outside the runner may change the build or the tests either: an xcconfig over the
+# projects' settings, another toolchain or Xcode, a TEST_RUNNER_ or SIMCTL_CHILD_ variable (Codex A-3).
+unset XCODE_XCCONFIG_FILE TOOLCHAINS DEVELOPER_DIR
+for __name in $(compgen -e); do
+  case "${__name}" in TEST_RUNNER_*|SIMCTL_CHILD_*|NTK_HOST|NTK_ALLOW|NTK_FIXTURE_DIR|NTK_EXPECTED_COPY) unset "${__name}" ;; esac
+done
+unset __name
 
 DESTINATION="platform=macOS,arch=arm64"
 SAMPLE_ID="com.jonghyunkim.mac.nativetoolkit.example"
@@ -60,13 +75,18 @@ capped_group() {  # <seconds> <pid file or -> <command...>
 }
 
 # ============================================================================================
-# Inside the VM (`test_mac.sh --in-vm <op> <run id> ...`). Never on this Mac: every op first checks
-# kern.hv_vmm_present. The run folder is ~/ntk/runs/<run id> (sources, DerivedData, results, logs).
+# Inside the VM (`test_mac.sh --in-vm <op> <run id> <VM UUID> ...`). Never on this Mac: before anything
+# else, kern.hv_vmm_present is 1, hw.model is a VirtualMac and the IOPlatformUUID is the one the runner
+# qualified, each read with an absolute path in the clean environment above. The run folder is
+# ~/ntk/runs/<run id> (sources, DerivedData, results, logs).
 # ============================================================================================
 
 in_vm_main() {
-  local op="$1" run_id="$2"; shift 2
-  [[ "$(sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || { echo "Error: --in-vm runs only in the VM" >&2; exit 96; }
+  [[ "$(command /usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || { echo "Error: --in-vm runs only in the VM" >&2; exit 96; }
+  case "$(command /usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *) echo "Error: --in-vm runs only in the VM" >&2; exit 96 ;; esac
+  [[ $# -ge 3 && -n "$3" && "$(command /usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | command /usr/bin/awk -F'"' '/IOPlatformUUID/{print $4}')" == "$3" ]] \
+    || { echo "Error: --in-vm runs only in the qualified VM" >&2; exit 96; }
+  local op="$1" run_id="$2"; shift 3
   [[ "${run_id}" =~ ${RUN_ID_PATTERN} ]] || { echo "Error: malformed run id" >&2; exit 96; }
   RUNS="${HOME}/ntk/runs"
   RUN_DIR="${RUNS}/${run_id}"
@@ -83,7 +103,8 @@ in_vm_main() {
   case "${op}" in
     clean) vm_clean "${run_id}" ;;
     build) vm_build ;;
-    enumerate) vm_enumerate ;;
+    enumerate) vm_enumerate "${DD_UI}" enumeration ;;
+    enumerate-lib) vm_enumerate "${DD_LIB}" unit-enumeration ;;
     check-build) vm_check_build ;;
     prepare) vm_prepare ;;
     unit) vm_unit "$1" ;;
@@ -173,16 +194,17 @@ vm_build() {
 
 xctestrun_of() { ls "$1"/Build/Products/*.xctestrun; }
 
-vm_enumerate() {
-  rm -rf "${RES}/enumerate.xcresult" "${RUN_DIR}/enumeration.json"
-  if ! capped_group 600 - xcodebuild test-without-building -xctestrun "$(xctestrun_of "${DD_UI}")" \
+vm_enumerate() {  # <DerivedData> <name>: the tests of that build's .xctestrun, as JSON on stdout
+  local dd="$1" name="$2"
+  rm -rf "${RES}/${name}.xcresult" "${RUN_DIR}/${name}.json"
+  if ! capped_group 600 - xcodebuild test-without-building -xctestrun "$(xctestrun_of "${dd}")" \
       -destination "${DESTINATION}" -enumerate-tests -test-enumeration-style flat -test-enumeration-format json \
-      -test-enumeration-output-path "${RUN_DIR}/enumeration.json" -resultBundlePath "${RES}/enumerate.xcresult" \
-      > "${LOGS}/enumerate.log" 2>&1; then
+      -test-enumeration-output-path "${RUN_DIR}/${name}.json" -resultBundlePath "${RES}/${name}.xcresult" \
+      > "${LOGS}/${name}.log" 2>&1; then
     echo "NTK-VM enumerate failed" >&2
     exit 1
   fi
-  cat "${RUN_DIR}/enumeration.json"
+  cat "${RUN_DIR}/${name}.json"
 }
 
 vm_check_build() {
@@ -210,11 +232,8 @@ PY
   vm_stop_sample || true
   pkill -x Mail 2>/dev/null || true
   vm_unregister_outside
-  # U-11: the fixture, and its manifest before the run.
-  rm -rf "${FX}"
-  mkdir -p "${FX}/dirA" "${FX}/dirB"
-  echo a > "${FX}/a.txt"; echo b > "${FX}/b.txt"; echo '# note' > "${FX}/note.md"; echo default > "${FX}/default.txt"
-  /usr/bin/python3 -c "import base64,sys;open(sys.argv[1],'wb').write(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='))" "${FX}/pic.png"
+  # U-11: the fixture, made anew without following any link, and its manifest before the run.
+  vrunner fixture-create --dir "${FX}"
   vrunner fixture-manifest --dir "${FX}" > "${RUN_DIR}/fixture-before.json"
   vrunner copy-mark --app "${DD_UI}/Build/Products/Debug/MacLibraryExample.app" > "${RUN_DIR}/expected-copy.txt"
   echo "NTK-VM prepared"
@@ -229,15 +248,17 @@ vm_unit() {
   local index="$1" target xctestrun code=0 args
   target="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["unitInvocations"][int(sys.argv[2])]["target"])' "${RUN_DIR}/plan.json" "${index}")"
   if [[ "${target}" == MacLibraryTests ]]; then xctestrun="$(xctestrun_of "${DD_LIB}")"; else xctestrun="$(xctestrun_of "${DD_UI}")"; fi
-  args="$(vrunner only-testing --plan "${RUN_DIR}/plan.json" --unit "${index}")"
+  # The names are read on their own, so that a failed or empty lookup stops instead of running everything.
+  args="$(vrunner only-testing --plan "${RUN_DIR}/plan.json" --unit "${index}")" || exit 1
+  [[ -n "${args}" ]] || exit 1
   rm -rf "${RES}/unit-${index}.xcresult"
   # shellcheck disable=SC2086
   capped_group 1800 - xcodebuild test-without-building -xctestrun "${xctestrun}" -destination "${DESTINATION}" \
     ${args} -resultBundlePath "${RES}/unit-${index}.xcresult" -parallel-testing-enabled NO \
     > "${LOGS}/unit-${index}.log" 2>&1 || code=$?
   vm_xcresult_json "${RES}/unit-${index}.xcresult" "${RES}/unit-${index}"
-  vrunner unit-record --target "${target}" --tests-json "${RES}/unit-${index}-tests.json" --exit-code "${code}" \
-    --tests-dir "${TESTS_DIR}"
+  vrunner unit-record --plan "${RUN_DIR}/plan.json" --index "${index}" --tests-json "${RES}/unit-${index}-tests.json" \
+    --exit-code "${code}" --tests-dir "${TESTS_DIR}"
 }
 
 vm_reset_permission() {  # U-7 (VM): the sample stopped, its entry gone from com.apple.ncprefs, up to 3 tries
@@ -266,9 +287,12 @@ vm_ui() {
   local index="$1" line stage name timeout prepare after class code=0 timed_out=0 args failed
   line="$(vrunner invocations --plan "${RUN_DIR}/plan.json" | awk -F'\t' -v i="${index}" '$1 == i')"
   IFS=$'\t' read -r _ stage name timeout prepare after class <<< "${line}"
-  case ",${prepare}," in *,ncreset,*) vm_reset_permission || true ;; esac
+  case ",${prepare}," in
+    *,ncreset,*) vm_reset_permission || echo "{\"test\": \"MacLibraryExampleUITests/${name}#permissionReset\", \"result\": \"failed\", \"codes\": [\"NTK-RUNNER:permissionReset\"]}" ;;
+  esac
   case ",${prepare}," in *,ncui,*) vm_restart_notification_ui ;; esac
-  args="$(vrunner only-testing --plan "${RUN_DIR}/plan.json" --index "${index}")"
+  args="$(vrunner only-testing --plan "${RUN_DIR}/plan.json" --index "${index}")" || exit 1
+  [[ -n "${args}" ]] || exit 1
   rm -rf "${RES}/ui-${index}.xcresult"
   # shellcheck disable=SC2086
   TEST_RUNNER_NTK_HOST=vm \
@@ -407,6 +431,7 @@ if [[ "${WHERE}" == vm ]]; then
 else
   [[ "${NAME_EACH_TEST}" == 0 && "${KEEP_VM_RUN}" == 0 ]] || fail "--name-each-test and --keep-vm-run are for --where vm"
   [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" != vm-ja ]] || fail "--qualification vm-ja runs in the VM"
+  [[ "${ALLOW_LSREGISTER}" == 0 ]] || fail "--allow-lsregister is not implemented: remove the extra registered copies yourself, then plan and ask again"
   if [[ "${DRY_RUN}" == 1 ]]; then
     [[ -z "${APPROVED}" ]] || fail "--dry-run and --approved go to separate runs"
   else
@@ -416,6 +441,28 @@ fi
 [[ -z "${FEATURE}" ]] || SKIP_UNIT=1
 UNIT=1; [[ "${SKIP_UNIT}" == 1 ]] && UNIT=0
 [[ -n "${QUALIFICATION}" ]] && UNIT=0
+
+# The raw things of this run on this Mac (the VM's facts, LaunchServices dumps, the tart arguments are
+# never written at all) stay in a private temporary folder outside the repository, removed on every
+# exit (Codex A-9, Claude A-2, B-7). One EXIT trap for everything the run may leave.
+SCAN_ROOT="${TMPDIR:-/tmp}"; SCAN_ROOT="${SCAN_ROOT%/}"
+PRIVATE="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac-private.XXXXXX")"
+MAC_TMP=""; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
+on_exit() {
+  local code=$?
+  trap - EXIT INT TERM HUP
+  if [[ -n "${MAC_TMP}" ]]; then
+    mac_cleanup || code=1
+  fi
+  if [[ -n "${VM_UUID}" && "${VM_FINISHED}" != 1 ]]; then
+    VM_FINISHED=1
+    vm_op finish "${RUN_ID}" "${KEEP_VM_RUN}" 2>/dev/null | grep '^NTK-VM' | sed 's/^/  /' || true
+  fi
+  rm -rf "${PRIVATE}"
+  exit "${code}"
+}
+trap on_exit EXIT
+trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
 
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
 OUT="${OUT_ROOT}/${RUN_ID}-${WHERE}"
@@ -427,37 +474,39 @@ echo "[run] ${RUN_ID} (${WHERE})"
 
 # --- The VM: qualification, identity and the commands sent to it ------------------------------
 
-VM_IP=""; VM_UUID=""
-
 vm_ssh_raw() {
-  ssh -i "${VM_KEYS}/id_ed25519" -o UserKnownHostsFile="${VM_KEYS}/known_hosts" -o StrictHostKeyChecking=yes \
+  ssh -F /dev/null -i "${VM_KEYS}/id_ed25519" -o UserKnownHostsFile="${VM_KEYS}/known_hosts" -o StrictHostKeyChecking=yes \
     -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=10 \
     -o LogLevel=ERROR "admin@${VM_IP}" "$@"
 }
 
-# Every command after the qualification first checks that the VM is the one that was qualified
-# (its IOPlatformUUID; 6.3 "同一性の束ね").
+# Every command after the qualification first checks, on this Mac, that tart still runs the VM with
+# --no-clipboard and no shared folder (Claude B-2), and in the VM that it is the one that was qualified:
+# the same IOPlatformUUID and the same boot (6.3 "同一性の束ね").
 vm_ssh() {
-  vm_ssh_raw "u=\$(ioreg -rd1 -c IOPlatformExpertDevice | awk -F'\"' '/IOPlatformUUID/{print \$4}'); \
-[ \"\$u\" = '${VM_UUID}' ] || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }; $*"
+  ps -axo args= | runner tart-check --ps - --vm "${VM_NAME}" || exit 96
+  vm_ssh_raw "u=\$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'\"' '/IOPlatformUUID/{print \$4}'); \
+b=\$(/usr/sbin/sysctl -n kern.boottime | /usr/bin/sed -E 's/^\\{ sec = ([0-9]+),.*/\\1/'); \
+[ \"\$u\" = '${VM_UUID}' ] && [ \"\$b\" = '${VM_BOOT}' ] || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }; $*"
 }
 
 vm_op() {  # <op> <run id> [args...]: the in-VM half of this script (stdin is not the caller's)
-  vm_ssh "bash \"\$HOME/ntk/runs/${RUN_ID}/runner/test_mac.sh\" --in-vm $*" < /dev/null
+  local op="$1" id="$2"; shift 2
+  vm_ssh "bash \"\$HOME/ntk/runs/${id}/runner/test_mac.sh\" --in-vm ${op} ${id} ${VM_UUID} $*" < /dev/null
 }
 
 json_lines() { grep '^{' "$1" || true; }
 
 vm_qualify() {
-  local facts="${OUT}/.vm-facts.txt" ps_out="${OUT}/.ps.txt"
+  local facts="${PRIVATE}/vm-facts.txt"
   [[ -f "${VM_KEYS}/id_ed25519" && -f "${VM_KEYS}/known_hosts" ]] || fail "the VM's own ssh key and known_hosts are missing"
   tart list --format json > /dev/null 2>&1 || fail "tart is not available"
   VM_IP="$(tart ip "${VM_NAME}" 2>/dev/null)" || fail "the VM ${VM_NAME} is not running (tart ip)"
   [[ "${VM_IP}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "unexpected address of the VM"
-  ps -axo args= > "${ps_out}"
   vm_ssh_raw 'bash -s' > "${facts}" <<'EOS'
-echo "hvVmmPresent=$(sysctl -n kern.hv_vmm_present 2>/dev/null)"
-echo "hwModel=$(sysctl -n hw.model 2>/dev/null)"
+echo "hvVmmPresent=$(/usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)"
+echo "hwModel=$(/usr/sbin/sysctl -n hw.model 2>/dev/null)"
+echo "vmBoottime=$(/usr/sbin/sysctl -n kern.boottime | /usr/bin/sed -E 's/^\{ sec = ([0-9]+),.*/\1/')"
 echo "osVersion=$(sw_vers -productVersion)"
 echo "osBuild=$(sw_vers -buildVersion)"
 if defaults read MobileMeAccounts Accounts >/dev/null 2>&1; then echo "mobileMeAccounts=present"; else echo "mobileMeAccounts=absent"; fi
@@ -467,10 +516,10 @@ sqlite3 -separator '|' "$HOME/Library/Accounts/Accounts4.sqlite" \
 echo "virtiofsMounts=$(mount | grep -c virtiofs)"
 xcodebuild -version 2>/dev/null | awk 'NR==1{print "xcodeVersion="$2} NR==2{print "xcodeBuild="$3}'
 echo "language=$(defaults read -g AppleLanguages 2>/dev/null | sed -n 2p | tr -d ' ",')"
-echo "platformUUID=$(ioreg -rd1 -c IOPlatformExpertDevice | awk -F'"' '/IOPlatformUUID/{print $4}')"
+echo "platformUUID=$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'"' '/IOPlatformUUID/{print $4}')"
 echo "arch=$(uname -m)"
 EOS
-  python3 - "${facts}" "${OUT}/.vm-facts.json" <<'PY'
+  python3 - "${facts}" "${PRIVATE}/vm-facts.json" <<'PY'
 import json, sys
 facts = {"accounts": []}
 for line in open(sys.argv[1], encoding="utf-8"):
@@ -482,22 +531,17 @@ for line in open(sys.argv[1], encoding="utf-8"):
         facts[key] = value
 json.dump(facts, open(sys.argv[2], "w"))
 PY
-  runner vm-qualify --facts "${OUT}/.vm-facts.json" --ps "${ps_out}" --vm "${VM_NAME}" --out "${OUT}/vm-qualification.json" \
-    --uuid-out "${OUT}/.vm-uuid" --qualification "${QUALIFICATION}"
-  VM_UUID="$(cat "${OUT}/.vm-uuid")"
-  VM_OS="$(python3 -c 'import json,sys; f=json.load(open(sys.argv[1])); print(f["osVersion"], f["osBuild"], f["arch"], f["language"], f["xcodeVersion"], sep="\t")' "${OUT}/.vm-facts.json")"
-  rm -f "${facts}" "${ps_out}" "${OUT}/.vm-facts.json" "${OUT}/.vm-uuid"
+  ps -axo args= | runner vm-qualify --facts "${PRIVATE}/vm-facts.json" --ps - --vm "${VM_NAME}" \
+    --out "${OUT}/vm-qualification.json" --uuid-out "${PRIVATE}/vm-id" --qualification "${QUALIFICATION}"
+  IFS=$'\t' read -r VM_UUID VM_BOOT < "${PRIVATE}/vm-id"
+  VM_OS="$(python3 -c 'import json,sys; f=json.load(open(sys.argv[1])); print(f["osVersion"], f["osBuild"], f["arch"], f["language"], f["xcodeVersion"], sep="\t")' "${PRIVATE}/vm-facts.json")"
+  rm -f "${facts}" "${PRIVATE}/vm-facts.json" "${PRIVATE}/vm-id"
 }
 
 vm_push() {  # 6.3 step 1: mac/ as git would hand it over, and the runner, by tar over ssh
-  local list="${OUT}/.files"
+  local list="${PRIVATE}/files"
   vm_ssh "mkdir -p \"\$HOME/ntk/runs/${RUN_ID}/src\" \"\$HOME/ntk/runs/${RUN_ID}/runner\""
-  python3 - "${ROOT_DIR}" > "${list}" <<'PY'
-import sys
-sys.path.insert(0, sys.argv[1] + "/scripts")
-import mac_ui_runner as r
-sys.stdout.write("".join(name + "\0" for name in r.git_file_list(sys.argv[1], ["mac"])))
-PY
+  runner file-list --repo "${ROOT_DIR}" > "${list}"
   (cd "${ROOT_DIR}" && COPYFILE_DISABLE=1 tar --null -T "${list}" -cf -) | \
     vm_ssh "tar -xf - -C \"\$HOME/ntk/runs/${RUN_ID}/src\""
   (cd "${ROOT_DIR}/scripts" && COPYFILE_DISABLE=1 tar -cf - mac_ui_runner.py test_mac.sh) | \
@@ -510,71 +554,78 @@ vm_send_plan() {
   vm_ssh "cat > \"\$HOME/ntk/runs/${RUN_ID}/plan.json\"" < "$1"
 }
 
-vm_enumeration() {  # 6.3 steps 0-3 in the VM: qualification, hand-over, build, enumeration
+vm_enumeration() {  # 6.3 steps 0-3 in the VM: qualification, hand-over, build, both enumerations
   vm_qualify
   vm_push
   vm_op clean "${RUN_ID}" | grep '^NTK-VM' | sed 's/^/  /'
   echo "[vm] building (Xcode 26.3, ad-hoc)"
   vm_op build "${RUN_ID}" | sed 's/^/  /'
   vm_op enumerate "${RUN_ID}" > "${OUT}/enumeration.json"
+  vm_op enumerate-lib "${RUN_ID}" > "${OUT}/unit-enumeration.json"
 }
 
-vm_cleanup_on_exit() {
-  local code=$?
-  if [[ -n "${VM_UUID}" && "${VM_FINISHED:-0}" != 1 ]]; then
-    vm_op finish "${RUN_ID}" "${KEEP_VM_RUN}" 2>/dev/null | grep '^NTK-VM' | sed 's/^/  /' || true
-  fi
-  exit "${code}"
+# Adds a failed record for a call that gave none (Codex A-7, Claude A-4).
+no_result() {  # <test key with #>
+  echo "{\"test\": \"$1#noResult\", \"result\": \"failed\", \"codes\": [\"NTK-RUNNER:noResult\"]}" | runner accept --results "${RESULTS}"
 }
 
 # --- The VM way --------------------------------------------------------------------------------
 
 run_vm() {
-  local head mac_tree index stage name timeout prepare after class stopped="" restarts=0 status plan="${OUT}/plan.json"
+  local head mac_tree index stage name timeout prepare after class stopped="" restarts=0 rc status passed
+  local plan="${OUT}/plan.json" count target
   runner check-sources --tests-dir "${TESTS_DIR}" --pbxproj "${PBXPROJ}"
   head="$(git -C "${ROOT_DIR}" rev-parse HEAD)"
   mac_tree="$(runner tree-hash --repo "${ROOT_DIR}")"
   if [[ "${BASELINE}" == 1 && -n "$(git -C "${ROOT_DIR}" status --porcelain=v1 -uall -- mac | grep -v ' mac/MacLibraryExample/build/' || true)" ]]; then
     fail "--baseline needs mac/ without uncommitted changes"
   fi
-  trap vm_cleanup_on_exit EXIT
-  trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   vm_enumeration
   IFS=$'\t' read -r VM_OS_VERSION VM_OS_BUILD VM_ARCH VM_LANGUAGE VM_XCODE <<< "${VM_OS}"
-  runner preflight --where vm --enumeration "${OUT}/enumeration.json" --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" \
-    --feature "${FEATURE}" --qualification "${QUALIFICATION}" --os-major "${VM_OS_VERSION%%.*}" \
-    --os-version "${VM_OS_VERSION}" --head "${head}" --mac-tree "${mac_tree}" --unit "${UNIT}" --plan "${plan}" \
-    --baseline-dir "${BASELINE_DIR}" $([[ "${NAME_EACH_TEST}" == 1 ]] && echo --name-each-test)
+  runner preflight --where vm --enumeration "${OUT}/enumeration.json" --unit-enumeration "${OUT}/unit-enumeration.json" \
+    --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" \
+    --os-major "${VM_OS_VERSION%%.*}" --os-version "${VM_OS_VERSION}" --os-build "${VM_OS_BUILD}" --xcode "${VM_XCODE}" \
+    --head "${head}" --mac-tree "${mac_tree}" --unit "${UNIT}" --plan "${plan}" --baseline-dir "${BASELINE_DIR}" \
+    $([[ "${NAME_EACH_TEST}" == 1 ]] && echo --name-each-test) $([[ "${BASELINE}" == 1 ]] && echo --baseline)
   vm_send_plan "${plan}"
   vm_op check-build "${RUN_ID}" | sed 's/^/  /'
   vm_op prepare "${RUN_ID}" | grep '^NTK-VM' | sed 's/^/  /'
   # Unit tests (6.3 step 5).
-  local count
   count="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["unitInvocations"]))' "${plan}")"
   for ((index = 0; index < count; index++)); do
     echo "[unit] ${index}"
-    vm_op unit "${RUN_ID}" "${index}" | runner accept --results "${RESULTS}"
+    rc=0; vm_op unit "${RUN_ID}" "${index}" > "${PRIVATE}/unit.out" || rc=$?
+    [[ "${rc}" != 96 ]] || fail "the VM is not the one that was qualified"
+    json_lines "${PRIVATE}/unit.out" | runner accept --results "${RESULTS}"
+    if [[ "${rc}" != 0 || -z "$(json_lines "${PRIVATE}/unit.out")" ]]; then
+      target="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["unitInvocations"][int(sys.argv[2])]["target"])' "${plan}" "${index}")"
+      no_result "${target}"
+    fi
   done
   # The permission stage, the classes, the paste privacy stage (6.3 steps 6-8).
   while IFS=$'\t' read -r index stage name timeout prepare after class; do
-    if [[ -n "${stopped}" ]]; then
-      continue
-    fi
+    [[ -z "${stopped}" ]] || continue
     if [[ ",${prepare}," == *,privacy,* ]]; then
       vm_op privacy-begin "${RUN_ID}" | sed 's/^/  /'
     fi
     echo "[ui ${index}] ${stage} ${name}"
-    vm_op ui "${RUN_ID}" "${index}" > "${OUT}/.ui.out" || true
-    grep '^NTK-VM' "${OUT}/.ui.out" | sed 's/^/  /' || true
-    restarts=$((restarts + $(grep -c '^NTK-VM restart' "${OUT}/.ui.out" || true)))
-    json_lines "${OUT}/.ui.out" | runner accept --results "${RESULTS}"
-    status="$(json_lines "${OUT}/.ui.out" | grep -c '"result": "failed"' || true)"
-    rm -f "${OUT}/.ui.out"
+    rc=0; vm_op ui "${RUN_ID}" "${index}" > "${PRIVATE}/ui.out" || rc=$?
+    grep '^NTK-VM' "${PRIVATE}/ui.out" | sed 's/^/  /' || true
+    restarts=$((restarts + $(grep -c '^NTK-VM restart' "${PRIVATE}/ui.out" || true)))
+    json_lines "${PRIVATE}/ui.out" | runner accept --results "${RESULTS}"
+    status="$(json_lines "${PRIVATE}/ui.out" | grep -c '"result": "failed"' || true)"
+    passed="$(json_lines "${PRIVATE}/ui.out" | grep -c '"result": "passed"' || true)"
     if [[ ",${prepare}," == *,privacy,* ]]; then
       vm_op privacy-end "${RUN_ID}" | runner accept --results "${RESULTS}"
     fi
-    if [[ "${stage}" == watch && "${status}" != 0 ]]; then
-      # U-20: the watch failed; the rest of the UI tests do not run and count as failures.
+    [[ "${rc}" != 96 ]] || fail "the VM is not the one that was qualified"
+    if [[ "${rc}" != 0 || "$((status + passed))" == 0 ]]; then
+      # The call gave no result: its tests and the rest count as failures, nothing more runs.
+      echo "[stop] call ${index} returned no result; the remaining UI tests are not run"
+      runner not-run --plan "${plan}" --from-index "${index}" --kind runStopped | runner accept --results "${RESULTS}"
+      stopped=noResult
+    elif [[ "${stage}" == watch && ( "${status}" != 0 || "${passed}" != 1 ) ]]; then
+      # U-20: the watch did not pass exactly once; the rest of the UI tests do not run and count as failures.
       echo "[watch] the watch N4 failed: the premise or the banner path does not hold; the remaining UI tests are not run"
       runner not-run --plan "${plan}" --from-index "$((index + 1))" --kind watchStopped | runner accept --results "${RESULTS}"
       stopped=watch
@@ -584,10 +635,9 @@ run_vm() {
     vm_op coverage "${RUN_ID}" | runner accept --results "${RESULTS}"
   fi
   VM_FINISHED=1
-  vm_op finish "${RUN_ID}" "${KEEP_VM_RUN}" > "${OUT}/.finish.out" || true
-  grep '^NTK-VM' "${OUT}/.finish.out" | sed 's/^/  /' || true
-  json_lines "${OUT}/.finish.out" | runner accept --results "${RESULTS}"
-  rm -f "${OUT}/.finish.out"
+  vm_op finish "${RUN_ID}" "${KEEP_VM_RUN}" > "${PRIVATE}/finish.out" || true
+  grep '^NTK-VM' "${PRIVATE}/finish.out" | sed 's/^/  /' || true
+  json_lines "${PRIVATE}/finish.out" | runner accept --results "${RESULTS}"
   python3 - "${OUT}/environment.json" "${OUT}/vm-qualification.json" "${VM_OS_VERSION}" "${VM_OS_BUILD}" "${VM_ARCH}" \
     "${VM_LANGUAGE}" "${VM_XCODE}" "${restarts}" <<'PY'
 import json, sys
@@ -607,7 +657,6 @@ PY
 
 # --- This Mac ------------------------------------------------------------------------------------
 
-MAC_TMP=""
 MAC_PIDFILE=""
 
 # Before any xcodebuild on this Mac: the approved plan, the ledger, the runner and the tree (R-19).
@@ -616,125 +665,116 @@ mac_gate() {
     || exit 97
 }
 
-# Runs one xcodebuild on this Mac in its own group, records it as a writer in the run's marker, and
-# waits. The gate runs first, every time.
-mac_xcodebuild() {  # <seconds> <log> <xcodebuild arguments...>
-  local seconds="$1" log="$2"; shift 2
+# Runs one xcodebuild on this Mac: the gate, then the call's own paths and names (Claude A-1, Codex A-2),
+# then the call in its own group with nothing from outside in its environment (Codex A-3). Its PID,
+# start time, real executable and group go into the run's marker once it is the Xcode 26.6 xcodebuild;
+# if that cannot be recorded, the call is stopped and the run fails (Claude B-4).
+mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild arguments...>
+  local seconds="$1" log="$2" kind="$3" index="$4"; shift 4
   mac_gate
+  runner check-call --plan "${MAC_TMP}/plan.approved.json" --root "${MAC_TMP}" --kind "${kind}" --index "${index}" "$@" \
+    || exit 97
   rm -f "${MAC_PIDFILE}"
-  DEVELOPER_DIR="${MAC_XCODE_DIR}" capped_group "${seconds}" "${MAC_PIDFILE}" xcodebuild "$@" > "${log}" 2>&1 &
-  local waiter=$! i
+  capped_group "${seconds}" "${MAC_PIDFILE}" /usr/bin/env -u XCODE_XCCONFIG_FILE -u TOOLCHAINS \
+    DEVELOPER_DIR="${MAC_XCODE_DIR}" "${MAC_XCODE_DIR}/usr/bin/xcodebuild" "$@" > "${log}" 2>&1 &
+  local waiter=$! i code=0
   for i in $(seq 1 100); do [[ -s "${MAC_PIDFILE}" ]] && break; sleep 0.1; done
-  if [[ -s "${MAC_PIDFILE}" ]]; then
-    runner marker --root "${MAC_TMP}" --pid "$(cat "${MAC_PIDFILE}")" --role xcodebuild --group || true
+  if ! { [[ -s "${MAC_PIDFILE}" ]] && runner marker --root "${MAC_TMP}" --pid "$(cat "${MAC_PIDFILE}")" \
+           --role xcodebuild --expect-under "${MAC_XCODE_DIR}"; }; then
+    kill -TERM "${waiter}" 2>/dev/null || true
+    wait "${waiter}" || true
+    fail "the xcodebuild could not be recorded as a writer; stopped"
   fi
-  local code=0
   wait "${waiter}" || code=$?
+  rm -f "${MAC_PIDFILE}"
   return "${code}"
 }
 
-# The order of 6.3 step 4: the xcodebuild group (TERM, 30 s, KILL), the sample and the runner started
-# from this run's folder, this run's registrations, then the folder. A folder that cannot be removed
-# is reported without its place.
+# The end of a run on this Mac (6.3 step 4): the writers of this run (three-way match, again right
+# before every signal), then this run's registrations, fixture and folder. If a writer does not stop,
+# nothing is removed and the run fails (Codex A-4).
 mac_cleanup() {
-  local code=$?
-  trap - EXIT INT TERM HUP
-  if [[ -n "${MAC_TMP}" && -d "${MAC_TMP}" ]]; then
-    if [[ -s "${MAC_PIDFILE}" ]]; then
-      local pid
-      pid="$(cat "${MAC_PIDFILE}")"
-      kill -TERM "-${pid}" 2>/dev/null || true
-      for _ in $(seq 1 60); do kill -0 "-${pid}" 2>/dev/null || break; sleep 0.5; done
-      kill -KILL "-${pid}" 2>/dev/null || true
-    fi
-    pkill -TERM -f "${MAC_TMP}/" 2>/dev/null || true
-    sleep 1
-    pkill -KILL -f "${MAC_TMP}/" 2>/dev/null || true
-    local app
-    for app in "${MAC_TMP}/dd-ui/Build/Products/Debug/MacLibraryExample.app" \
-               "${MAC_TMP}/dd-ui/Build/Products/Debug/MacLibraryExampleUITests-Runner.app"; do
-      [[ -d "${app}" ]] && "${LSREGISTER}" -u "${app}" >/dev/null 2>&1 || true
-    done
-    if ! rm -rf "${MAC_TMP}"; then
-      echo "Error: the run's private temporary folder could not be removed (its place is not shown)" >&2
-      code=1
-    fi
-  fi
-  if [[ -n "${VM_UUID}" && "${VM_FINISHED:-0}" != 1 ]]; then
-    VM_FINISHED=1
-    vm_op finish "${RUN_ID}" 0 2>/dev/null | grep '^NTK-VM' | sed 's/^/  /' || true
-  fi
-  exit "${code}"
+  [[ -n "${MAC_TMP}" && -d "${MAC_TMP}" ]] || return 0
+  runner stop-current --root "${MAC_TMP}"
+}
+
+# Reads the -only-testing arguments of a call into ONLY_TESTING; a failed or empty lookup stops.
+read_only_testing() {  # <only-testing arguments of the runner...>
+  local out line
+  out="$(runner only-testing --plan "${MAC_TMP}/plan.approved.json" "$@")" || fail "the planned names could not be read"
+  ONLY_TESTING=()
+  while IFS= read -r line; do [[ -n "${line}" ]] && ONLY_TESTING+=("${line}"); done <<< "${out}"
+  [[ ${#ONLY_TESTING[@]} -gt 0 ]] || fail "no planned names; not running anything"
 }
 
 run_mac() {
-  local head mac_tree os_version plan="${OUT}/plan.json" approval_out="${OUT}/approval.json"
-  local lsreg="${OUT}/.lsregister.json" stale="${OUT}/.stale.json" scan_root="${TMPDIR:-/tmp}"
-  scan_root="${scan_root%/}"
+  local head mac_tree os_version os_build xcode plan="${OUT}/plan.json" approval_out="${OUT}/approval.json"
+  local lsreg="${PRIVATE}/lsregister.json" stale="${PRIVATE}/stale.json"
   # Step 0: read-only checks of this Mac.
-  os_version="$(sw_vers -productVersion)"
+  os_version="$(sw_vers -productVersion)"; os_build="$(sw_vers -buildVersion)"
   [[ "${os_version%%.*}" == 26 ]] || fail "this Mac is not macOS 26"
   [[ -d "${MAC_XCODE_DIR}" ]] || fail "Xcode 26.6 is not at /Applications/Xcode26.6.app (U-23)"
+  xcode="$(DEVELOPER_DIR="${MAC_XCODE_DIR}" xcodebuild -version | awk 'NR==1{print $2}')"
   runner check-sources --tests-dir "${TESTS_DIR}" --pbxproj "${PBXPROJ}"
   head="$(git -C "${ROOT_DIR}" rev-parse HEAD)"
   mac_tree="$(runner tree-hash --repo "${ROOT_DIR}")"
   # Step 1: the enumeration comes from the VM (the same tree).
-  trap vm_cleanup_on_exit EXIT
   vm_enumeration
   VM_FINISHED=1
   vm_op finish "${RUN_ID}" 0 | grep '^NTK-VM' | sed 's/^/  /' || true
-  trap - EXIT
-  # The previous runs of this Mac that a crash may have left (6.3 step 4), and the registered copies
-  # of the sample (U-21; only when coldstart is allowed). Both read only; the raw lists stay private.
-  runner stale --scan-root "${scan_root}" --list --out "${stale}"
+  # The previous runs of this Mac (6.3 step 4) and the registered copies of the sample (U-21; only when
+  # coldstart is allowed). Both read only; the raw lists stay in the private folder.
+  runner stale --scan-root "${SCAN_ROOT}" --list --out "${stale}"
   echo '[]' > "${lsreg}"
   if [[ ",${ALLOW}," == *,coldstart,* ]]; then
-    local dumpdir
-    dumpdir="$(umask 077; mktemp -d "${scan_root}/ntk-lsdump.XXXXXX")"
-    "${LSREGISTER}" -dump > "${dumpdir}/dump.txt" 2>/dev/null || true
-    runner lsregister --dump "${dumpdir}/dump.txt" --repo-root "${ROOT_DIR}" \
+    "${LSREGISTER}" -dump > "${PRIVATE}/lsregister.txt" 2>/dev/null || true
+    runner lsregister --dump "${PRIVATE}/lsregister.txt" --repo-root "${ROOT_DIR}" \
       --derived-root "${ACCOUNT_HOME}/Library/Developer/Xcode/DerivedData" --out "${lsreg}"
-    rm -rf "${dumpdir}"
+    rm -f "${PRIVATE}/lsregister.txt"
   fi
+  local preflight=(preflight --where mac --enumeration "${OUT}/enumeration.json"
+    --unit-enumeration "${OUT}/unit-enumeration.json" --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}"
+    --allow "${ALLOW}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" --os-major "${os_version%%.*}"
+    --os-version "${os_version}" --os-build "${os_build}" --xcode "${xcode}" --head "${head}" --mac-tree "${mac_tree}"
+    --unit "${UNIT}" --plan "${plan}" --baseline-dir "${BASELINE_DIR}" --lsregister "${lsreg}" --stale "${stale}")
+  [[ "${BASELINE}" == 1 ]] && preflight+=(--baseline)
   if [[ "${DRY_RUN}" == 1 ]]; then
-    runner preflight --where mac --enumeration "${OUT}/enumeration.json" --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" \
-      --allow "${ALLOW}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" --os-major "${os_version%%.*}" \
-      --os-version "${os_version}" --head "${head}" --mac-tree "${mac_tree}" --unit "${UNIT}" --plan "${plan}" \
-      --baseline-dir "${BASELINE_DIR}" --lsregister "${lsreg}" --stale "${stale}" --dry-run --approval-out "${approval_out}"
-    if [[ "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "${lsreg}")" != 0 && "${ALLOW_LSREGISTER}" == 0 ]]; then
-      echo "[dry-run] coldstart: extra copies are registered; the run will stop unless they are removed (--allow-lsregister, its own approval)"
+    runner "${preflight[@]}" --dry-run --approval-out "${approval_out}"
+    if [[ "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "${lsreg}")" != 0 ]]; then
+      echo "[dry-run] coldstart: extra copies are registered; the run will stop until you remove them yourself (--allow-lsregister is not implemented)"
     fi
     echo "[dry-run] the approval list: mac/MacLibraryExample/build/test_mac/${RUN_ID}-mac/approval.json"
-    rm -f "${lsreg}" "${stale}"
     return 0
   fi
   [[ -f "${APPROVED}" ]] || fail "the approval file does not exist"
-  [[ "${ALLOW_LSREGISTER}" == 0 ]] || fail "--allow-lsregister is not implemented yet: remove extra copies by hand, then plan again"
-  runner preflight --where mac --enumeration "${OUT}/enumeration.json" --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" \
-    --allow "${ALLOW}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" --os-major "${os_version%%.*}" \
-    --os-version "${os_version}" --head "${head}" --mac-tree "${mac_tree}" --unit "${UNIT}" --plan "${plan}" \
-    --baseline-dir "${BASELINE_DIR}" --lsregister "${lsreg}" --stale "${stale}" > /dev/null
+  runner "${preflight[@]}" > /dev/null
   runner approve --plan "${plan}" --approved "${APPROVED}" --repo "${ROOT_DIR}"
-  # Step 4: the private folder, its marker and the trap, before the first xcodebuild.
-  MAC_TMP="$(umask 077; mktemp -d "${scan_root}/ntk-test-mac.XXXXXX")"
+  # Step 4: the private run folder and its marker before the first xcodebuild (the EXIT trap is set
+  # above and reaches mac_cleanup once MAC_TMP is set).
+  MAC_TMP="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac.XXXXXX")"
   MAC_TMP="$(cd -P "${MAC_TMP}" && pwd -P)"
   MAC_PIDFILE="${MAC_TMP}/xcodebuild.pid"
-  trap mac_cleanup EXIT
-  trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   runner marker --root "${MAC_TMP}" --run-id "${RUN_ID}"
   cp "${plan}" "${MAC_TMP}/plan.approved.json"; chmod 0444 "${MAC_TMP}/plan.approved.json"
   cp "${APPROVED}" "${MAC_TMP}/approval.approved.json"; chmod 0444 "${MAC_TMP}/approval.approved.json"
   plan="${MAC_TMP}/plan.approved.json"
-  runner stale --scan-root "${scan_root}" --current-root "${MAC_TMP}"
+  runner stale --scan-root "${SCAN_ROOT}" --current-root "${MAC_TMP}" --stop --plan "${plan}"
+  # The sources this Mac builds are the same list the VM got, copied into the run folder, and must hash
+  # to the approved tree (Claude B-12: nothing git ignores, such as a user scheme in xcuserdata).
+  runner file-list --repo "${ROOT_DIR}" > "${PRIVATE}/files"
+  mkdir "${MAC_TMP}/src"
+  (cd "${ROOT_DIR}" && COPYFILE_DISABLE=1 tar --null -T "${PRIVATE}/files" -cf -) | tar -xf - -C "${MAC_TMP}/src"
+  [[ "$(runner tree-hash --dir "${MAC_TMP}/src")" == "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["macTree"])' "${plan}")" ]] \
+    || fail "the copied sources differ from the approved tree"
   # Step 5: the build of this Mac (Xcode 26.6, the project's automatic signing; U-23, U-31).
   echo "[mac] building (Xcode 26.6)"
-  mac_xcodebuild 2400 "${MAC_TMP}/build-ui.log" build-for-testing -workspace "${MAC_DIR}/MacWorkspace.xcworkspace" \
-    -scheme MacLibraryExample -destination "${DESTINATION}" -derivedDataPath "${MAC_TMP}/dd-ui" \
-    || fail "the build failed (the log stays private)"
+  mac_xcodebuild 2400 "${MAC_TMP}/build-ui.log" build 0 build-for-testing \
+    -workspace "${MAC_TMP}/src/mac/MacWorkspace.xcworkspace" -scheme MacLibraryExample -destination "${DESTINATION}" \
+    -derivedDataPath "${MAC_TMP}/dd-ui" || fail "the build failed (the log stays private)"
   local products="${MAC_TMP}/dd-ui/Build/Products/Debug" binary
   binary="${products}/${UI_XCTEST_BINARY}"
-  xcrun otool -arch arm64 -ov "${binary}" > "${MAC_TMP}/otool-ov.txt"
-  xcrun otool -arch arm64 -l "${binary}" > "${MAC_TMP}/otool-l.txt"
+  DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun otool -arch arm64 -ov "${binary}" > "${MAC_TMP}/otool-ov.txt"
+  DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun otool -arch arm64 -l "${binary}" > "${MAC_TMP}/otool-l.txt"
   runner check-build --products "${products}" --tests-dir "${TESTS_DIR}" --enumeration "${OUT}/enumeration.json" \
     --otool-objc "${MAC_TMP}/otool-ov.txt" --otool-load "${MAC_TMP}/otool-l.txt"
   # Step 6: coldstart counts the registered copies again; any is a stop (U-21).
@@ -745,63 +785,61 @@ run_mac() {
     [[ "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "${MAC_TMP}/lsregister.json")" == 0 ]] \
       || fail "extra registered copies of the sample; not running coldstart (U-21)"
   fi
-  # Step 7: the fixture (panels).
+  # Step 7: the fixture (panels), made anew without following links (U-11).
   local fx="/private/tmp/ntk-uitest-${RUN_ID}"
   if [[ ",${ALLOW}," == *,panels,* ]]; then
-    (umask 077; mkdir -p "${fx}/dirA" "${fx}/dirB")
-    echo a > "${fx}/a.txt"; echo b > "${fx}/b.txt"; echo '# note' > "${fx}/note.md"; echo default > "${fx}/default.txt"
-    python3 -c "import base64,sys;open(sys.argv[1],'wb').write(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='))" "${fx}/pic.png"
+    runner fixture-create --dir "${fx}"
     runner fixture-manifest --dir "${fx}" > "${MAC_TMP}/fixture-before.json"
   fi
-  local expected_copy
+  local expected_copy xctestrun
   expected_copy="$(runner copy-mark --app "${products}/MacLibraryExample.app")"
-  local xctestrun
   xctestrun="$(ls "${MAC_TMP}"/dd-ui/Build/Products/*.xctestrun)"
   # Step 8: the audited unit tests only (U-29).
-  local count index
+  local count index code
   count="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["unitInvocations"]))' "${plan}")"
   if [[ "${count}" != 0 ]]; then
-    mac_xcodebuild 2400 "${MAC_TMP}/build-lib.log" build-for-testing -workspace "${MAC_DIR}/MacWorkspace.xcworkspace" \
-      -scheme MacLibrary -destination "${DESTINATION}" -derivedDataPath "${MAC_TMP}/dd-lib" || fail "the library build failed"
+    mac_xcodebuild 2400 "${MAC_TMP}/build-lib.log" build 0 build-for-testing \
+      -workspace "${MAC_TMP}/src/mac/MacWorkspace.xcworkspace" -scheme MacLibrary -destination "${DESTINATION}" \
+      -derivedDataPath "${MAC_TMP}/dd-lib" || fail "the library build failed"
     for ((index = 0; index < count; index++)); do
-      local code=0
-      # shellcheck disable=SC2046
-      mac_xcodebuild 1800 "${MAC_TMP}/unit-${index}.log" test-without-building \
+      code=0
+      read_only_testing --unit "${index}"
+      mac_xcodebuild 1800 "${MAC_TMP}/unit-${index}.log" unit "${index}" test-without-building \
         -xctestrun "$(ls "${MAC_TMP}"/dd-lib/Build/Products/*.xctestrun)" -destination "${DESTINATION}" \
-        $(runner only-testing --plan "${plan}" --unit "${index}") -resultBundlePath "${MAC_TMP}/unit-${index}.xcresult" \
+        "${ONLY_TESTING[@]}" -derivedDataPath "${MAC_TMP}/dd-test" -resultBundlePath "${MAC_TMP}/unit-${index}.xcresult" \
         -collect-test-diagnostics never || code=$?
-      xcrun xcresulttool get test-results tests --path "${MAC_TMP}/unit-${index}.xcresult" > "${MAC_TMP}/unit-${index}-tests.json" 2>/dev/null || true
-      runner unit-record --target MacLibraryTests --tests-json "${MAC_TMP}/unit-${index}-tests.json" --exit-code "${code}" \
-        --tests-dir "${TESTS_DIR}" | runner accept --results "${RESULTS}"
+      DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results tests --path "${MAC_TMP}/unit-${index}.xcresult" \
+        > "${MAC_TMP}/unit-${index}-tests.json" 2>/dev/null || rm -f "${MAC_TMP}/unit-${index}-tests.json"
+      runner unit-record --plan "${plan}" --index "${index}" --tests-json "${MAC_TMP}/unit-${index}-tests.json" \
+        --exit-code "${code}" --tests-dir "${TESTS_DIR}" | runner accept --results "${RESULTS}"
     done
   fi
   # Step 9: the UI tests one by one; the watch first; a notification test that fails stops the rest.
-  local stage name timeout prepare after class stop_kind=""
+  local stage name timeout prepare after class stop_kind="" timed_out rcode
   while IFS=$'\t' read -r index stage name timeout prepare after class; do
     [[ -z "${stop_kind}" ]] || continue
     echo "[ui ${index}] ${name}"
-    local code=0 timed_out=0
-    # shellcheck disable=SC2046
+    code=0; timed_out=0
+    read_only_testing --index "${index}"
     TEST_RUNNER_NTK_HOST=mac TEST_RUNNER_NTK_ALLOW="${ALLOW}" TEST_RUNNER_NTK_FIXTURE_DIR="${fx}" \
     TEST_RUNNER_NTK_EXPECTED_COPY="${expected_copy}" \
-      mac_xcodebuild "${timeout}" "${MAC_TMP}/ui-${index}.log" test-without-building -xctestrun "${xctestrun}" \
-      -destination "${DESTINATION}" $(runner only-testing --plan "${plan}" --index "${index}") \
+      mac_xcodebuild "${timeout}" "${MAC_TMP}/ui-${index}.log" ui "${index}" test-without-building -xctestrun "${xctestrun}" \
+      -destination "${DESTINATION}" "${ONLY_TESTING[@]}" -derivedDataPath "${MAC_TMP}/dd-test" \
       -resultBundlePath "${MAC_TMP}/ui-${index}.xcresult" "${TIME_FLAGS[@]}" -collect-test-diagnostics never || code=$?
     [[ "${code}" == 142 ]] && timed_out=1
-    case "$(cd "$(dirname "${MAC_TMP}/ui-${index}.xcresult")" && pwd -P)" in
-      "${MAC_TMP}") ;;
-      *) fail "the result bundle is not in this run's folder" ;;
-    esac
-    xcrun xcresulttool get test-results tests --path "${MAC_TMP}/ui-${index}.xcresult" > "${MAC_TMP}/ui-${index}-tests.json" 2>/dev/null || rm -f "${MAC_TMP}/ui-${index}-tests.json"
-    xcrun xcresulttool get test-results summary --path "${MAC_TMP}/ui-${index}.xcresult" > "${MAC_TMP}/ui-${index}-summary.json" 2>/dev/null || rm -f "${MAC_TMP}/ui-${index}-summary.json"
-    local rcode=0
+    DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results tests --path "${MAC_TMP}/ui-${index}.xcresult" \
+      > "${MAC_TMP}/ui-${index}-tests.json" 2>/dev/null || rm -f "${MAC_TMP}/ui-${index}-tests.json"
+    DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results summary --path "${MAC_TMP}/ui-${index}.xcresult" \
+      > "${MAC_TMP}/ui-${index}-summary.json" 2>/dev/null || rm -f "${MAC_TMP}/ui-${index}-summary.json"
+    rcode=0
     runner record --plan "${plan}" --index "${index}" --tests-json "${MAC_TMP}/ui-${index}-tests.json" \
       --summary-json "${MAC_TMP}/ui-${index}-summary.json" --exit-code "${code}" --timed-out "${timed_out}" \
       --tests-dir "${TESTS_DIR}" > "${MAC_TMP}/ui-${index}.records" || rcode=$?
     runner accept --results "${RESULTS}" < "${MAC_TMP}/ui-${index}.records"
     rm -rf "${MAC_TMP}/ui-${index}.xcresult" "${MAC_TMP}/ui-${index}-tests.json" "${MAC_TMP}/ui-${index}-summary.json"
     [[ "${rcode}" == 0 ]] || fail "the results are not exactly the named tests; stopping (design 6.3 step 9)"
-    if grep -q '"result": "failed"' "${MAC_TMP}/ui-${index}.records"; then
+    if grep -q '"result": "failed"' "${MAC_TMP}/ui-${index}.records" || \
+       { [[ "${stage}" == watch ]] && [[ "$(grep -c '"result": "passed"' "${MAC_TMP}/ui-${index}.records" || true)" != 1 ]]; }; then
       if [[ "${stage}" == watch ]]; then stop_kind=watchStopped
       elif [[ "${class}" == Notification* ]]; then stop_kind=notificationStopped; fi
       if [[ -n "${stop_kind}" ]]; then
@@ -810,24 +848,23 @@ run_mac() {
       fi
     fi
   done < <(runner invocations --plan "${plan}")
-  # Step 10: what is left on this Mac, the fixture, the summary.
+  # Step 10: the fixture, what is left on this Mac, the summary.
   if [[ -f "${MAC_TMP}/fixture-before.json" ]]; then
     runner fixture-manifest --dir "${fx}" > "${MAC_TMP}/fixture-after.json"
     runner fixture-compare --before "${MAC_TMP}/fixture-before.json" --after "${MAC_TMP}/fixture-after.json" \
       | runner accept --results "${RESULTS}"
-    rm -rf "${fx}"
   fi
   echo "[mac] left on this Mac: the test strings on the pasteboard (clipboard), the category sample-category and badge 0"
-  echo "      (notification, badge), System Settings or Finder brought to the front; this run's registrations were removed"
-  python3 - "${OUT}/environment.json" "${os_version}" "$(sw_vers -buildVersion)" "$(uname -m)" \
-    "$(defaults read -g AppleLanguages 2>/dev/null | sed -n 2p | tr -d ' ",')" \
-    "$(DEVELOPER_DIR="${MAC_XCODE_DIR}" xcodebuild -version | awk 'NR==1{print $2}')" <<'PY'
+  echo "      (notification, badge), System Settings or Finder brought to the front. The run's own registrations, fixture"
+  echo "      and private folder are removed at the end"
+  python3 - "${OUT}/environment.json" "${os_version}" "${os_build}" "$(uname -m)" \
+    "$(defaults read -g AppleLanguages 2>/dev/null | sed -n 2p | tr -d ' ",')" "${xcode}" <<'PY'
 import json, sys
 env = {"where": "mac", "os": sys.argv[2], "osBuild": sys.argv[3], "arch": sys.argv[4], "language": sys.argv[5],
        "xcode": sys.argv[6], "signing": "team"}
 json.dump(env, open(sys.argv[1], "w"), indent=2)
 PY
-  local code=0
+  code=0
   runner summary --plan "${plan}" --environment "${OUT}/environment.json" --results "${RESULTS}" \
     --baseline-dir "${BASELINE_DIR}" --repo "${ROOT_DIR}" --approved "${MAC_TMP}/approval.approved.json" \
     $([[ "${BASELINE}" == 1 ]] && echo --save-baseline) || code=$?

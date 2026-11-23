@@ -196,7 +196,8 @@ FROZEN_DANGEROUS_COUNTS = {
 }
 # Known uses in the test files of a Support wrapper that has a dangerous name: (file, name) -> count.
 # DialogUITests calls SampleAlert.typeKey, which checks the alert and the focus before the key (5.0).
-TEST_FILE_DANGEROUS_ALLOWANCES = {("DialogUITests.swift", "typeKey"): 1}
+# The allowance names the receiver too: `alert.typeKey(` only (Claude B-15).
+TEST_FILE_DANGEROUS_ALLOWANCES = {("DialogUITests.swift", "typeKey"): (1, "alert")}
 # The frozen files' identifier strings (`clipboard.`), checked by count (0c 3.1).
 FROZEN_IDENTIFIER_COUNTS = {"ClipboardSampleViewUITests.swift": 10, "ClipboardSampleWaitRuleTests.swift": 0}
 FORBIDDEN_NAMES = ("XCTExpectFailure", "XCTExpectedFailure", "XCTestObservationCenter", "XCTestObservation",
@@ -231,6 +232,15 @@ MAC_XCODE = "26.6"
 
 COVERAGE_ATTACHMENT = re.compile(r"^ntk-button-coverage-v1(_\d+_[0-9A-Fa-f-]+)?\.json$")
 APPROVAL_ID = re.compile(r"^[0-9a-f]{32}$")
+APPROVAL_HOURS = 12
+# What must be shown in the VM before anything runs on this Mac (design 9.2 last line, U-8, 9.1 and
+# U-30): each value is where the check is recorded, or None while it is not done. An approval is
+# refused while any is None (Claude B-14, Codex B-5).
+MAC_RUN_PREREQUISITES = {
+    "u8MonitorStopsTheTest": None,         # U-8: the monitor really stops a test (a harmless alert in the VM)
+    "killDuringRecording": None,           # 9.1: the parent KILLed during a real recording; the writers stop
+    "windowOwnersReadableOn26": None,      # U-30 mac26: CGWindowListCopyWindowInfo on this Mac
+}
 DEFAULT_LEDGER = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / "Library" / "Application Support" / "native-toolkit" \
     / "test_mac-approvals.log"
 LEDGER_LINE = re.compile(r"^[0-9a-f]{32}\t\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\+00:00|Z)\tmac$")
@@ -240,9 +250,26 @@ RUNNER_FILES = ("scripts/mac_ui_runner.py", "scripts/test_mac.sh", "scripts/mac_
 AUDIT_FILE = "scripts/mac_unit_audit.json"
 # The audit is bound to these parts of the tree (U-29): MacLibrary, MacLibraryTests and the project.
 AUDIT_TREE_PATHS = ("mac/MacLibrary/MacLibrary", "mac/MacLibrary/MacLibraryTests",
-                    "mac/MacLibrary/MacLibrary.xcodeproj/project.pbxproj")
-AUDIT_WORDS = ("NSPasteboard.general", ".general", "MacClipboardManager.shared", "UNUserNotificationCenter.current",
-               "MacNotificationManager.shared", "NSSharingService", "MacShareManager.shared", "NSWorkspace", "TEST_HOST")
+                    "mac/MacLibrary/MacLibrary.xcodeproj/project.pbxproj",
+                    "mac/MacLibrary/MacLibrary.xcodeproj/xcshareddata/xcschemes",
+                    "mac/MacWorkspace.xcworkspace/contents.xcworkspacedata")
+AUDIT_PATTERNS = {
+    "NSPasteboard.general": r"NSPasteboard\.general\b",
+    ".general": r"(?<!NSPasteboard)\.general\b",
+    "NSGeneralPboard": r"NSGeneralPboard",
+    "CFPasteboard general": r"Apple CFPasteboard general",
+    "NSPasteboard(name:": r"NSPasteboard\(\s*name\s*:",
+    "MacClipboardManager.shared": r"MacClipboardManager\.shared\b",
+    "UNUserNotificationCenter.current": r"UNUserNotificationCenter\.current\b",
+    "MacNotificationManager.shared": r"MacNotificationManager\.shared\b",
+    "NSSharingService": r"NSSharingService\w*",
+    "MacShareManager.shared": r"MacShareManager\.shared\b",
+    "NSWorkspace": r"NSWorkspace\w*",
+    "TEST_HOST": r"TEST_HOST",
+}
+AUDIT_WORDS = tuple(AUDIT_PATTERNS)
+# The suites share these helpers; their words are counted too (Claude B-11).
+AUDIT_HELPER_GLOB = "**/Mock*.swift"
 
 
 class RunnerError(Exception):
@@ -811,7 +838,12 @@ def check_swift_source(relative, text):
             continue
         word = t.text
         if word in DANGEROUS_NAMES:
+            allowance = TEST_FILE_DANGEROUS_ALLOWANCES.get((relative.rsplit("/", 1)[-1], word))
+            receiver_ok = allowance is not None and _at(tokens, i - 1) is not None and _at(tokens, i - 1).text == "." \
+                and _word(_at(tokens, i - 2), allowance[1]) and nxt is not None and nxt.text == "("
             dangerous_counts[word] += 1
+            if role == "test" and allowance is not None and not receiver_ok:
+                problem(t, f"{word} is allowed here only as {allowance[1]}.{word}(...)")
         if word in FORBIDDEN_NAMES:
             problem(t, f"{word} is not allowed")
         if t.kind == "eident":
@@ -868,7 +900,7 @@ def check_swift_source(relative, text):
     elif role == "test":
         name_only = relative.rsplit("/", 1)[-1]
         for name, count in dangerous_counts.items():
-            allowed = TEST_FILE_DANGEROUS_ALLOWANCES.get((name_only, name), 0)
+            allowed = TEST_FILE_DANGEROUS_ALLOWANCES.get((name_only, name), (0, None))[0]
             if count != allowed and (count or allowed):
                 problems.append(f"{relative}: {name} appears {count} times; outside the trusted part it may appear "
                                 f"{allowed} times")
@@ -1109,6 +1141,86 @@ def only_testing_arguments(invocation):
     return [f"-only-testing:{name}" for name in names]
 
 
+def unit_only_testing_arguments(plan, index):
+    """`-only-testing:` of a unit call. In the VM a whole target; on this Mac only `MacLibraryTests/<suite>`
+    of the audited suites the plan recorded, never a whole target (Claude B-10). Never empty."""
+    names = plan["unitInvocations"][index]["onlyTesting"]
+    if not names:
+        raise RunnerError("refusing a unit call without -only-testing")
+    for name in names:
+        if plan["where"] == "mac":
+            target, _, suite = name.partition("/")
+            if target != LIBRARY_UNIT_TARGET or not suite or suite not in plan.get("auditSuites", []):
+                raise RunnerError(f"{name}: this Mac runs only the audited suites of {LIBRARY_UNIT_TARGET}")
+        elif name not in UNIT_TARGETS:
+            raise RunnerError(f"{name}: not a unit target")
+    return [f"-only-testing:{name}" for name in names]
+
+
+XCODEBUILD_ACTIONS = ("build-for-testing", "test-without-building", "test", "build", "clean", "archive",
+                      "analyze", "installsrc", "install")
+
+
+def _inside(root, path):
+    """A strict, plain path under root: absolute, no empty, `.` or `..` part, no newline."""
+    if not root or not path or not path.startswith(root.rstrip("/") + "/") or "\n" in path:
+        return False
+    return not any(part in ("", ".", "..") for part in path[len(root.rstrip("/")) + 1:].split("/"))
+
+
+def call_problems(root, arguments, kind, expected_only_testing=()):
+    """The xcodebuild arguments of one call on this Mac (iOS `require_own_paths`, Claude A-1, Codex B-2):
+    exactly one action (`build-for-testing` for a build, `test-without-building` for a test), each of
+    `-derivedDataPath`, `-resultBundlePath` (tests), `-workspace` (builds) and `-xctestrun` (tests)
+    exactly once as two arguments with a plain path inside the run's private folder, and for a test the
+    `-only-testing:` names exactly the planned ones (Codex A-2: a failed lookup never becomes a full run)."""
+    problems = []
+    actions = [a for a in arguments if a in XCODEBUILD_ACTIONS]
+    want = "build-for-testing" if kind == "build" else "test-without-building"
+    if actions != [want]:
+        problems.append(f"the call must have exactly the action {want}, it has {actions}")
+    needs = {"-derivedDataPath": 1, "-resultBundlePath": 0 if kind == "build" else 1,
+             "-workspace": 1 if kind == "build" else 0, "-xctestrun": 0 if kind == "build" else 1}
+    for option, count in needs.items():
+        positions = [i for i, a in enumerate(arguments) if a == option]
+        spelled = [a for a in arguments if a.lower().startswith(option.lower()) and a != option]
+        if len(positions) != count or spelled:
+            problems.append(f"{option} must appear exactly {count} time(s) as its own argument")
+            continue
+        for i in positions:
+            if i + 1 >= len(arguments) or not _inside(root, arguments[i + 1]):
+                problems.append(f"{option} must name a path inside the run's private folder")
+    named = [a[len("-only-testing:"):] for a in arguments if a.startswith("-only-testing:")]
+    if any(a.lower().startswith("-only-testing") and not a.startswith("-only-testing:") for a in arguments) or \
+            any(a.lower().startswith("-skip-testing") for a in arguments):
+        problems.append("-only-testing must be written as -only-testing:<name>; -skip-testing is not used")
+    if kind == "build":
+        if named:
+            problems.append("a build names no test")
+    elif not named or named != list(expected_only_testing):
+        problems.append("the -only-testing names differ from the plan's for this call")
+    return problems
+
+
+def path_symlink_problems(root, arguments):
+    """No part of a path the call names, from the private folder down, may be a symlink (iOS A-2)."""
+    problems = []
+    for i, a in enumerate(arguments[:-1]):
+        if a in ("-derivedDataPath", "-resultBundlePath", "-workspace", "-xctestrun"):
+            path = arguments[i + 1]
+            if not _inside(root, path):
+                continue
+            current = root.rstrip("/")
+            for part in path[len(current) + 1:].split("/"):
+                current = current + "/" + part
+                if os.path.islink(current):
+                    problems.append(f"{a} passes through a symlink")
+                    break
+    if os.path.islink(root) or os.path.realpath(root) != root:
+        problems.append("the private folder is not its own real path")
+    return problems
+
+
 def mac_selection_leaks(names, allowed):
     """The -only-testing names of a run on this Mac that must never run here (a second check, right
     before xcodebuild, of what select_tests excluded)."""
@@ -1120,20 +1232,25 @@ def mac_selection_leaks(names, allowed):
     return problems
 
 
-def unit_invocations(where, audit_suites):
+def unit_invocations(where, audit_suites, unit_keys=None):
     """VM: both unit targets whole (MacLibraryExampleTests and SharePickerPresenterTests are VM only,
-    U-29). This Mac: the audited suites of MacLibraryTests only, each named."""
+    U-29). This Mac: the audited suites of MacLibraryTests only, each named. `expected` is the set of
+    tests the enumeration gives for those names (Codex A-8); the results must be exactly that set."""
+    keys = list(unit_keys or [])
     if where == "vm":
-        return [{"target": LIBRARY_UNIT_TARGET, "onlyTesting": [LIBRARY_UNIT_TARGET]},
-                {"target": EXAMPLE_UNIT_TARGET, "onlyTesting": [EXAMPLE_UNIT_TARGET]}]
+        return [{"target": t, "onlyTesting": [t], "expected": [k for k in keys if k.split("/", 1)[0] == t]}
+                for t in (LIBRARY_UNIT_TARGET, EXAMPLE_UNIT_TARGET)]
     if not audit_suites:
         return []
-    return [{"target": LIBRARY_UNIT_TARGET, "onlyTesting": [f"{LIBRARY_UNIT_TARGET}/{s}" for s in audit_suites]}]
+    names = [f"{LIBRARY_UNIT_TARGET}/{s}" for s in audit_suites]
+    return [{"target": LIBRARY_UNIT_TARGET, "onlyTesting": names,
+             "expected": [k for k in keys if any(k.startswith(n + "/") for n in names)]}]
 
 
 def make_plan(where, identifiers, declarations, allowed, feature, os_major, head, mac_tree, trusted_changes,
               unit, audit_state, name_each_test=False, runner_files=None, qualification=None, tables_hash=None,
-              declarations_hash=None, lsregister=None, stale=None):
+              declarations_hash=None, lsregister=None, stale=None, unit_keys=None, environment=None,
+              baseline=False):
     selected, excluded = select_tests(identifiers, declarations, where, os_major, allowed, feature,
                                       qualification=qualification)
     if where == "mac":
@@ -1150,7 +1267,10 @@ def make_plan(where, identifiers, declarations, allowed, feature, os_major, head
     if sorted(named) != sorted(key_from_enumeration_id(i) for i in selected) or duplicates(named):
         raise RunnerError("the invocations do not cover exactly the selected tests")
     suites = audit_state.get("suites", []) if audit_state else []
-    units = unit_invocations(where, suites) if unit and qualification is None else []
+    units = unit_invocations(where, suites, unit_keys) if unit and qualification is None else []
+    for u in units:
+        if unit_keys is not None and not u["expected"]:
+            raise RunnerError(f"the enumeration has no tests for {u['onlyTesting']}")
     unit_excluded = []
     if where == "mac" and unit and qualification is None and audit_state and audit_state.get("expired"):
         unit_excluded = [{"target": LIBRARY_UNIT_TARGET, "reason": "auditExpired"}]
@@ -1165,7 +1285,9 @@ def make_plan(where, identifiers, declarations, allowed, feature, os_major, head
         "excluded": [{"id": i, "categories": c, "reason": r} for i, c, r in excluded],
         "invocations": invocations, "unitInvocations": units, "unitExcluded": unit_excluded,
         "nameEachTest": name_each_test or where == "mac", "runnerFiles": dict(runner_files or {}),
-        "lsregister": lsregister or [], "stale": stale or [],
+        "lsregister": lsregister or [], "stale": stale or [], "auditSuites": list(suites),
+        "environment": dict(environment or {}), "baseline": bool(baseline),
+        "prerequisites": dict(MAC_RUN_PREREQUISITES) if where == "mac" else {},
     }
 
 
@@ -1206,16 +1328,19 @@ def make_approval(plan, created_at=None, approval_id=None):
         "tests": [{"id": i, "categories": plan["declarations"][key_from_enumeration_id(i)]} for i in plan["selected"]],
         "unitTests": [n for u in plan["unitInvocations"] for n in u["onlyTesting"]],
         "excluded": plan["excluded"], "unitExcluded": plan["unitExcluded"],
-        "lsregister": plan["lsregister"], "stale": plan["stale"],
+        "lsregister": plan["lsregister"], "stale": plan["stale"], "environment": plan["environment"],
+        "baseline": plan["baseline"], "prerequisites": plan["prerequisites"],
     }
 
 
 _CREATED_AT = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\+00:00|Z)$")
 
 
-def approval_problems(approval, plan):
+def approval_problems(approval, plan, now=None):
     """The approved list must be exactly the list the runner would write now: the same keys, and
-    the same value for each, apart from the ID and the time (iOS 0d R-8)."""
+    the same value for each, apart from the ID and the time (iOS 0d R-8). It is good for
+    APPROVAL_HOURS after it was written (Claude B-9), and only once every precondition of a run on
+    this Mac is recorded as checked (MAC_RUN_PREREQUISITES; Claude B-14, Codex B-5)."""
     if not isinstance(approval, dict) or approval.get("schema") != 1:
         return ["the approval file is not a schema 1 approval list"]
     if plan.get("where") != "mac":
@@ -1236,15 +1361,23 @@ def approval_problems(approval, plan):
         if approval[field] != expected[field]:
             if field == "tests":
                 approved = [t.get("id") if isinstance(t, dict) else t for t in approval[field]]
-                now = [t["id"] for t in expected[field]]
+                selected = [t["id"] for t in expected[field]]
                 problems.append(f"the approved tests differ from the selection: approved only "
-                                f"{[t for t in approved if t not in now][:5]}, selected only "
-                                f"{[t for t in now if t not in approved][:5]}"
-                                + (", order or categories differ" if sorted(map(str, approved)) == sorted(map(str, now)) else ""))
+                                f"{[t for t in approved if t not in selected][:5]}, selected only "
+                                f"{[t for t in selected if t not in approved][:5]}"
+                                + (", order or categories differ" if sorted(map(str, approved)) == sorted(map(str, selected)) else ""))
             else:
                 problems.append(f"{field} differs from the approved list")
     if not plan["trustedPart"]["unchanged"]:
         problems.append("the trusted part changed; this Mac cannot run until its hashes are pinned after a review")
+    if _CREATED_AT.match(str(approval.get("createdAt", ""))):
+        created = datetime.datetime.fromisoformat(str(approval["createdAt"]).replace("Z", "+00:00"))
+        current = now or datetime.datetime.now(datetime.timezone.utc)
+        if current - created > datetime.timedelta(hours=APPROVAL_HOURS) or created - current > datetime.timedelta(minutes=5):
+            problems.append(f"the approval is older than {APPROVAL_HOURS} hours (or from the future); plan and ask again")
+    unchecked = sorted(k for k, v in plan.get("prerequisites", {}).items() if not v)
+    if unchecked:
+        problems.append(f"preconditions of a run on this Mac are not checked yet: {unchecked}")
     return problems
 
 
@@ -1521,7 +1654,8 @@ def vm_qualification(facts):
         ("noSharedFolder", get("virtiofsMounts") == "0"),
         ("xcode", (get("xcodeVersion"), get("xcodeBuild")) == VM_XCODE),
         ("identity", isinstance(get("platformUUID"), str) and
-         re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", get("platformUUID")) is not None),
+         re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", get("platformUUID")) is not None
+         and isinstance(get("vmBoottime"), str) and re.fullmatch(r"[1-9][0-9]{8,11}", get("vmBoottime")) is not None),
     ]
     return items
 
@@ -1539,14 +1673,18 @@ def vm_language_problem(facts, qualification=None):
 # --- Output boundary (3.4) --------------------------------------------------------------------
 
 RESULT_KINDS = ("passed", "failed", "skipped")
-RECORD_KINDS = ("passed", "failed", "skipped", "excluded", "watchStopped", "notificationStopped")
+RECORD_KINDS = ("passed", "failed", "skipped", "excluded", "watchStopped", "notificationStopped", "runStopped")
+# The names of the runner's own problems (NTK-RUNNER:<name>); each is written by some path of the runner.
 RUNNER_PROBLEMS = ("timeout", "noResult", "destination", "zeroTests", "summary", "unreadableName", "otherBundle",
-                   "unknownShape", "readable", "namedSet", "exitCode", "notRun", "buttonCoverage", "fixture",
-                   "build", "binary", "privacyRestore", "permissionReset")
+                   "unknownShape", "readable", "namedSet", "exitCode", "buttonCoverage", "fixture", "privacyRestore",
+                   "permissionReset", "missingResult")
+# The preconditions the tests name (`NTK-PRECONDITION:<name>`; 3.4). A closed list like StepCode: a name
+# outside it is dropped from what leaves the run (Claude C-8).
+PRECONDITION_NAMES = ("notAuthorized", "notNotDetermined", "coldStartTiming", "pastePrivacyPreview")
 _PUBLIC_TEST = re.compile(r"^(MacLibraryExampleUITests/[A-Za-z_][A-Za-z0-9_]*/test[A-Za-z0-9_]*"
                           r"|(MacLibraryTests|MacLibraryExampleTests)(/[A-Za-z_][A-Za-z0-9_]*){1,3}"
                           r"|(MacLibraryExampleUITests|MacLibraryTests|MacLibraryExampleTests)(/[A-Za-z0-9_/]+)?#[A-Za-z]+)$")
-_PUBLIC_CODE = re.compile(r"^(NTK-STEP:[A-Za-z0-9_-]+|NTK-GATED:[a-z]+|NTK-PRECONDITION:[A-Za-z][A-Za-z0-9]{0,40}"
+_PUBLIC_CODE = re.compile(r"^(NTK-STEP:[A-Za-z0-9_-]+|NTK-GATED:[a-z]+|NTK-PRECONDITION:[A-Za-z]+"
                           r"|NTK-INTERRUPTED|NTK-STOP:[A-Za-z]+|NTK-STALE:[a-z]+|NTK-RUNNER:[A-Za-z]+|NTK-RAW:[A-Za-z ]+)$")
 
 
@@ -1563,7 +1701,8 @@ def public_codes(message, step_vocabulary_values):
         if m.group(1) in CATEGORIES:
             codes.append(f"NTK-GATED:{m.group(1)}")
     for m in re.finditer(r"NTK-PRECONDITION:([A-Za-z][A-Za-z0-9]{0,40})(?![A-Za-z0-9])", message):
-        codes.append(f"NTK-PRECONDITION:{m.group(1)}")
+        if m.group(1) in PRECONDITION_NAMES:
+            codes.append(f"NTK-PRECONDITION:{m.group(1)}")
     if "NTK-INTERRUPTED" in message:
         codes.append("NTK-INTERRUPTED")
     out = []
@@ -1588,6 +1727,11 @@ def public_record(record):
     codes = record.get("codes", [])
     if not isinstance(codes, list) or not all(isinstance(c, str) and _PUBLIC_CODE.match(c) for c in codes):
         raise RunnerError("a record with a code outside 3.4")
+    for code in codes:
+        name = code.split(":", 1)[1] if ":" in code else ""
+        if (code.startswith("NTK-PRECONDITION:") and name not in PRECONDITION_NAMES) or \
+                (code.startswith("NTK-RUNNER:") and name not in RUNNER_PROBLEMS):
+            raise RunnerError("a record with a code outside 3.4")
     if "seconds" in record and not (isinstance(record["seconds"], (int, float)) and record["seconds"] >= 0):
         raise RunnerError("a record with seconds that are not a number")
     if "runs" in record and not (isinstance(record["runs"], int) and record["runs"] >= 1):
@@ -1699,7 +1843,9 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
     if tests_text is None:
         pseudo("noResult")
         return [public_record(r) for r in records], True
-    cases, _ = parse_xcresult_tests(tests_text)
+    cases, devices = parse_xcresult_tests(tests_text)
+    if len(devices) != 1:
+        pseudo("destination")  # one run is one Mac (this one or the VM); more or none is not this run
     if not cases:
         pseudo("zeroTests")
     if summary_text is None or summary_problems(summary_text, cases):
@@ -1736,37 +1882,82 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
     return [public_record(r) for r in records], stop
 
 
-def unit_records(target, tests_text, exit_code, vocabulary):
+UNIT_CASE_CHILDREN = KNOWN_CASE_CHILDREN | {"Arguments"}
+
+
+def unit_key(target, identifier, enumerated=False):
+    """`<suite>[/<nested>]/<test>(<labels>)` (xcresult) or, with `enumerated`, `<target>/<suite>/.../<test>(<labels>)`
+    (the enumeration) -> `<target>/<suite>[/<nested>]/<test>`; the same form for both, so they can be compared.
+    (A suite may carry its target's name, as `MacLibraryTests/MacLibraryTests/example()`.)"""
+    node = identifier[len(target) + 1:] if enumerated else identifier
+    node = re.sub(r"\(.*\)$", "", node)
+    return f"{target}/" + re.sub(r"[^A-Za-z0-9_/]", "_", node)
+
+
+def parse_unit_enumeration(text, targets):
+    """The unit test keys of an enumeration (`-enumerate-tests ... json`), for the given targets."""
+    data = json.loads(text)
+    if data.get("errors"):
+        raise RunnerError("the enumeration reported errors")
+    values = data.get("values")
+    if not isinstance(values, list) or len(values) != 1:
+        raise RunnerError("the enumeration must have exactly one value")
+    keys = []
+    for test in values[0].get("enabledTests", []):
+        identifier = test.get("identifier", "")
+        target = identifier.split("/", 1)[0]
+        if target in targets and identifier.count("/") >= 2:
+            keys.append(unit_key(target, identifier, enumerated=True))
+    return keys
+
+
+def unit_records(target, tests_text, exit_code, vocabulary, expected=None):
     """Unit test results as `<target>/<suite>[/<nested suite>]/<test>` (Swift Testing and XCTest alike).
     A parameterized Swift Testing test is one record with `runs`, its expanded count (its `Arguments`
     children, whose values stay out; 6.3 "件数は展開の後の数"). Skips fail like UI skips; the messages
-    stay out."""
+    stay out. With `expected` (the planned keys from the enumeration), the results must be exactly
+    that set, each once (Codex A-8); a child that is neither a message nor arguments stops (R-20)."""
     if tests_text is None:
         return [public_record({"test": f"{target}#noResult", "result": "failed", "codes": ["NTK-RUNNER:noResult"]})]
     cases, _ = parse_xcresult_tests(tests_text)
-    records = []
+    records, problems = [], []
     for case in cases:
         if case["bundle"] != target:
+            if case["bundle"] in UNIT_TARGETS or case["bundle"] == UI_TARGET:
+                problems.append("otherBundle")
             continue
-        node = re.sub(r"\(.*\)$", "", case["node"])
-        node = re.sub(r"[^A-Za-z0-9_/]", "_", node)
-        outcome = classify(node, case["result"], case["skipReason"])
-        record = {"test": f"{target}/{node}", "result": outcome, "kind": outcome,
+        if set(case["unknownShape"]) - UNIT_CASE_CHILDREN:
+            problems.append("unknownShape")
+            continue
+        key = unit_key(target, case["node"])
+        outcome = classify(key, case["result"], case["skipReason"])
+        record = {"test": key, "result": outcome, "kind": outcome,
                   "codes": public_codes(case["message"], vocabulary), "runs": max(1, case["arguments"])}
         if case["seconds"] is not None:
             record["seconds"] = case["seconds"]
         records.append(record)
+    keys = [r["test"] for r in records]
+    if duplicates(keys):
+        problems.append("readable")  # two tests fall on one key once their labels are dropped (Claude B-16)
+    if expected is not None and (sorted(set(keys)) != sorted(set(expected)) or duplicates(list(expected))):
+        problems.append("namedSet")
     if not records:
-        records.append({"test": f"{target}#zeroTests", "result": "failed", "codes": ["NTK-RUNNER:zeroTests"]})
+        problems.append("zeroTests")
     if exit_code != 0 and all(r["result"] == "passed" for r in records):
-        records.append({"test": f"{target}#exitCode", "result": "failed", "codes": ["NTK-RUNNER:exitCode"]})
+        problems.append("exitCode")
+    for problem in sorted(set(problems)):
+        records.append({"test": f"{target}#{problem}", "result": "failed", "codes": [f"NTK-RUNNER:{problem}"]})
     return [public_record(r) for r in records]
+
+
+STOP_CODES = {"watchStopped": "NTK-STOP:watch", "notificationStopped": "NTK-STOP:notificationUI",
+              "runStopped": "NTK-STOP:noResult"}
 
 
 def not_run_records(invocations, kind):
     """The tests of invocations that were not run because the watch or a notification test failed
-    (U-20, 5.0): failures, never passes."""
-    code = "NTK-STOP:watch" if kind == "watchStopped" else "NTK-STOP:notificationUI"
+    (U-20, 5.0), or because a call returned no result (Codex A-7, Claude A-4): failures, never passes."""
+    code = STOP_CODES[kind]
     return [public_record({"test": f"{UI_TARGET}/{k}", "result": "failed", "kind": kind, "codes": [code]})
             for inv in invocations for k in inv["expected"]]
 
@@ -1826,12 +2017,53 @@ FIXTURE_NAME = re.compile(r"^/private/tmp/ntk-uitest-[A-Za-z0-9-]+$")
 FIXTURE_ITEMS = ("a.txt", "b.txt", "note.md", "pic.png", "dirA", "dirB", "default.txt")
 
 
+FIXTURE_CONTENT = {"a.txt": b"a\n", "b.txt": b"b\n", "note.md": b"# note\n", "default.txt": b"default\n",
+                   "pic.png": __import__("base64").b64decode(
+                       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")}
+
+
+def _fixture_root_problem(root):
+    """The fixture root must be a real folder of this user, not a symlink (U-11; Codex A-10)."""
+    try:
+        info = os.lstat(root)
+    except OSError:
+        return "the fixture is missing"
+    import stat
+    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+        return "the fixture root is not a folder of this user"
+    return None
+
+
+def fixture_create(root):
+    """Makes the fixture anew: the root and its two folders with mkdir (never reusing one that exists),
+    the files with O_CREAT | O_EXCL | O_NOFOLLOW, so nothing is written through a symlink (U-11)."""
+    root = str(root)
+    if not FIXTURE_NAME.match(root):
+        raise RunnerError("the fixture is not /private/tmp/ntk-uitest-<id>")
+    try:
+        os.mkdir(root, 0o700)
+    except FileExistsError:
+        raise RunnerError("the fixture folder already exists; not reusing it")
+    problem = _fixture_root_problem(root)
+    if problem:
+        raise RunnerError(problem)
+    for folder in ("dirA", "dirB"):
+        os.mkdir(os.path.join(root, folder), 0o700)
+    for name, content in FIXTURE_CONTENT.items():
+        fd = os.open(os.path.join(root, name), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, "wb") as out:
+            out.write(content)
+
+
 def fixture_manifest(root):
     """{relative: "dir" | sha256} of the fixture, without following symlinks; `.DS_Store` aside (the
     open panel writes one, 0c 1.7 (3)); a symlink is recorded as such and fails the comparison."""
     root = str(root)
     if not FIXTURE_NAME.match(root):
         raise RunnerError("the fixture is not /private/tmp/ntk-uitest-<id>")
+    problem = _fixture_root_problem(root)
+    if problem:
+        raise RunnerError(problem)
     manifest = {}
     for directory, folders, files in os.walk(root, followlinks=False):
         for name in sorted(folders + files):
@@ -1903,7 +2135,7 @@ def _under(path, root):
     return bool(path) and bool(root) and path.startswith(root.rstrip("/") + "/")
 
 
-def stale_plan(marker, boottime_now, processes, tool_roots):
+def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
     """What to do about a previous run's folder whose marker is left.
 
     marker: {"boottime", "created", "root", "writers": [{"pid", "start", "exe"}], "pgid"}
@@ -1915,14 +2147,21 @@ def stale_plan(marker, boottime_now, processes, tool_roots):
     Otherwise a writer is a process whose PID, start time and real executable all match, or whose
     executable is under the previous run's folder and started after the marker was made (a sample
     woken by a notification). The group is signalled only when its leader is a writer and every
-    process of the group is a tool or under the folder."""
+    process of the group is a tool or under the folder.
+
+    With `folder` (the folder the marker was found in), the marker's root must be that folder's real
+    path and carry the run-folder prefix; otherwise the plan refuses (Claude B-5: a root of `/` would
+    make every later process a writer). A missing or unreadable marker is refused by the caller."""
     try:
         boot = int(marker["boottime"])
         created = float(marker["created"])
         root = str(marker["root"])
         writers = list(marker.get("writers", []))
-    except (KeyError, TypeError, ValueError):
+    except (KeyError, TypeError, ValueError, AttributeError):
         return {"removeOnly": False, "signal": [], "group": None, "refuse": "malformed marker"}
+    if folder is not None and (os.path.realpath(folder) != root or
+                               not os.path.basename(root).startswith(RUN_FOLDER_PREFIX)):
+        return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker names another folder"}
     if boot < boottime_now:
         return {"removeOnly": True, "signal": [], "group": None, "refuse": None}
     if boot > boottime_now:
@@ -1951,42 +2190,179 @@ def stale_plan(marker, boottime_now, processes, tool_roots):
     return {"removeOnly": not alive, "signal": sorted(p["pid"] for p in alive), "group": group, "refuse": None}
 
 
+MARKER_NAME = "ntk-run-marker.json"
+RUN_FOLDER_PREFIX = "ntk-test-mac."
+
+
+LSREGISTER = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+# The copies a run builds and registers with LaunchServices; removed with its folder.
+RUN_APPS = ("dd-ui/Build/Products/Debug/MacLibraryExample.app",
+            "dd-ui/Build/Products/Debug/MacLibraryExampleUITests-Runner.app")
+
+
+class OsPort:
+    """The operating system as the stale-run and current-run cleanup see it. The self-tests on this Mac
+    pass a fake port, so that no real signal, process list or removal is reached (review v1: Codex A-5,
+    Claude A-3); the runner passes this one."""
+
+    def processes(self):
+        return _processes()
+
+    def boottime(self):
+        return _boottime()
+
+    def signal(self, pid, number):
+        try:
+            os.kill(pid, number)
+        except ProcessLookupError:
+            pass
+
+    def signal_group(self, pgid, number):
+        try:
+            os.killpg(pgid, number)
+        except ProcessLookupError:
+            pass
+
+    def remove(self, folder):
+        _remove_run_folder(folder)
+
+    def remove_fixture(self, path):
+        _remove_fixture(path)
+
+    def unregister(self, app):
+        subprocess.run([LSREGISTER, "-u", app], capture_output=True)
+
+    def sleep(self, seconds):
+        time.sleep(seconds)
+
+    def now(self):
+        return time.time()
+
+
+def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0):
+    """Stops the writers of a run folder: TERM, wait, KILL, wait. The plan is made again right before
+    each signal from the process list of that moment (PID, start time and real executable, and the
+    group's members), so a PID that ended and was reused in between is never signalled (Codex A-5).
+    Returns None when no writer is left, or the reason the folder must stay."""
+    for number, wait in ((15, term_wait), (9, kill_wait)):
+        plan = stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
+        if plan["refuse"]:
+            return plan["refuse"]
+        if not plan["signal"]:
+            return None
+        if plan["group"] is not None:
+            port.signal_group(plan["group"], number)
+        for pid in plan["signal"]:
+            port.signal(pid, number)
+        deadline = port.now() + wait
+        while port.now() < deadline:
+            if not stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)["signal"]:
+                return None
+            port.sleep(0.5)
+    plan = stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
+    return plan["refuse"] or ("writers are still running" if plan["signal"] else None)
+
+
+def clean_run_folder(folder, port, tool_roots, read_marker):
+    """A run folder of this Mac (a stopped one, or the current one at its end): its marker must be
+    there and name it; its writers are stopped and found gone; then its fixture and the folder go.
+    Returns None, or the reason nothing was removed (Codex A-6: a folder without a readable marker
+    is never removed)."""
+    try:
+        marker = read_marker(folder)
+    except (OSError, ValueError):
+        return "the run folder has no readable marker"
+    if not isinstance(marker, dict):
+        return "the run folder has no readable marker"
+    problem = stop_writers(marker, folder, port, tool_roots)
+    if problem:
+        return problem
+    for app in RUN_APPS:
+        path = os.path.join(folder, app)
+        if os.path.isdir(path) and not os.path.islink(path):
+            port.unregister(path)
+    run_id = str(marker.get("runId", ""))
+    if re.fullmatch(r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}", run_id):
+        port.remove_fixture(f"/private/tmp/ntk-uitest-{run_id}")
+    port.remove(folder)
+    return None
+
+
+def writer_entry(pid, processes, expect_under):
+    """The marker's entry of a writer once its real executable is under `expect_under` (the Xcode the
+    runner calls): a process caught between fork and exec is not recorded (Claude B-4)."""
+    found = [p for p in processes if p.get("pid") == pid]
+    if len(found) != 1 or not _under(found[0].get("exe"), expect_under):
+        return None
+    return {"pid": pid, "start": found[0]["start"], "exe": found[0]["exe"], "pgid": found[0]["pgid"]}
+
+
 # --- U-29: the audit of this Mac's unit tests --------------------------------------------------
 
 def audit_word_counts(text):
     """{word: count} of AUDIT_WORDS in one test file. `.general` counts the scope value only (not the
-    `.general` of `NSPasteboard.general`, which has its own word)."""
+    `.general` of `NSPasteboard.general`, which has its own word). A word counts as a prefix
+    (`NSSharingServicePicker` is an `NSSharingService`; Claude B-11)."""
     counts = {}
-    for word in AUDIT_WORDS:
-        if word == ".general":
-            n = len(re.findall(r"(?<!NSPasteboard)\.general\b", text))
-        else:
-            n = len(re.findall(re.escape(word) + r"\b", text))
+    for word, pattern in AUDIT_PATTERNS.items():
+        n = len(re.findall(pattern, text))
         if n:
             counts[word] = n
     return counts
 
 
-def audit_state(audit, current_tree_hash, file_texts):
+def _declares(text, suite):
+    return re.search(r"\b(struct|class|enum|actor)\s+" + re.escape(suite) + r"\b", text) is not None
+
+
+def audit_state(audit, current_tree_hash, file_texts, helper_texts=None):
     """{"suites": [audited suites that may run on this Mac], "expired": bool, "hash", "problems"}.
 
-    The table is expired (no suite on this Mac) when its tree hash is not the current tree's, or it
-    has no review by another model. A suite runs only when every word count of its file equals the
-    allowed occurrences the audit wrote (a helper check, not the audit itself)."""
+    The table is expired (no suite on this Mac) when its tree hash is not the current tree's, or its
+    review (by another model, naming the same tree hash) is missing. A suite runs only when its file
+    declares it, it is listed once and not also under notListed, and every word count of its file
+    equals the allowed occurrences the audit wrote. The helper files the suites share (the mocks) must
+    match their own allowed occurrences, or nothing runs (Codex B-3, Claude B-11). This is a helper
+    check, not the audit itself."""
     problems = []
     if not isinstance(audit, dict) or audit.get("schema") != 1:
         return {"suites": [], "expired": True, "hash": None, "problems": ["the audit is not a schema 1 table"]}
     digest = sha256_bytes(json.dumps(audit, sort_keys=True).encode())
-    expired = audit.get("treeHash") != current_tree_hash or not audit.get("review")
+    review = audit.get("review")
+    reviewed = isinstance(review, dict) and bool(review.get("by")) and bool(review.get("date")) and \
+        review.get("treeHash") == audit.get("treeHash")
+    expired = audit.get("treeHash") != current_tree_hash or not reviewed
     if audit.get("treeHash") != current_tree_hash:
         problems.append("the audited tree differs from the current one (expired)")
-    if not audit.get("review"):
-        problems.append("the audit has no review by another model yet")
+    if not reviewed:
+        problems.append("the audit has no review by another model of this tree yet")
+    names = [e.get("suite") for e in audit.get("suites", [])]
+    not_listed = {e.get("suite") for e in audit.get("notListed", [])}
+    for name in duplicates(names):
+        problems.append(f"{name}: listed twice")
+    helpers_ok = True
+    for entry in audit.get("helpers", []):
+        file = entry.get("file")
+        text = (helper_texts or {}).get(file)
+        allowed = {a["word"]: a["count"] for a in entry.get("allowed", []) if a.get("reason")}
+        if text is None or audit_word_counts(text) != allowed:
+            problems.append(f"helper {file}: missing, or its words differ from the allowed occurrences")
+            helpers_ok = False
+    for file in sorted(set(helper_texts or {}) - {e.get("file") for e in audit.get("helpers", [])}):
+        if audit_word_counts(helper_texts[file]):
+            problems.append(f"helper {file}: not in the table but has audit words")
+            helpers_ok = False
     suites = []
     for entry in audit.get("suites", []):
         name, file = entry.get("suite"), entry.get("file")
+        if not name or name in not_listed or duplicates(names) and name in duplicates(names):
+            problems.append(f"{name}: also under notListed, repeated or unnamed")
+            continue
         if file not in file_texts:
             problems.append(f"{name}: its file {file} is missing")
+            continue
+        if not _declares(file_texts[file], name):
+            problems.append(f"{name}: its file {file} does not declare it")
             continue
         counts = audit_word_counts(file_texts[file])
         allowed = {a["word"]: a["count"] for a in entry.get("allowed", []) if a.get("reason")}
@@ -1994,7 +2370,10 @@ def audit_state(audit, current_tree_hash, file_texts):
             problems.append(f"{name}: the words of its file {counts} differ from the allowed occurrences {allowed}")
             continue
         suites.append(name)
-    return {"suites": [] if expired else suites, "expired": expired, "hash": digest, "problems": problems}
+    if not helpers_ok:
+        suites = []
+    return {"suites": [] if expired else suites, "expired": expired or not helpers_ok, "hash": digest,
+            "problems": problems}
 
 
 # --- U-30: whether Reply opened the list ---------------------------------------------------------
@@ -2127,12 +2506,61 @@ def baseline_counts(results):
     return counts
 
 
-def baseline_refusal(env, plan, failed, dirty_mac):
-    """6.3 "基準の条件" (U-32)."""
+def excluded_map(plan):
+    """{test or unit target: reason} of what this run excluded; the same for saving and comparing a
+    baseline, unit targets included (Codex B-6)."""
+    excluded = {key_from_enumeration_id(e["id"]): e["reason"] for e in plan["excluded"]
+                if e["reason"] != "qualificationOnly"}
+    for u in plan.get("unitExcluded", []):
+        excluded[u["target"]] = u["reason"]
+    return dict(sorted(excluded.items()))
+
+
+def completeness_problems(plan, records):
+    """Every planned test has exactly one record, every planned unit call has its records, and the
+    runner's own checks that belong to this run came back (Codex A-7, Claude A-4): a call that returned
+    nothing never passes as an empty success."""
+    problems = []
+    ui = [r["test"] for r in records if r["test"].startswith(UI_TARGET + "/") and "#" not in r["test"]]
+    expected = [f"{UI_TARGET}/{k}" for inv in plan["invocations"] for k in inv["expected"]]
+    if duplicates(ui):
+        problems.append("a test has more than one record")
+    if sorted(set(ui)) != sorted(set(expected)):
+        problems.append(f"{len(set(expected) - set(ui))} planned test(s) without a record, "
+                        f"{len(set(ui) - set(expected))} record(s) outside the plan")
+    for u in plan.get("unitInvocations", []):
+        got = {r["test"] for r in records if r["test"].split("/", 1)[0].split("#", 1)[0] == u["target"]}
+        if not got:
+            problems.append(f"no record of {u['target']}")
+    names = {r["test"] for r in records}
+    required = []
+    if plan["where"] == "vm":
+        required.append(f"{UI_TARGET}#fixture")
+        if plan["feature"] is None and plan.get("qualification") is None:
+            required.append(f"{UI_TARGET}#buttonCoverage")
+    elif "panels" in plan["allow"] and any("panels" in plan["declarations"][key_from_enumeration_id(i)]
+                                           for i in plan["selected"]):
+        required.append(f"{UI_TARGET}#fixture")
+    if any(inv["stage"] == "privacy" for inv in plan["invocations"]):
+        required.append(f"{UI_TARGET}#privacyRestore")
+    stopped = any(r.get("kind") in ("watchStopped", "notificationStopped", "runStopped") for r in records)
+    for name in required:
+        if name not in names and not (stopped and name.endswith("#buttonCoverage")):
+            problems.append(f"no {name.split('#', 1)[1]} result")
+    return problems
+
+
+def baseline_refusal(env, plan, failed, dirty_mac, executed=None, lost=None):
+    """6.3 "基準の条件" (U-32): no failure, every eligible test executed (Codex A-7), nothing lost."""
     if plan.get("qualification"):
         return "a qualification stage is never a baseline"
     if failed:
         return "the run has failures"
+    eligible = sorted(key_from_enumeration_id(i) for i in plan["selected"])
+    if executed is None or sorted(executed) != eligible:
+        return "--baseline needs every eligible test executed exactly once"
+    if lost:
+        return "tests that passed in the previous baseline did not pass now"
     if plan["where"] == "vm":
         if plan["feature"] is not None or not plan["unitInvocations"]:
             return "--baseline needs a full run in the VM (no --feature, no --skip-unit)"
@@ -2150,12 +2578,9 @@ def baseline_refusal(env, plan, failed, dirty_mac):
     return None
 
 
-def make_baseline(env, plan, results, durations, created, runs=None):
+def make_baseline(env, plan, results, durations, created, runs=None, runner_files=None):
     eligible = sorted(key_from_enumeration_id(i) for i in plan["selected"])
-    excluded = {key_from_enumeration_id(e["id"]): e["reason"] for e in plan["excluded"]
-                if e["reason"] != "qualificationOnly"}
-    for u in plan.get("unitExcluded", []):
-        excluded[u["target"]] = u["reason"]
+    excluded = excluded_map(plan)
     executed = sorted(t for t in results if t.startswith(UI_TARGET + "/"))
     return {
         "schema": 1, "createdAt": created,
@@ -2163,8 +2588,8 @@ def make_baseline(env, plan, results, durations, created, runs=None):
         "language": env.get("language"), "xcode": env.get("xcode"), "signing": env.get("signing"),
         "vm": env.get("vm"), "allowed": list(CATEGORIES) if plan["where"] == "vm" else plan["allow"],
         "source": {"head": plan["head"], "macTree": plan["macTree"], "declarations": plan["declarationsHash"],
-                   "tables": plan["tablesHash"], "audit": plan["auditHash"]},
-        "eligible": eligible, "executed": executed, "excluded": dict(sorted(excluded.items())),
+                   "tables": plan["tablesHash"], "audit": plan["auditHash"], "runnerFiles": dict(runner_files or {})},
+        "eligible": eligible, "executed": executed, "excluded": excluded,
         "counts": baseline_counts(results), "results": dict(sorted(results.items())),
         "seconds": dict(sorted(durations.items())),
         "expandedRuns": {t: sum(n for k, n in (runs or {}).items() if k.split("/", 1)[0] == t) for t in UNIT_TARGETS
@@ -2184,8 +2609,11 @@ def estimate_seconds(keys, durations, default=60.0, per_call=12.0, calls=None):
 HAPPENINGS = {
     None: ["The sample app (MacLibraryExample) comes to the front again and again; keep hands off the mouse "
            "and keyboard for the whole run",
-           "XCUITest records the screen while the tests run (the recording stays in a private temporary folder "
-           "and is deleted)"],
+           "XCUITest records the screen while the tests run. The runner keeps its DerivedData and result bundles "
+           "in a private temporary folder and deletes it at the end; that Xcode leaves nothing elsewhere is not "
+           "confirmed yet",
+           "The runner registers its own build of the sample with LaunchServices and removes that registration "
+           "at the end"],
     "notification": ["Notifications of the sample appear and play their sound; the sample's notifications are "
                      "removed and its schedule cancelled",
                      "Finder comes to the front (your Finder windows and file names may show)"],
@@ -2206,7 +2634,8 @@ PREPARATIONS = {
                      "or sharing the display\" (U-20); turn it back afterwards",
                      "The sample's notifications must already be allowed (the run stops otherwise; U-7)"],
     "clipboard": ["Turn off Handoff and Universal Clipboard for the run (otherwise do not allow clipboard)"],
-    "coldstart": ["No extra registered copies of the sample (the list below shows them)"],
+    "coldstart": ["No extra registered copies of the sample (the list below shows them; remove them yourself, "
+                  "--allow-lsregister is not implemented)"],
 }
 
 
@@ -2250,8 +2679,14 @@ def dry_run_text(plan, durations, now_text):
             lines.append(f"  COPY    {copy['mark']} ({copy['place']})")
         lines.append("  (to see them yourself: lsregister -dump | grep -B2 -A2 " + SAMPLE_BUNDLE_ID + ")")
     if plan["stale"]:
-        lines.append(f"[dry-run] NTK-STALE:alive  a stopped run left {len(plan['stale'])} process(es); the run stops "
-                     "them before anything else")
+        alive = sum(entry.get("processes", 0) for entry in plan["stale"])
+        lines.append(f"[dry-run] stopped runs left {len(plan['stale'])} folder(s)"
+                     + (f" and NTK-STALE:alive {alive} process(es)" if alive else "")
+                     + "; the approved run stops those processes, then removes the folders and their fixtures")
+    unchecked = sorted(k for k, v in plan.get("prerequisites", {}).items() if not v)
+    if unchecked:
+        lines.append(f"[dry-run] NOT READY: checks in the VM that must come first are not recorded ({', '.join(unchecked)}); "
+                     "an approval of this list is refused until they are")
     keys = [k for inv in plan["invocations"] for k in inv["expected"]]
     seconds = estimate_seconds(keys, durations, calls=len(plan["invocations"])) + 300 + 120 * bool(units)
     lines.append(f"[dry-run] time: about {max(1, round(seconds / 60))} minutes (a build of about 5 minutes "
@@ -2297,16 +2732,26 @@ def cmd_hashes(args):
     return 0
 
 
-def cmd_tart_args(args):
-    problems = tart_run_problems(_read(args.ps), args.vm)
-    for problem in problems:
-        print(f"  FAIL {problem}")
-    return 1 if problems else 0
+def _ps_text(source):
+    """`ps -axo args=` comes on stdin (`-`), never through a file: the whole process list of this Mac is
+    not written anywhere (Codex A-9, Claude A-2)."""
+    if source != "-":
+        raise RunnerError("the process list is read from stdin only")
+    return sys.stdin.read()
+
+
+def cmd_tart_check(args):
+    """Before every command sent to the VM: the VM still runs with --no-clipboard and without a shared
+    folder (Claude B-2: it may have been started again with other arguments)."""
+    problems = tart_run_problems(_ps_text(args.ps), args.vm)
+    if problems:
+        return _fail("the VM's tart run arguments changed: " + "; ".join(problems))
+    return 0
 
 
 def cmd_vm_qualify(args):
     facts = json.loads(_read(args.facts))
-    facts["tartProblems"] = tart_run_problems(_read(args.ps), args.vm)
+    facts["tartProblems"] = tart_run_problems(_ps_text(args.ps), args.vm)
     items = vm_qualification(facts)
     failed = [name for name, ok in items if not ok]
     language = vm_language_problem(facts, args.qualification)
@@ -2314,7 +2759,8 @@ def cmd_vm_qualify(args):
         print(f"  {'pass' if ok else 'FAIL'} {name}")
     result = {"provenance": VM_PROVENANCE, "items": {name: ok for name, ok in items}}
     _write_json(args.out, result)
-    pathlib.Path(args.uuid_out).write_text(facts.get("platformUUID", "") + "\n", encoding="utf-8")
+    pathlib.Path(args.uuid_out).write_text(f"{facts.get('platformUUID', '')}\t{facts.get('vmBoottime', '')}\n",
+                                           encoding="utf-8")
     if failed:
         return _fail(f"the VM is not qualified ({', '.join(failed)}); not running there and not switching to this "
                      "Mac (design 6.3 step 0)")
@@ -2331,13 +2777,15 @@ def _audit_for(repo, where):
     if not audit_path.is_file():
         return {"suites": [], "expired": True, "hash": None, "problems": ["no audit table"]}
     audit = json.loads(_read(audit_path))
+    tests_root = pathlib.Path(repo) / "mac/MacLibrary/MacLibraryTests"
     texts = {}
     for entry in audit.get("suites", []):
         file = entry.get("file")
-        path = pathlib.Path(repo) / "mac/MacLibrary/MacLibraryTests" / str(file)
-        if file and path.is_file():
+        path = tests_root / str(file)
+        if file and path.is_file() and not path.is_symlink():
             texts[file] = _read(path)
-    return audit_state(audit, tree_hash(repo, AUDIT_TREE_PATHS), texts)
+    helpers = {p.relative_to(tests_root).as_posix(): _read(p) for p in sorted(tests_root.glob(AUDIT_HELPER_GLOB))}
+    return audit_state(audit, tree_hash(repo, AUDIT_TREE_PATHS), texts, helpers)
 
 
 def _durations(baseline_dir, os_version, where):
@@ -2372,7 +2820,11 @@ def cmd_preflight(args):
                      runner_file_hashes(args.repo) if args.where == "mac" else None, args.qualification or None,
                      declarations_hash=file_sha256(declarations_path),
                      lsregister=json.loads(_read(args.lsregister)) if args.lsregister else None,
-                     stale=json.loads(_read(args.stale)) if args.stale else None)
+                     stale=json.loads(_read(args.stale)) if args.stale else None,
+                     unit_keys=parse_unit_enumeration(_read(args.enumeration), (EXAMPLE_UNIT_TARGET,)) +
+                     parse_unit_enumeration(_read(args.unit_enumeration), (LIBRARY_UNIT_TARGET,)),
+                     environment={"osVersion": args.os_version, "osBuild": args.os_build, "xcode": args.xcode},
+                     baseline=args.baseline)
     _write_json(args.plan, plan)
     if args.where == "vm":
         print(f"[select] vm: {len(plan['selected'])} UI tests to run, {len(plan['excluded'])} excluded, "
@@ -2513,10 +2965,8 @@ def cmd_invocations(args):
 def cmd_only_testing(args):
     plan = json.loads(_read(args.plan))
     if args.unit is not None:
-        for name in plan["unitInvocations"][args.unit]["onlyTesting"]:
-            if not re.fullmatch(r"(MacLibraryTests|MacLibraryExampleTests)(/[A-Za-z0-9_]+)?", name):
-                return _fail(f"{name}: not a unit target or suite")
-            print(f"-only-testing:{name}")
+        for argument in unit_only_testing_arguments(plan, args.unit):
+            print(argument)
         return 0
     invocation = plan["invocations"][args.index]
     if plan["where"] == "mac":
@@ -2542,10 +2992,31 @@ def cmd_record(args):
 
 
 def cmd_unit_record(args):
+    plan = json.loads(_read(args.plan))
+    invocation = plan["unitInvocations"][args.index]
     tests_text = _read(args.tests_json) if pathlib.Path(args.tests_json).is_file() else None
-    for record in unit_records(args.target, tests_text, args.exit_code, _vocabulary(args.tests_dir)):
+    for record in unit_records(invocation["target"], tests_text, args.exit_code, _vocabulary(args.tests_dir),
+                               invocation["expected"]):
         print(json.dumps(record, ensure_ascii=False))
     return 0
+
+
+def cmd_check_call(args):
+    """Right before an xcodebuild on this Mac: the call's own paths and names (call_problems)."""
+    plan = json.loads(_read(args.plan))
+    if args.kind == "ui":
+        expected = [a[len("-only-testing:"):] for a in only_testing_arguments(plan["invocations"][args.index])]
+    elif args.kind == "unit":
+        expected = [a[len("-only-testing:"):] for a in unit_only_testing_arguments(plan, args.index)]
+    else:
+        expected = []
+    problems = call_problems(args.root, args.arguments, "build" if args.kind == "build" else "test", expected)
+    problems += path_symlink_problems(args.root, args.arguments)
+    if args.kind == "ui":
+        problems += mac_selection_leaks(plan["invocations"][args.index]["onlyTesting"], plan["allow"])
+    for problem in problems:
+        print(f"  FAIL {problem}", file=sys.stderr)
+    return _fail("the xcodebuild call is not the planned one in the private folder", 97) if problems else 0
 
 
 def cmd_not_run(args):
@@ -2655,7 +3126,8 @@ def _processes():
     """[{"pid", "pgid", "start", "exe"}] of this Mac (read only: ps and proc_pidpath)."""
     import ctypes
     libproc = ctypes.CDLL("/usr/lib/libproc.dylib")
-    out = subprocess.run(["ps", "-axo", "pid=,pgid=,lstart="], capture_output=True, text=True).stdout
+    out = subprocess.run(["/bin/ps", "-axo", "pid=,pgid=,lstart="], capture_output=True, text=True,
+                         env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"}).stdout
     processes = []
     for line in out.splitlines():
         parts = line.split(None, 2)
@@ -2674,32 +3146,34 @@ def _processes():
 
 
 def _boottime():
-    out = subprocess.run(["sysctl", "-n", "kern.boottime"], capture_output=True, text=True).stdout
+    out = subprocess.run(["/usr/sbin/sysctl", "-n", "kern.boottime"], capture_output=True, text=True).stdout
     m = re.search(r"sec = (\d+)", out)
     if not m:
         raise RunnerError("cannot read kern.boottime")
     return int(m.group(1))
 
 
-MARKER_NAME = "ntk-run-marker.json"
-RUN_FOLDER_PREFIX = "ntk-test-mac."
-
-
 def cmd_marker(args):
-    """Writes or extends the run folder's marker: the run, this boot, and each writer's PID, start
-    time and real executable (the stopped run's cleanup, 6.3 the Mac step 4)."""
+    """Writes or extends the run folder's marker: the run, this boot, and each writer's PID, start time,
+    real executable and group (the stopped run's cleanup, 6.3 the Mac step 4). A writer is recorded only
+    once its executable is the Xcode the runner calls (Claude B-4); otherwise this fails (exit 1) and the
+    caller stops the run."""
     path = pathlib.Path(args.root) / MARKER_NAME
     if args.pid is None:
         marker = {"schema": 1, "runId": args.run_id, "boottime": _boottime(), "created": time.time(),
                   "root": os.path.realpath(args.root), "writers": [], "pgid": None}
     else:
         marker = json.loads(_read(path))
-        found = [p for p in _processes() if p["pid"] == args.pid]
-        if len(found) != 1:
-            return _fail("the writer to record is not running")
-        marker["writers"].append({"role": args.role, "pid": args.pid, "start": found[0]["start"], "exe": found[0]["exe"]})
-        if args.group:
-            marker["pgid"] = found[0]["pgid"]
+        entry = None
+        for _ in range(100):
+            entry = writer_entry(args.pid, _processes(), args.expect_under)
+            if entry:
+                break
+            time.sleep(0.1)
+        if entry is None:
+            return _fail("the writer could not be recorded (not running, or not the expected Xcode)")
+        marker["writers"].append({"role": args.role, "pid": entry["pid"], "start": entry["start"], "exe": entry["exe"]})
+        marker["pgid"] = entry["pgid"]
     tmp = path.with_suffix(".tmp")
     _write_json(tmp, marker)
     os.replace(tmp, path)
@@ -2710,80 +3184,75 @@ def _tool_roots():
     return [str(p) + "/Contents" for p in pathlib.Path("/Applications").glob("Xcode*.app")]
 
 
-def _stale_markers(scan_root, current_root):
-    markers = []
-    scan = pathlib.Path(scan_root)
-    for folder in sorted(scan.glob(RUN_FOLDER_PREFIX + "*")):
+def _run_folders(scan_root, current_root):
+    folders = []
+    for folder in sorted(pathlib.Path(scan_root).glob(RUN_FOLDER_PREFIX + "*")):
         if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid():
             continue
         if current_root and os.path.realpath(folder) == os.path.realpath(current_root):
             continue
-        markers.append(folder)
-    return markers
+        folders.append(str(folder))
+    return folders
+
+
+def _read_marker(folder):
+    return json.loads(_read(pathlib.Path(folder) / MARKER_NAME))
+
+
+def stale_listing(folders, port, tool_roots, read_marker):
+    """[{"processes": n}] for each previous run folder (what --dry-run shows and the approval fixes), or
+    RunnerError when a folder has no readable marker or its marker cannot be trusted (Codex A-6)."""
+    listing = []
+    boot = port.boottime()
+    for folder in folders:
+        try:
+            marker = read_marker(folder)
+        except (OSError, ValueError):
+            raise RunnerError("NTK-STALE:refused a previous run folder has no readable marker; check it by hand")
+        plan = stale_plan(marker, boot, port.processes(), tool_roots, folder)
+        if plan["refuse"]:
+            raise RunnerError(f"NTK-STALE:refused a previous run folder's marker cannot be trusted ({plan['refuse']})")
+        listing.append({"processes": len(plan["signal"])})
+    return listing
 
 
 def cmd_stale(args):
-    """Previous run folders of this Mac: with --list, the processes they left (NTK-STALE:alive) as
-    opaque counts for --dry-run; with --stop (an approved run), TERM, wait, KILL, then the folder goes;
-    a folder whose writers cannot be stopped stays and the run stops."""
-    boot = _boottime()
+    """Previous run folders of this Mac. `--list` writes what --dry-run shows; `--stop` (an approved run
+    only) first checks that the folders and their processes are still what the approved plan lists, then
+    stops the writers and removes each folder and its fixture. Neither option is an error (Claude C-4)."""
+    if args.list == args.stop:
+        return _fail("give exactly one of --list and --stop")
+    port = OsPort()
     tools = _tool_roots()
-    listed = []
-    for folder in _stale_markers(args.scan_root, args.current_root):
-        marker_path = folder / MARKER_NAME
-        try:
-            marker = json.loads(_read(marker_path))
-        except (OSError, ValueError):
-            marker = None
-        plan = stale_plan(marker, boot, _processes(), tools) if marker else \
-            {"removeOnly": True, "signal": [], "group": None, "refuse": None}
-        if plan["refuse"]:
-            return _fail(f"NTK-STALE:refused a previous run folder has a marker that cannot be trusted ({plan['refuse']})")
-        listed.append({"folder": str(folder), "plan": plan})
+    folders = _run_folders(args.scan_root, args.current_root)
+    listing = stale_listing(folders, port, tools, _read_marker)
     if args.list:
-        alive = [x for x in listed if x["plan"]["signal"]]
-        _write_json(args.out, [{"processes": len(x["plan"]["signal"])} for x in alive])
+        _write_json(args.out, listing)
+        alive = sum(x["processes"] for x in listing)
         if alive:
-            print(f"NTK-STALE:alive {sum(len(x['plan']['signal']) for x in alive)} process(es) of a stopped run")
+            print(f"NTK-STALE:alive {alive} process(es) of a stopped run")
         return 0
-    for entry in listed:
-        plan = entry["plan"]
-        if plan["signal"]:
-            if plan["group"] is not None:
-                _signal_group(plan["group"], 15)
-            for pid in plan["signal"]:
-                _signal(pid, 15)
-            deadline = time.time() + 30
-            while time.time() < deadline and _still_alive(plan, boot, tools, entry["folder"]):
-                time.sleep(0.5)
-            if _still_alive(plan, boot, tools, entry["folder"]):
-                for pid in plan["signal"]:
-                    _signal(pid, 9)
-                time.sleep(1)
-            if _still_alive(plan, boot, tools, entry["folder"]):
-                return _fail("NTK-STALE:alive the stopped run's processes could not be stopped; nothing was removed")
-        _remove_run_folder(entry["folder"])
+    approved = json.loads(_read(args.plan)).get("stale")
+    if approved != listing:
+        return _fail("NTK-STALE:changed the stopped runs differ from the approved list; plan and ask again")
+    for folder in folders:
+        problem = clean_run_folder(folder, port, tools, _read_marker)
+        if problem:
+            return _fail(f"NTK-STALE:alive a stopped run's folder stays ({problem})")
         print("[stale] a stopped run's folder was removed")
     return 0
 
 
-def _signal(pid, number):
-    try:
-        os.kill(pid, number)
-    except ProcessLookupError:
-        pass
-
-
-def _signal_group(pgid, number):
-    try:
-        os.killpg(pgid, number)
-    except ProcessLookupError:
-        pass
-
-
-def _still_alive(plan, boot, tools, folder):
-    marker = json.loads(_read(pathlib.Path(folder) / MARKER_NAME))
-    return bool(stale_plan(marker, boot, _processes(), tools)["signal"])
+def cmd_stop_current(args):
+    """The end of a run on this Mac: its writers stopped and found gone by the same three-way match,
+    then its fixture and folder removed; otherwise nothing is removed and the run fails (Codex A-4)."""
+    root = os.path.realpath(args.root)
+    if not os.path.basename(root).startswith(RUN_FOLDER_PREFIX):
+        return _fail("not a run folder")
+    problem = clean_run_folder(root, OsPort(), _tool_roots(), _read_marker)
+    if problem:
+        return _fail(f"the run's private folder stays because its writers did not stop ({problem}); its place is not shown")
+    return 0
 
 
 def _remove_run_folder(folder):
@@ -2791,7 +3260,20 @@ def _remove_run_folder(folder):
     if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid() \
             or not folder.name.startswith(RUN_FOLDER_PREFIX):
         raise RunnerError("refusing to remove a folder that is not a run folder of this user")
-    subprocess.run(["rm", "-rf", "--", str(folder)], check=True)
+    subprocess.run(["/bin/rm", "-rf", "--", str(folder)], check=True)
+
+
+def _remove_fixture(path):
+    if not FIXTURE_NAME.match(path) or not os.path.lexists(path):
+        return
+    if _fixture_root_problem(path):
+        raise RunnerError("refusing to remove a fixture that is not a folder of this user")
+    subprocess.run(["/bin/rm", "-rf", "--", path], check=True)
+
+
+def cmd_fixture_create(args):
+    fixture_create(args.dir)
+    return 0
 
 
 def cmd_audit_check(args):
@@ -2807,8 +3289,32 @@ def cmd_audit_hash(args):
     return 0
 
 
+def copy_tree_hash(root):
+    """The tree hash of a copy of `mac/` (the files `git_file_list` gave, copied with tar): the same
+    form as tree_hash, so a copy can be compared with the approved tree (Claude B-12)."""
+    root = pathlib.Path(root)
+    digest = hashlib.sha256()
+    entries = []
+    for directory, folders, files in os.walk(root / "mac", followlinks=False):
+        for name in files + [f for f in folders if os.path.islink(os.path.join(directory, f))]:
+            path = pathlib.Path(directory) / name
+            if name == ".DS_Store":
+                continue
+            entries.append((path.relative_to(root).as_posix(), path))
+    for relative, path in sorted(entries):
+        content = os.readlink(path).encode() if path.is_symlink() else path.read_bytes()
+        digest.update(relative.encode() + b"\0" + sha256_bytes(content).encode() + b"\n")
+    return digest.hexdigest()
+
+
 def cmd_tree_hash(args):
-    print(tree_hash(args.repo, ["mac"]))
+    print(copy_tree_hash(args.dir) if args.dir else tree_hash(args.repo, ["mac"]))
+    return 0
+
+
+def cmd_file_list(args):
+    """The files of mac/ that go to the VM and into this Mac's copy, NUL separated."""
+    sys.stdout.write("".join(name + "\0" for name in git_file_list(args.repo, ["mac"])))
     return 0
 
 
@@ -2828,6 +3334,9 @@ def cmd_summary(args):
     for entry in plan.get("unitExcluded", []):
         print(f"  EXCLUDED {entry['target']}: {entry['reason']}")
     failed = bool(counts.get("failed"))
+    for problem in completeness_problems(plan, results):
+        print(f"  FAILED (incomplete) {problem}")
+        failed = True
     current = {r["test"]: r["result"] for r in results if "#" not in r["test"]}
     durations = {r["test"].split("/", 1)[1]: r["seconds"] for r in results
                  if "#" not in r["test"] and r["test"].startswith(UI_TARGET + "/") and "seconds" in r}
@@ -2838,25 +3347,28 @@ def cmd_summary(args):
         if ran != approved:
             print("[approval] FAILED: the tests that ran differ from the approved list")
             failed = True
-    excluded_now = {key_from_enumeration_id(e["id"]): e["reason"] for e in plan["excluded"]
-                    if e["reason"] != "qualificationOnly"}
+    excluded_now = excluded_map(plan)
     baseline_path = pathlib.Path(args.baseline_dir) / baseline_name(plan["where"], env["os"])
+    compare_path = baseline_path if baseline_path.is_file() else latest_baseline(args.baseline_dir, plan["where"])
     lost = []
-    if baseline_path.is_file():
-        baseline = json.loads(_read(baseline_path))
+    if compare_path is not None and compare_path != baseline_path:
+        print(f"[baseline] none for this OS version; comparing with {compare_path.name} (another version)")
+    if compare_path is not None:
+        baseline = json.loads(_read(compare_path))
         in_scope = {t for t in baseline["results"] if in_run_scope(t, plan)}
         lines, lost = compare_with_baseline(current, baseline["results"], in_scope, excluded_now,
                                             baseline.get("excluded", {}) if plan["feature"] is None else None)
-        print(f"[baseline] {baseline_path.name}: {lines[0]}")
+        print(f"[baseline] {compare_path.name}: {lines[0]}")
         for line in lines[1:]:
             print(line)
-        if lost and not args.save_baseline:
+        if lost:
             print(f"[baseline] FAILED: {len(lost)} test(s) that passed in the baseline skipped or did not run: {lost}")
     else:
         print(f"[baseline] none ({baseline_path.name})")
-    failed = failed or (bool(lost) and not args.save_baseline)
+    failed = failed or bool(lost)
     if args.save_baseline:
-        refusal = baseline_refusal(env, plan, failed, bool(git_mac_changes(args.repo)))
+        executed = [t.split("/", 1)[1] for t in current if t.startswith(UI_TARGET + "/")]
+        refusal = baseline_refusal(env, plan, failed, bool(git_mac_changes(args.repo)), executed, lost)
         if refusal:
             print(f"[baseline] not saved: {refusal}")
             return 1
@@ -2871,9 +3383,21 @@ def cmd_summary(args):
         created = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
         runs = {r["test"]: r.get("runs", 1) for r in results if "#" not in r["test"] and
                 r["test"].split("/", 1)[0] in UNIT_TARGETS}
-        _write_json(baseline_path, make_baseline(env, plan, current, durations, created, runs))
+        _write_json(baseline_path, make_baseline(env, plan, current, durations, created, runs,
+                                                 runner_file_hashes(args.repo)))
         print(f"[baseline] saved {baseline_path.name}")
     return 1 if failed else 0
+
+
+def latest_baseline(baseline_dir, where):
+    """The newest baseline of the same `where` when none matches this OS version (Claude C-10); dated
+    copies of earlier baselines are not candidates."""
+    candidates = []
+    for path in pathlib.Path(baseline_dir).glob(f"test_mac.baseline.{where}-*.json"):
+        m = re.fullmatch(rf"test_mac\.baseline\.{where}-(\d+(?:\.\d+)*)\.json", path.name)
+        if m:
+            candidates.append((tuple(int(x) for x in m.group(1).split(".")), path))
+    return max(candidates)[1] if candidates else None
 
 
 def main(argv=None):
@@ -2889,10 +3413,10 @@ def main(argv=None):
     p.add_argument("--tests-dir", required=True)
     p.set_defaults(func=cmd_hashes)
 
-    p = sub.add_parser("tart-args")
+    p = sub.add_parser("tart-check")
     p.add_argument("--ps", required=True)
     p.add_argument("--vm", required=True)
-    p.set_defaults(func=cmd_tart_args)
+    p.set_defaults(func=cmd_tart_check)
 
     p = sub.add_parser("vm-qualify")
     p.add_argument("--facts", required=True)
@@ -2906,9 +3430,13 @@ def main(argv=None):
     p = sub.add_parser("preflight")
     p.add_argument("--where", required=True, choices=("vm", "mac"))
     p.add_argument("--enumeration", required=True)
+    p.add_argument("--unit-enumeration", required=True)
     p.add_argument("--tests-dir", required=True)
     p.add_argument("--repo", required=True)
     p.add_argument("--allow", default="")
+    p.add_argument("--os-build", default="")
+    p.add_argument("--xcode", default="")
+    p.add_argument("--baseline", action="store_true")
     p.add_argument("--feature", default="")
     p.add_argument("--qualification", default="")
     p.add_argument("--os-major", required=True)
@@ -2959,8 +3487,17 @@ def main(argv=None):
     p.add_argument("--tests-dir", required=True)
     p.set_defaults(func=cmd_record)
 
+    p = sub.add_parser("check-call")
+    p.add_argument("--plan", required=True)
+    p.add_argument("--root", required=True)
+    p.add_argument("--kind", required=True, choices=("build", "unit", "ui"))
+    p.add_argument("--index", type=int, default=0)
+    p.add_argument("arguments", nargs=argparse.REMAINDER)
+    p.set_defaults(func=cmd_check_call)
+
     p = sub.add_parser("unit-record")
-    p.add_argument("--target", required=True, choices=UNIT_TARGETS)
+    p.add_argument("--plan", required=True)
+    p.add_argument("--index", type=int, required=True)
     p.add_argument("--tests-json", required=True)
     p.add_argument("--exit-code", type=int, required=True)
     p.add_argument("--tests-dir", required=True)
@@ -2969,7 +3506,7 @@ def main(argv=None):
     p = sub.add_parser("not-run")
     p.add_argument("--plan", required=True)
     p.add_argument("--from-index", type=int, required=True)
-    p.add_argument("--kind", required=True, choices=("watchStopped", "notificationStopped"))
+    p.add_argument("--kind", required=True, choices=tuple(STOP_CODES))
     p.set_defaults(func=cmd_not_run)
 
     p = sub.add_parser("accept")
@@ -2989,6 +3526,10 @@ def main(argv=None):
     p.add_argument("--otool-objc", required=True)
     p.add_argument("--otool-load", required=True)
     p.set_defaults(func=cmd_check_build)
+
+    p = sub.add_parser("fixture-create")
+    p.add_argument("--dir", required=True)
+    p.set_defaults(func=cmd_fixture_create)
 
     p = sub.add_parser("fixture-manifest")
     p.add_argument("--dir", required=True)
@@ -3017,15 +3558,21 @@ def main(argv=None):
     p.add_argument("--run-id", default="")
     p.add_argument("--pid", type=int)
     p.add_argument("--role", default="")
-    p.add_argument("--group", action="store_true")
+    p.add_argument("--expect-under", default="")
     p.set_defaults(func=cmd_marker)
 
     p = sub.add_parser("stale")
     p.add_argument("--scan-root", required=True)
     p.add_argument("--current-root", default="")
     p.add_argument("--list", action="store_true")
+    p.add_argument("--stop", action="store_true")
+    p.add_argument("--plan")
     p.add_argument("--out")
     p.set_defaults(func=cmd_stale)
+
+    p = sub.add_parser("stop-current")
+    p.add_argument("--root", required=True)
+    p.set_defaults(func=cmd_stop_current)
 
     p = sub.add_parser("audit-check")
     p.add_argument("--repo", required=True)
@@ -3036,8 +3583,13 @@ def main(argv=None):
     p.set_defaults(func=cmd_audit_hash)
 
     p = sub.add_parser("tree-hash")
-    p.add_argument("--repo", required=True)
+    p.add_argument("--repo")
+    p.add_argument("--dir")
     p.set_defaults(func=cmd_tree_hash)
+
+    p = sub.add_parser("file-list")
+    p.add_argument("--repo", required=True)
+    p.set_defaults(func=cmd_file_list)
 
     p = sub.add_parser("summary")
     p.add_argument("--plan", required=True)
@@ -3054,6 +3606,8 @@ def main(argv=None):
         return args.func(args)
     except RunnerError as e:
         return _fail(str(e))
+    except Exception as e:  # noqa: BLE001 - a traceback would show this Mac's paths (Claude B-13)
+        return _fail(f"NTK-RUNNER:internal {type(e).__name__} in {args.command}", 2)
 
 
 if __name__ == "__main__":

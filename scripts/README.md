@@ -220,10 +220,21 @@ scripts/test_mac.sh --where mac --allow panels --approved <approval.json>   # af
 
 The VM must pass the qualification of `artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md`
 6.3 every time (no Apple account, `--no-clipboard`, no shared folder, macOS 15.8.3, Xcode 26.3); the runner
-never falls back to this Mac. On this Mac only the values of design 3.4 leave the run (test keys, results,
-the `NTK-` codes); the result bundles stay in a private temporary folder that is removed. Approvals are
-used once (`~/Library/Application Support/native-toolkit/test_mac-approvals.log`). The hashes of the
-trusted test files are pinned in `mac_ui_runner.py`; change them only after another model has reviewed the change.
+never falls back to this Mac, and every command it sends checks the VM's UUID, boot time and tart arguments
+again. The script's VM half (`--in-vm`) restarts itself in an empty environment and stops unless
+`kern.hv_vmm_present`, `hw.model` and the qualified VM's UUID say it is that VM; never call it on this Mac.
+On this Mac only the values of design 3.4 leave the run (test keys, results, the `NTK-` codes); the raw
+things (the VM's facts, LaunchServices dumps, DerivedData, result bundles) stay in private temporary
+folders that are removed on every exit, and every xcodebuild is checked to name only paths inside them.
+A run on this Mac needs an approval that is used once and is good for 12 hours
+(`~/Library/Application Support/native-toolkit/test_mac-approvals.log`), and the checks in the VM that
+`MAC_RUN_PREREQUISITES` lists must be recorded first. The hashes of the trusted test files are pinned in
+`mac_ui_runner.py`; change them only after another model has reviewed the change.
+
+`tests/test_mac_ui_runner.py` reaches no real signal, process list, removal, LaunchServices or ssh (it
+replaces them with guards that fail the test). `tests/mac_ui_runner_mutations.py` runs only in the VM:
+copy the runner, its tests and fixtures, the UI test folder, the sample's sources and the project file
+there and run it with `/usr/bin/python3`.
 
 ## `tests/` is not the test suite
 
