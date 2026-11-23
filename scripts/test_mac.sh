@@ -28,14 +28,29 @@
 #   --keep-vm-run       vm only: leave the VM's run folder (sources, DerivedData, result bundles) for a look
 set -euo pipefail
 
-# The VM half never runs in the caller's environment: it starts again with an empty one (no PATH
-# shims, no exported functions, no BASH_ENV) before anything else, and then checks three facts of the
-# VM with absolute paths (review v1: Codex A-1, Claude B-1).
-if [[ "${1:-}" == "--in-vm" && "${NTK_IN_VM_CLEAN:-}" != 1 ]]; then
-  exec /usr/bin/env -i NTK_IN_VM_CLEAN=1 HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" LC_ALL=C \
-    PATH=/usr/bin:/bin:/usr/sbin:/sbin \
-    /bin/bash --noprofile --norc "${BASH_SOURCE[0]}" "$@"
+# The VM half's prelude (review v1: Codex A-1, Claude B-1; v2: Codex A-1). Before anything else, in
+# whatever environment it was called: the three facts of the VM, read by absolute path (a name with a
+# slash is never a shell function): kern.hv_vmm_present, hw.model, and the IOPlatformUUID the runner
+# qualified (`--in-vm <op> <run id> <UUID> ...`). Then `--in-vm` always starts again with an empty
+# environment as a privileged bash (no exported functions, no BASH_ENV); nothing the caller can set
+# skips that. The started side (`--in-vm-clean`) checks the facts again and that its environment is
+# exactly what env -i made, and stops otherwise.
+if [[ "${1:-}" == "--in-vm" || "${1:-}" == "--in-vm-clean" ]]; then
+  [[ "$(/usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || { echo "Error: --in-vm runs only in the VM" >&2; exit 96; }
+  case "$(/usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *) echo "Error: --in-vm runs only in the VM" >&2; exit 96 ;; esac
+  [[ $# -ge 4 && -n "$4" && "$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'"' '/IOPlatformUUID/{print $4}')" == "$4" ]] \
+    || { echo "Error: --in-vm runs only in the qualified VM" >&2; exit 96; }
+  if [[ "$1" == "--in-vm" ]]; then
+    exec /usr/bin/env -i HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" LC_ALL=C PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+      /bin/bash --noprofile --norc -p "${BASH_SOURCE[0]}" --in-vm-clean "${@:2}"
+  fi
+  [[ -o privileged && -z "$(declare -F)" && "${PATH}" == "/usr/bin:/bin:/usr/sbin:/sbin" && "${LC_ALL:-}" == C ]] \
+    || { echo "Error: --in-vm-clean runs only as started by --in-vm" >&2; exit 96; }
+  for __name in $(compgen -e); do
+    case "${__name}" in HOME|USER|LOGNAME|LC_ALL|PATH|PWD|SHLVL|OLDPWD|_) ;; *) echo "Error: --in-vm-clean runs only as started by --in-vm" >&2; exit 96 ;; esac
+  done
 fi
+# --- end of the VM prelude ---
 
 # What a test may touch reaches it only through the runner's own xcodebuild (U-9).
 # Nothing from outside the runner may change the build or the tests either: an xcconfig over the
@@ -55,23 +70,33 @@ TIME_FLAGS=(-parallel-testing-enabled NO -test-timeouts-enabled YES -default-tes
   -maximum-test-execution-time-allowance 240)
 RUN_ID_PATTERN='^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$'
 
-# Runs a command in its own process group with a time limit. When the time is up, the whole group is
-# killed (TERM, 30 s, KILL), reaped, and the exit status is 142; INT, TERM and HUP do the same. With a
-# pid file, the child's PID (the group's leader) is written there first. stdin is /dev/null.
+# Runs a command in its own process group with a time limit. When the time is up, the group is stopped
+# (TERM, up to 30 s, KILL) and the exit status is 142; INT, TERM and HUP do the same. The group is signalled
+# only while its leader is this perl's own child that has not been reaped (alive or a zombie): until then
+# its number cannot belong to anything else, so no PID check is needed; once the leader is reaped, perl
+# sends nothing more and the rest is the runner's three-way match (review v2: Codex A-2). With a pid
+# file, the leader's PID is written there first. stdin is /dev/null.
+CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds\n" unless $seconds =~ /^[1-9][0-9]*$/;
+  my $pid = fork; die "fork: $!\n" unless defined $pid;
+  if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+  setpgrp($pid, $pid);
+  if ($pidfile ne "-") { open(my $f, ">", $pidfile) or die "pid file: $!\n"; print $f "$pid\n"; close $f; }
+  my $reaped = 0; my $status = 0;
+  my $stop = sub {
+    return if $reaped;
+    kill "TERM", -$pid;
+    for (1..60) { if (waitpid($pid, 1) > 0) { $reaped = 1; return; } select(undef, undef, undef, 0.5); }
+    kill "KILL", -$pid;
+    waitpid($pid, 0); $reaped = 1;
+  };
+  $SIG{ALRM} = sub { $stop->(); exit 142; };
+  my %number = (HUP => 1, INT => 2, TERM => 15);
+  for my $name (keys %number) { $SIG{$name} = sub { $stop->(); exit 128 + $number{$name}; }; }
+  alarm $seconds; waitpid($pid, 0); $status = $?; $reaped = 1; alarm 0;
+  exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);'
 capped_group() {  # <seconds> <pid file or -> <command...>
   local seconds="$1" pidfile="$2"; shift 2
-  perl -e 'my $seconds = shift; my $pidfile = shift; die "time limit: $seconds\n" unless $seconds =~ /^[1-9][0-9]*$/;
-           my $pid = fork; die "fork: $!\n" unless defined $pid;
-           if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
-           setpgrp($pid, $pid);
-           if ($pidfile ne "-") { open(my $f, ">", $pidfile) or die "pid file: $!\n"; print $f "$pid\n"; close $f; }
-           my $stop = sub { kill "TERM", -$pid; for (1..60) { last if waitpid($pid, 1) > 0; select(undef, undef, undef, 0.5); }
-                            kill "KILL", -$pid; waitpid($pid, 0); };
-           $SIG{ALRM} = sub { $stop->(); exit 142; };
-           my %number = (HUP => 1, INT => 2, TERM => 15);
-           for my $name (keys %number) { $SIG{$name} = sub { $stop->(); exit 128 + $number{$name}; }; }
-           alarm $seconds; waitpid($pid, 0); alarm 0;
-           exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);' "${seconds}" "${pidfile}" "$@" < /dev/null
+  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${pidfile}" "$@" < /dev/null
 }
 
 # ============================================================================================
@@ -82,9 +107,9 @@ capped_group() {  # <seconds> <pid file or -> <command...>
 # ============================================================================================
 
 in_vm_main() {
-  [[ "$(command /usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || { echo "Error: --in-vm runs only in the VM" >&2; exit 96; }
-  case "$(command /usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *) echo "Error: --in-vm runs only in the VM" >&2; exit 96 ;; esac
-  [[ $# -ge 3 && -n "$3" && "$(command /usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | command /usr/bin/awk -F'"' '/IOPlatformUUID/{print $4}')" == "$3" ]] \
+  [[ "$(/usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || { echo "Error: --in-vm runs only in the VM" >&2; exit 96; }
+  case "$(/usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *) echo "Error: --in-vm runs only in the VM" >&2; exit 96 ;; esac
+  [[ $# -ge 3 && -n "$3" && "$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'"' '/IOPlatformUUID/{print $4}')" == "$3" ]] \
     || { echo "Error: --in-vm runs only in the qualified VM" >&2; exit 96; }
   local op="$1" run_id="$2"; shift 3
   [[ "${run_id}" =~ ${RUN_ID_PATTERN} ]] || { echo "Error: malformed run id" >&2; exit 96; }
@@ -258,7 +283,7 @@ vm_unit() {
     > "${LOGS}/unit-${index}.log" 2>&1 || code=$?
   vm_xcresult_json "${RES}/unit-${index}.xcresult" "${RES}/unit-${index}"
   vrunner unit-record --plan "${RUN_DIR}/plan.json" --index "${index}" --tests-json "${RES}/unit-${index}-tests.json" \
-    --exit-code "${code}" --tests-dir "${TESTS_DIR}"
+    --summary-json "${RES}/unit-${index}-summary.json" --exit-code "${code}" --tests-dir "${TESTS_DIR}"
 }
 
 vm_reset_permission() {  # U-7 (VM): the sample stopped, its entry gone from com.apple.ncprefs, up to 3 tries
@@ -377,7 +402,7 @@ vm_finish() {
   fi
 }
 
-if [[ "${1:-}" == "--in-vm" ]]; then
+if [[ "${1:-}" == "--in-vm-clean" ]]; then
   shift
   in_vm_main "$@"
   exit 0
@@ -463,6 +488,10 @@ on_exit() {
 }
 trap on_exit EXIT
 trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+# A run killed without its trap leaves its private folder; the next run removes the ones whose owner (the
+# runner's shell, by PID and start time) is gone (Claude v2 B-3).
+runner private --dir "${PRIVATE}" --own "$$"
+runner private --scan-root "${SCAN_ROOT}" --dir "${PRIVATE}"
 
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$(python3 -c 'import secrets; print(secrets.token_hex(3))')"
 OUT="${OUT_ROOT}/${RUN_ID}-${WHERE}"
@@ -517,6 +546,7 @@ echo "virtiofsMounts=$(mount | grep -c virtiofs)"
 xcodebuild -version 2>/dev/null | awk 'NR==1{print "xcodeVersion="$2} NR==2{print "xcodeBuild="$3}'
 echo "language=$(defaults read -g AppleLanguages 2>/dev/null | sed -n 2p | tr -d ' ",')"
 echo "platformUUID=$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'"' '/IOPlatformUUID/{print $4}')"
+echo "macAddress=$(/sbin/ifconfig en0 2>/dev/null | /usr/bin/awk '/ether/{print $2}')"
 echo "arch=$(uname -m)"
 EOS
   python3 - "${facts}" "${PRIVATE}/vm-facts.json" <<'PY'
@@ -530,6 +560,17 @@ for line in open(sys.argv[1], encoding="utf-8"):
     elif key:
         facts[key] = value
 json.dump(facts, open(sys.argv[2], "w"))
+PY
+  # The tart VM of that name and the ssh peer are the same machine: tart's MAC address of the VM equals the
+  # peer's en0 (Codex v2 B-2). tart's own file is read, never written.
+  python3 - "${PRIVATE}/vm-facts.json" "${ACCOUNT_HOME}/.tart/vms/${VM_NAME}/config.json" <<'PY'
+import json, sys
+facts = json.load(open(sys.argv[1]))
+try:
+    facts["tartMacAddress"] = json.load(open(sys.argv[2])).get("macAddress", "")
+except (OSError, ValueError):
+    facts["tartMacAddress"] = ""
+json.dump(facts, open(sys.argv[1], "w"))
 PY
   ps -axo args= | runner vm-qualify --facts "${PRIVATE}/vm-facts.json" --ps - --vm "${VM_NAME}" \
     --out "${OUT}/vm-qualification.json" --uuid-out "${PRIVATE}/vm-id" --qualification "${QUALIFICATION}"
@@ -675,12 +716,22 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
   runner check-call --plan "${MAC_TMP}/plan.approved.json" --root "${MAC_TMP}" --kind "${kind}" --index "${index}" "$@" \
     || exit 97
   rm -f "${MAC_PIDFILE}"
-  capped_group "${seconds}" "${MAC_PIDFILE}" /usr/bin/env -u XCODE_XCCONFIG_FILE -u TOOLCHAINS \
-    DEVELOPER_DIR="${MAC_XCODE_DIR}" "${MAC_XCODE_DIR}/usr/bin/xcodebuild" "$@" > "${log}" 2>&1 &
+  # Only what the run sets reaches xcodebuild (Claude v2 C-2): an empty environment with HOME, USER,
+  # LOGNAME, TMPDIR, a fixed PATH, the Xcode, and the runner's TEST_RUNNER_NTK_ values.
+  local environment=(HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${TMPDIR:-/tmp}"
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin DEVELOPER_DIR="${MAC_XCODE_DIR}") name
+  for name in TEST_RUNNER_NTK_HOST TEST_RUNNER_NTK_ALLOW TEST_RUNNER_NTK_FIXTURE_DIR TEST_RUNNER_NTK_EXPECTED_COPY; do
+    [[ -n "${!name+set}" ]] && environment+=("${name}=${!name}")
+  done
+  # perl itself goes to the background (not a shell function in a subshell), so `$!` is perl: a TERM to
+  # it stops the xcodebuild group while the group's leader is still perl's own child (Claude v2 B-1).
+  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${MAC_PIDFILE}" /usr/bin/env -i "${environment[@]}" \
+    "${MAC_XCODE_DIR}/usr/bin/xcodebuild" "$@" < /dev/null > "${log}" 2>&1 &
   local waiter=$! i code=0
   for i in $(seq 1 100); do [[ -s "${MAC_PIDFILE}" ]] && break; sleep 0.1; done
   if ! { [[ -s "${MAC_PIDFILE}" ]] && runner marker --root "${MAC_TMP}" --pid "$(cat "${MAC_PIDFILE}")" \
-           --role xcodebuild --expect-under "${MAC_XCODE_DIR}"; }; then
+           --role xcodebuild --expect-under "$(cd -P "${MAC_XCODE_DIR}" && pwd -P)"; }; then
+    # `waiter` is this shell's own child that has not been waited for, so its number is still perl's.
     kill -TERM "${waiter}" 2>/dev/null || true
     wait "${waiter}" || true
     fail "the xcodebuild could not be recorded as a writer; stopped"
@@ -751,14 +802,15 @@ run_mac() {
   runner approve --plan "${plan}" --approved "${APPROVED}" --repo "${ROOT_DIR}"
   # Step 4: the private run folder and its marker before the first xcodebuild (the EXIT trap is set
   # above and reaches mac_cleanup once MAC_TMP is set).
-  MAC_TMP="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac.XXXXXX")"
-  MAC_TMP="$(cd -P "${MAC_TMP}" && pwd -P)"
+  # The folder and its marker (naming the consumed approval) are made in one step (Claude v2 B-3).
+  MAC_TMP="$(umask 077; runner make-run-folder --scan-root "${SCAN_ROOT}" --run-id "${RUN_ID}" --approved "${APPROVED}")"
   MAC_PIDFILE="${MAC_TMP}/xcodebuild.pid"
-  runner marker --root "${MAC_TMP}" --run-id "${RUN_ID}"
   cp "${plan}" "${MAC_TMP}/plan.approved.json"; chmod 0444 "${MAC_TMP}/plan.approved.json"
   cp "${APPROVED}" "${MAC_TMP}/approval.approved.json"; chmod 0444 "${MAC_TMP}/approval.approved.json"
   plan="${MAC_TMP}/plan.approved.json"
-  runner stale --scan-root "${SCAN_ROOT}" --current-root "${MAC_TMP}" --stop --plan "${plan}"
+  # The stopped runs are stopped only as the approval lists them: folder, marker and processes (Codex v2 A-3).
+  runner stale --scan-root "${SCAN_ROOT}" --current-root "${MAC_TMP}" --stop --plan "${plan}" \
+    --approved "${MAC_TMP}/approval.approved.json" --repo "${ROOT_DIR}"
   # The sources this Mac builds are the same list the VM got, copied into the run folder, and must hash
   # to the approved tree (Claude B-12: nothing git ignores, such as a user scheme in xcuserdata).
   runner file-list --repo "${ROOT_DIR}" > "${PRIVATE}/files"
@@ -810,8 +862,11 @@ run_mac() {
         -collect-test-diagnostics never || code=$?
       DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results tests --path "${MAC_TMP}/unit-${index}.xcresult" \
         > "${MAC_TMP}/unit-${index}-tests.json" 2>/dev/null || rm -f "${MAC_TMP}/unit-${index}-tests.json"
+      DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results summary --path "${MAC_TMP}/unit-${index}.xcresult" \
+        > "${MAC_TMP}/unit-${index}-summary.json" 2>/dev/null || rm -f "${MAC_TMP}/unit-${index}-summary.json"
       runner unit-record --plan "${plan}" --index "${index}" --tests-json "${MAC_TMP}/unit-${index}-tests.json" \
-        --exit-code "${code}" --tests-dir "${TESTS_DIR}" | runner accept --results "${RESULTS}"
+        --summary-json "${MAC_TMP}/unit-${index}-summary.json" --exit-code "${code}" --tests-dir "${TESTS_DIR}" \
+        | runner accept --results "${RESULTS}"
     done
   fi
   # Step 9: the UI tests one by one; the watch first; a notification test that fails stops the rest.

@@ -9,7 +9,9 @@ that it is caught, next to the near-miss that must pass.
 Nothing here reaches the operating system's real operations: before the runner is imported, os.kill,
 os.killpg and every subprocess but `git` and a `/bin/bash` with a PATH of three harmless tools are
 replaced by guards that fail the test (review v1: Claude A-3, Codex B-4). The stopping of writers is
-tested through a fake port. The script's VM half (`--in-vm`) is only read, never run. The mutation
+tested through a fake port. The script's VM half (`--in-vm`) is never run: a bash with `--in-vm` passes the
+guard only for a truncated copy of the prelude whose fact readers are fakes (review v2: Claude B-2,
+Codex A-1, B-4). The `--in-vm` path cannot be narrowed by PATH (it starts again with its own PATH). The mutation
 harness runs these tests in the VM only (scripts/tests/mac_ui_runner_mutations.py).
 
 The fixtures in fixtures/mac_ui_runner/ are real output of Xcode 26.3 in the VM (macOS 15.8.3), stage
@@ -37,7 +39,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 
 # --- Guards: no real signal, process list, removal, LaunchServices or ssh from these tests -------------
 
@@ -52,14 +54,33 @@ def _guard_kill(*args, **kwargs):
     raise OsOperationReached("a self-test reached os.kill / os.killpg")
 
 
+_REAL_SCRIPT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "test_mac.sh"))
+
+
+def _prelude_copy(path):
+    """A truncated copy of the script's VM prelude made by PreludeLauncher: it ends right after the
+    prelude and holds nothing of the VM half."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return False
+    return "PRELUDE-PASSED" in text and "in_vm_main" not in text and "vm_clean" not in text \
+        and os.path.realpath(path) != _REAL_SCRIPT
+
+
 def _allowed_command(args, env):
     argv = [args] if isinstance(args, str) else list(args)
     if not argv:
         return False
     if argv[0] == "git":
         return True
-    if argv[0] == "/bin/bash" and env is not None and set(env.get("PATH", "").split(":")) <= {env.get("HOME")}:
-        return True
+    if argv[0] == "/bin/bash":
+        script = next((a for a in argv[1:] if not a.startswith("-")), "")
+        if any(a.startswith("--in-vm") for a in argv[1:]):
+            # The VM half is never run here (review v2: Claude B-2); only the prelude's truncated copy is.
+            return _prelude_copy(script)
+        return env is not None and set(env.get("PATH", "").split(":")) <= {env.get("HOME")}
     return False
 
 
@@ -365,6 +386,16 @@ class Approval(unittest.TestCase):
         self.assertTrue(all(k.startswith("MacLibraryTests/DetectionUseCaseTests/")
                             for k in plan["unitInvocations"][0]["expected"]))
 
+    def test_a_precondition_counts_only_as_an_existing_record(self):
+        with tempfile.TemporaryDirectory() as repo:
+            pathlib.Path(repo, "artifact").mkdir()
+            pathlib.Path(repo, "artifact", "record.md").write_text("checked")
+            table = {"a": "artifact/record.md", "b": "artifact/missing.md", "c": "yes", "d": None,
+                     "e": "artifact/../outside.md"}
+            self.assertEqual(r.prerequisite_status(repo, table),
+                             {"a": "artifact/record.md", "b": None, "c": None, "d": None, "e": None})
+        self.assertIn("decoyNotificationRoot", r.MAC_RUN_PREREQUISITES)
+
     def test_an_old_approval_or_unchecked_preconditions_are_refused(self):
         import datetime
         plan = mac_plan()
@@ -435,7 +466,7 @@ def good_facts():
     return {"hvVmmPresent": "1", "hwModel": "VirtualMac2,1", "osVersion": "15.8.3", "osBuild": "24H241",
             "mobileMeAccounts": "absent", "virtiofsMounts": "0", "xcodeVersion": "26.3", "xcodeBuild": "17C529",
             "language": "en-US", "platformUUID": "B8805D5E-AF5A-4C28-B721-5D49A04BCCE4", "arch": "arm64",
-            "vmBoottime": "1795358134",
+            "vmBoottime": "1795358134", "macAddress": "86:44:0f:12:49:26", "tartMacAddress": "86:44:0f:12:49:26",
             "accounts": [{"type": "com.apple.account.iTunesStore", "authenticated": "0"},
                          {"type": "com.apple.account.HolidayCalendar", "authenticated": "1"},
                          {"type": "com.apple.account.OnMyDevice", "authenticated": "0"}],
@@ -460,7 +491,8 @@ class VMQualification(unittest.TestCase):
             "osVersion": ("osVersion", "15.8.2"), "noAppleAccount": ("mobileMeAccounts", "present"),
             "noSharedFolder": ("virtiofsMounts", "1"), "xcode": ("xcodeBuild", "17F113"),
             "identity": ("platformUUID", "not-a-uuid"), "tartRunArgs": ("tartProblems", ["x"]),
-            "identity ": ("vmBoottime", "soon"),
+            "identity ": ("vmBoottime", "soon"), "tartIsThePeer": ("macAddress", "86:44:0f:12:49:27"),
+            "tartIsThePeer ": ("tartMacAddress", "86:44:0f:12:49:27"),
         }
         for item, (key, value) in cases.items():
             facts = good_facts()
@@ -526,6 +558,14 @@ class OutputBoundary(unittest.TestCase):
             with self.assertRaises(r.RunnerError):
                 r.public_record(dict(good, codes=[code]))
         self.assertTrue(r.public_record(dict(good, codes=["NTK-PRECONDITION:notAuthorized", "NTK-RUNNER:noResult"])))
+
+    def test_messages_show_no_paths(self):
+        text = r.public_message("the bundled copy differs: /Users/someone/Library/x/DeviceRequirements.json; git: "
+                                "fatal: '/private/var/folders/a b/x' and ./relative and <home>")
+        self.assertNotIn("/Users", text)
+        self.assertNotIn("/private", text)
+        self.assertIn("<path>", text)
+        self.assertIn("./relative", text)
 
     def test_the_step_vocabulary_comes_from_the_trusted_file(self):
         self.assertIn("overlay", VOCABULARY)
@@ -641,8 +681,8 @@ class Results(unittest.TestCase):
 
     def test_unit_shapes_and_folded_names(self):
         def unit(cases):
-            return json.dumps({"testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests",
-                                              "children": cases}]})
+            return json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [{"nodeType": "Unit test bundle",
+                                                                              "name": "MacLibraryTests", "children": cases}]})
         records = r.unit_records("MacLibraryTests", unit([case("S/t()", "Passed", [{"nodeType": "Repetition"}])]), 0,
                                  VOCABULARY)
         self.assertIn("MacLibraryTests#unknownShape", [x["test"] for x in records])
@@ -650,9 +690,35 @@ class Results(unittest.TestCase):
                                  VOCABULARY)
         self.assertIn("MacLibraryTests#readable", [x["test"] for x in records])
 
+    def test_unit_destination_summary_arguments_and_bundles(self):
+        text = fixture("xcresult-unit-tests.json")
+        good = r.unit_records("MacLibraryTests", text, 0, VOCABULARY)
+        self.assertFalse([x for x in good if "#" in x["test"]])
+        data = json.loads(text)
+        data["devices"] = data.get("devices", []) * 2 or [{"deviceId": "a"}, {"deviceId": "b"}]
+        self.assertIn("MacLibraryTests#destination", [x["test"] for x in r.unit_records("MacLibraryTests", json.dumps(data), 0, VOCABULARY)])
+        self.assertIn("MacLibraryTests#summary",
+                      [x["test"] for x in r.unit_records("MacLibraryTests", text, 0, VOCABULARY, summary_text='{"totalTestCount": 1}')])
+
+        def unit(cases, bundle="MacLibraryTests"):
+            return json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [
+                {"nodeType": "Unit test bundle", "name": bundle, "children": cases}]})
+        failed_argument = case("S/t(a:)", "Passed", [{"nodeType": "Arguments", "name": "1", "result": "Failed"}])
+        self.assertIn("MacLibraryTests#summary", [x["test"] for x in r.unit_records("MacLibraryTests", unit([failed_argument]), 0, VOCABULARY)])
+        odd_argument = case("S/t(a:)", "Passed", [{"nodeType": "Arguments", "name": "1", "result": "Passed",
+                                                   "children": [{"nodeType": "Repetition"}]}])
+        self.assertIn("MacLibraryTests#unknownShape", [x["test"] for x in r.unit_records("MacLibraryTests", unit([odd_argument]), 0, VOCABULARY)])
+        self.assertIn("MacLibraryTests#otherBundle",
+                      [x["test"] for x in r.unit_records("MacLibraryTests", unit([case("S/t()", "Passed")], "Elsewhere"), 0, VOCABULARY)])
+        with self.assertRaises(r.RunnerError):
+            r.parse_unit_enumeration(json.dumps({"errors": [], "values": [{"enabledTests": [],
+                                                                         "disabledTests": [{"identifier": "x"}]}]}),
+                                     ("MacLibraryTests",))
+
     def test_a_result_of_no_or_two_destinations_stops(self):
         cases = [case(D1 + "()", "Passed")]
-        for devices in ([], [{"deviceId": "a"}, {"deviceId": "b"}]):
+        for devices in ([], [{"deviceId": "a"}, {"deviceId": "b"}], [{"deviceId": "a", "platform": "iOS"}],
+                        [{"deviceId": "a", "platform": "macOS", "architecture": "x86_64"}]):
             data = json.loads(tests_json(cases))
             data["devices"] = devices
             records, stop = r.record_invocation({"name": "x", "expected": [D1], "timeout": 1}, json.dumps(data),
@@ -661,9 +727,9 @@ class Results(unittest.TestCase):
             self.assertTrue(any(x["test"].endswith("#destination") for x in records))
 
     def test_argument_values_never_leave(self):
-        tests = json.dumps({"testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests", "children": [
-            case("Suite/check(value:)", "Passed", [{"nodeType": "Arguments", "name": "/Users/x/secret"},
-                                                   {"nodeType": "Arguments", "name": "2"}])]}]})
+        tests = json.dumps({"devices": [{"deviceId": "x"}], "testNodes": [{"nodeType": "Unit test bundle", "name": "MacLibraryTests", "children": [
+            case("Suite/check(value:)", "Passed", [{"nodeType": "Arguments", "name": "/Users/x/secret", "result": "Passed"},
+                                                   {"nodeType": "Arguments", "name": "2", "result": "Passed"}])]}]})
         records = r.unit_records("MacLibraryTests", tests, 0, VOCABULARY)
         self.assertEqual(records, [{"test": "MacLibraryTests/Suite/check", "result": "passed", "kind": "passed",
                                     "codes": [], "seconds": 1.0, "runs": 2}])
@@ -737,7 +803,7 @@ class FakePort:
     """The operating system for stop_writers and clean_run_folder: a process table that changes on
     signals and over time, and a log of what would have been done."""
 
-    def __init__(self, processes, boot=1000, on_term=None, on_kill=None, reuse_after=None):
+    def __init__(self, processes, boot=1000, on_term=None, on_kill=None, reuse_after=None, on_group=None):
         self.table = [dict(p) for p in processes]
         self.boot = boot
         self.log = []
@@ -745,6 +811,7 @@ class FakePort:
         self.on_term = on_term or (lambda port, pid: None)
         self.on_kill = on_kill or (lambda port, pid: port.drop(pid))
         self.reuse_after = reuse_after
+        self.on_group = on_group or (lambda port, pgid, number: None)
 
     def drop(self, pid):
         self.table = [p for p in self.table if p["pid"] != pid]
@@ -765,6 +832,7 @@ class FakePort:
 
     def signal_group(self, pgid, number):
         self.log.append(("group", pgid, number))
+        self.on_group(self, pgid, number)
 
     def remove(self, folder):
         self.log.append(("remove", folder))
@@ -808,6 +876,34 @@ class Stopping(unittest.TestCase):
         self.assertEqual(kills, [("signal", 300, 9)])
         self.assertNotIn(("signal", 301, 9), port.log)
 
+    def test_a_number_reused_after_the_group_signal_is_not_signalled(self):
+        # The group TERM ends 301 and the unrelated Mail takes its number before 301's own signal.
+        mail = {"pid": 301, "pgid": 301, "start": 9000, "exe": "/System/Applications/Mail.app/Contents/MacOS/Mail"}
+
+        def on_group(port, pgid, number):
+            port.drop(301)
+            port.table.append(dict(mail))
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB},
+                         {"pid": 301, "pgid": 300, "start": 5003, "exe": self.SAMPLE}],
+                        on_term=lambda p, pid: p.drop(pid), on_group=on_group)
+        self.assertIsNone(r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE]))
+        self.assertNotIn(("signal", 301, 15), port.log)
+        self.assertIn(("signal", 300, 15), port.log)
+
+    def test_the_group_left_by_its_leader_is_still_stopped(self):
+        # TERM ended the leader 300; a tool of its group (not a writer, not under the folder) remains.
+        tool = {"pid": 302, "pgid": 300, "start": 5002, "exe": self.XCODE + "/Developer/usr/bin/xctest"}
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}, tool],
+                        on_term=lambda p, pid: p.drop(pid) if pid == 300 else None,
+                        on_group=lambda p, pgid, n: p.drop(300) if n == 15 else p.table.clear())
+        self.assertIsNone(r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE], term_wait=2, kill_wait=2))
+        self.assertIn(("group", 300, 9), port.log)
+        # A group whose number was taken by others (not tools, or started before the marker) is never signalled.
+        strangers = [{"pid": 400, "pgid": 300, "start": 9000, "exe": "/Applications/Safari.app/Contents/MacOS/Safari"}]
+        self.assertIsNone(r.stale_plan(self.marker(), 1000, strangers, [self.XCODE], self.ROOT_DIR)["group"])
+        early = [{"pid": 400, "pgid": 300, "start": 10, "exe": self.XCODE + "/Developer/usr/bin/xctest"}]
+        self.assertIsNone(r.stale_plan(self.marker(), 1000, early, [self.XCODE], self.ROOT_DIR)["group"])
+
     def test_a_writer_that_never_stops_keeps_the_folder(self):
         port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}], on_kill=lambda p, pid: None)
         problem = r.clean_run_folder(self.ROOT_DIR, port, [self.XCODE], lambda folder: self.marker())
@@ -829,10 +925,62 @@ class Stopping(unittest.TestCase):
         self.assertEqual(port.log, [("fixture", "/private/tmp/ntk-uitest-20261123T000000Z-abcdef"),
                                     ("remove", self.ROOT_DIR)])
 
-    def test_the_listing_counts_processes_per_folder(self):
+    def test_the_listing_names_folders_markers_and_processes(self):
         port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}])
-        self.assertEqual(r.stale_listing([self.ROOT_DIR], port, [self.XCODE], lambda f: self.marker()),
-                         [{"processes": 1}])
+        listing = r.stale_listing([self.ROOT_DIR], port, [self.XCODE], lambda f: self.marker())
+        self.assertEqual(len(listing), 1)
+        self.assertEqual(listing[0]["runId"], "20261123T000000Z-abcdef")
+        self.assertEqual([(w["pid"], w["start"]) for w in listing[0]["writers"]], [(300, 5001)])
+        self.assertNotIn("/", json.dumps(listing))  # marks, not paths
+
+    def test_the_approval_holds_the_content_not_a_count(self):
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}])
+        approved = r.stale_listing([self.ROOT_DIR], port, [self.XCODE], lambda f: self.marker())
+        self.assertEqual(r.stale_changes(approved, approved), [])
+        other = dict(self.marker(), runId="20261123T000001Z-abcdef")
+        other_root = "/private/var/folders/x/T/ntk-test-mac.other"
+        now = r.stale_listing([other_root], FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}]),
+                              [self.XCODE], lambda f: dict(other, root=other_root))
+        self.assertTrue(r.stale_changes(approved, now))      # another folder with as many processes
+        self.assertEqual(r.stale_changes(approved, []), [])  # it went away meanwhile: fine
+        ended = r.stale_listing([self.ROOT_DIR], FakePort([]), [self.XCODE], lambda f: self.marker())
+        self.assertEqual(r.stale_changes(approved, ended), [])  # its writer ended: fine
+        reused = r.stale_listing([self.ROOT_DIR], FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB},
+                                                            {"pid": 310, "pgid": 300, "start": 5005, "exe": self.SAMPLE}]),
+                                 [self.XCODE], lambda f: self.marker())
+        self.assertTrue(r.stale_changes(approved, reused))   # a process the approval did not list
+        self.assertTrue(r.stale_changes([{"processes": 1}], approved))
+        # The same folder whose marker is now another run's: not the approved one.
+        changed = r.stale_listing([self.ROOT_DIR], FakePort([]), [self.XCODE],
+                                  lambda f: dict(self.marker(), runId="20261123T000002Z-abcdef"))
+        self.assertTrue(r.stale_changes(approved, changed))
+
+    def test_the_current_folder_is_the_approved_run(self):
+        marker = dict(self.marker(), approvalId="a" * 32)
+        ledger = "a" * 32 + "\t2026-11-23T00:00:00+00:00\tmac\n"
+        self.assertIsNone(r.current_run_problem(marker, {"approvalId": "a" * 32}, ledger))
+        self.assertIsNotNone(r.current_run_problem(marker, {"approvalId": "b" * 32}, ledger))
+        self.assertIsNotNone(r.current_run_problem(dict(marker, approvalId=None), {"approvalId": "a" * 32}, ledger))
+        self.assertIsNotNone(r.current_run_problem(marker, {"approvalId": "a" * 32}, ""))
+
+    def test_the_run_folder_comes_with_its_marker(self):
+        with tempfile.TemporaryDirectory() as scan:
+            root = r.make_run_folder(scan, "20261123T000000Z-abcdef", "a" * 32, 1000, 5000.0)
+            self.assertTrue(os.path.basename(root).startswith(r.RUN_FOLDER_PREFIX))
+            marker = json.loads(pathlib.Path(root, r.MARKER_NAME).read_text())
+            self.assertEqual((marker["approvalId"], marker["root"]), ("a" * 32, os.path.realpath(root)))
+            self.assertEqual(oct(os.stat(root).st_mode & 0o777), "0o700")
+            with self.assertRaises(r.RunnerError):
+                r.make_run_folder(scan, "bad", "a" * 32, 1000, 5000.0)
+
+    def test_private_folders_left_by_a_killed_run(self):
+        folders = ["/t/ntk-test-mac-private.a", "/t/ntk-test-mac-private.b", "/t/ntk-test-mac-private.c",
+                   "/t/ntk-test-mac-private.d"]
+        owners = {folders[0]: ({"pid": 10, "start": 100}, 0.0), folders[1]: ({"pid": 11, "start": 100}, 0.0),
+                  folders[2]: (None, 990.0), folders[3]: (None, 100.0)}
+        processes = [{"pid": 10, "start": 100}, {"pid": 11, "start": 555}]
+        self.assertEqual(r.orphaned_private_folders(folders, owners, processes, now=1000.0),
+                         [folders[1], folders[3]])
 
     def test_a_writer_is_recorded_only_as_the_expected_xcode(self):
         processes = [{"pid": 300, "pgid": 300, "start": 5001, "exe": "/usr/bin/perl"}]
@@ -1015,6 +1163,10 @@ class Baseline(unittest.TestCase):
                     for n in ("fixture", "buttonCoverage", "privacyRestore")]
         self.assertEqual(r.completeness_problems(full, records),
                          ["no record of MacLibraryTests", "no record of MacLibraryExampleTests"])
+        units = [{"test": k, "result": "passed"} for u in full["unitInvocations"] for k in u["expected"]]
+        self.assertEqual(r.completeness_problems(full, records + units), [])
+        self.assertEqual(r.completeness_problems(full, records + units[1:]),
+                         ["the records of MacLibraryTests are not exactly its planned tests"])
 
     def test_the_excluded_map_holds_the_unit_targets(self):
         expired = mac_plan(audit={"suites": [], "expired": True, "hash": None})
@@ -1033,7 +1185,10 @@ class Baseline(unittest.TestCase):
         results = {"MacLibraryExampleUITests/" + D1: "passed"}
         baseline = r.make_baseline({"os": "15.8.3"}, plan, results, {D1: 3.0}, "2026-11-23T00:00:00+00:00")
         self.assertEqual(len(baseline["eligible"]), 113)
-        self.assertEqual(baseline["executed"], ["MacLibraryExampleUITests/" + D1])
+        self.assertEqual(baseline["executed"], [D1])  # the same form as eligible (Codex v2 B-5)
+        full = {f"MacLibraryExampleUITests/{k}": "passed" for k in keys_of(plan["selected"])}
+        whole = r.make_baseline({"os": "15.8.3"}, plan, full, {}, "2026-11-23T00:00:00+00:00")
+        self.assertEqual(whole["eligible"], whole["executed"])
         self.assertEqual(sorted(baseline["excluded"]), sorted(r.OS_ONLY_TESTS))
         self.assertEqual(baseline["source"]["head"], "a")
 
@@ -1292,6 +1447,17 @@ class Calls(unittest.TestCase):
         # No names on either side is still refused: a test call without -only-testing runs everything.
         self.assertTrue(r.call_problems(self.ROOT_DIR, [a for a in self.test_call() if not a.startswith("-only")], "test", []))
 
+    def test_only_the_runners_options_and_values(self):
+        for extra in (("-xcconfig", "/tmp/x.xcconfig"), ("-test-iterations", "3"), ("OTHER_SWIFT_FLAGS=-DX",),
+                      ("-parallel-testing-enabled", "YES"), ("-collect-test-diagnostics", "on-failure")):
+            self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call(*extra), "test", self.NAMES), extra)
+        wrong = [a.replace("platform=macOS,arch=arm64", "platform=macOS,arch=x86_64") for a in self.test_call()]
+        self.assertTrue(r.call_problems(self.ROOT_DIR, wrong, "test", self.NAMES))
+        self.assertTrue(r.call_problems(self.ROOT_DIR, self.test_call(drop="-destination"), "test", self.NAMES))
+        build = ["build-for-testing", "-workspace", self.ROOT_DIR + "/src/mac/MacWorkspace.xcworkspace", "-scheme",
+                 "UnityMacPlugin", "-derivedDataPath", self.ROOT_DIR + "/dd-ui"]
+        self.assertTrue(r.call_problems(self.ROOT_DIR, build, "build"))
+
     def test_symlinks_in_the_paths(self):
         with tempfile.TemporaryDirectory() as d:
             root = os.path.realpath(d)
@@ -1368,6 +1534,27 @@ class Gate(unittest.TestCase):
         (self.repo / "mac" / "a.txt").write_text("changed")
         self.assertTrue(self.problems())
 
+    def test_the_approve_command_consumes_only_a_matching_approval(self):
+        plan_path = self.repo.parent / (self.repo.name + ".plan.json")
+        good = self.repo.parent / (self.repo.name + ".good.json")
+        bad = self.repo.parent / (self.repo.name + ".bad.json")
+        ledger = self.repo.parent / (self.repo.name + ".approve-ledger")
+        for path in (plan_path, good, bad, ledger, ledger.with_name(ledger.name + ".lock")):
+            self.addCleanup(lambda p=path: p.exists() and p.unlink())
+        plan_path.write_text(json.dumps(self.plan))
+        approval = r.make_approval(self.plan)
+        good.write_text(json.dumps(approval))
+        bad.write_text(json.dumps(dict(approval, allow=["panels"])))
+        err = io.StringIO()
+        with redirect_stderr(err), redirect_stdout(io.StringIO()):
+            base = ["approve", "--plan", str(plan_path), "--repo", str(self.repo), "--ledger-for-self-test", str(ledger)]
+            self.assertNotEqual(r.main(base + ["--approved", str(bad)]), 0)
+            self.assertFalse(ledger.exists())  # refused: nothing consumed
+            self.assertEqual(r.main(base + ["--approved", str(good)]), 0)
+            self.assertEqual(r.ledger_ids(ledger.read_text()), [approval["approvalId"]])
+            self.assertNotEqual(r.main(base + ["--approved", str(good)]), 0)  # once only
+            self.assertEqual(r.ledger_ids(ledger.read_text()), [approval["approvalId"]])
+
     def test_a_plan_of_other_runner_files_or_another_tree(self):
         # git is clean here; only the hashes tell the plan was made from something else.
         other = json.loads(json.dumps(self.plan))
@@ -1402,6 +1589,76 @@ class Commands(unittest.TestCase):
             r.OsPort().processes()
 
 
+class PreludeLauncher(unittest.TestCase):
+    """The VM prelude's behaviour (review v2: Codex A-1, B-4), run on a truncated copy of it: the copy ends
+    right after the prelude with `echo PRELUDE-PASSED`, and its fact readers (/usr/sbin/sysctl,
+    /usr/sbin/ioreg) are replaced by fakes in a temporary folder. The real script's VM half is never run."""
+
+    UUID = "11111111-2222-3333-4444-555555555555"
+
+    def setUp(self):
+        self.dir = pathlib.Path(tempfile.mkdtemp(prefix="ntk-prelude."))
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        text = SCRIPT.read_text()
+        prelude = text[:text.index("# --- end of the VM prelude ---")]
+        sysctl, ioreg = self.dir / "fake-sysctl", self.dir / "fake-ioreg"
+        sysctl.write_text('#!/bin/sh\ncase "$2" in kern.hv_vmm_present) cat "%s/hv";; hw.model) cat "%s/model";; esac\n'
+                          % (self.dir, self.dir))
+        ioreg.write_text('#!/bin/sh\nprintf \'  "IOPlatformUUID" = "%%s"\\n\' "$(cat "%s/uuid")"\n' % self.dir)
+        for fake in (sysctl, ioreg):
+            fake.chmod(0o700)
+        self.facts(hv="1", model="VirtualMac2,1", uuid=self.UUID)
+        copy = prelude.replace("/usr/sbin/sysctl", str(sysctl)).replace("/usr/sbin/ioreg", str(ioreg))
+        self.assertNotIn("/usr/sbin/sysctl", copy)
+        self.copy = self.dir / "prelude.sh"
+        self.copy.write_text(copy + 'echo "PRELUDE-PASSED $(compgen -e | sort | tr \'\\n\' \' \')"\nexit 0\n')
+
+    def facts(self, hv=None, model=None, uuid=None):
+        for name, value in (("hv", hv), ("model", model), ("uuid", uuid)):
+            if value is not None:
+                (self.dir / name).write_text(value + "\n")
+
+    def run_copy(self, *args, env=None, bash=("/bin/bash",)):
+        return subprocess.run([*bash, str(self.copy), *args], capture_output=True, text=True, timeout=30,
+                              env=env if env is not None else {"PATH": "/usr/bin:/bin", "HOME": str(self.dir)})
+
+    def test_the_restart_happens_whatever_the_caller_sets(self):
+        env = {"PATH": "/usr/bin:/bin", "HOME": str(self.dir), "NTK_IN_VM_CLEAN": "1", "BASH_ENV": "/nonexistent",
+               "BASH_FUNC_command%%": "() { echo 1; }", "EXTRA": "x"}
+        finished = self.run_copy("--in-vm", "clean", "20261123T000000Z-abcdef", self.UUID, env=env)
+        self.assertEqual(finished.returncode, 0, finished.stderr)
+        passed = finished.stdout.strip()
+        self.assertTrue(passed.startswith("PRELUDE-PASSED"))
+        self.assertNotIn("NTK_IN_VM_CLEAN", passed)
+        self.assertNotIn("EXTRA", passed)
+
+    def test_the_started_side_refuses_any_other_environment(self):
+        args = ("--in-vm-clean", "clean", "20261123T000000Z-abcdef", self.UUID)
+        self.assertEqual(self.run_copy(*args).returncode, 96)  # not privileged
+        clean = {"HOME": str(self.dir), "USER": "u", "LOGNAME": "u", "LC_ALL": "C", "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"}
+        privileged = ("/bin/bash", "--noprofile", "--norc", "-p")
+        self.assertEqual(self.run_copy(*args, env=clean, bash=privileged).returncode, 0)
+        self.assertEqual(self.run_copy(*args, env=dict(clean, EXTRA="x"), bash=privileged).returncode, 96)
+        self.assertEqual(self.run_copy(*args, env=dict(clean, PATH="/tmp:/usr/bin:/bin:/usr/sbin:/sbin"),
+                                       bash=privileged).returncode, 96)
+
+    def test_each_fact_stops_it_before_and_after_the_restart(self):
+        args = ("--in-vm", "clean", "20261123T000000Z-abcdef", self.UUID)
+        for change in ({"hv": "0"}, {"model": "Mac15,6"}, {"uuid": "00000000-0000-0000-0000-000000000000"}):
+            self.facts(**change)
+            finished = self.run_copy(*args)
+            self.assertEqual(finished.returncode, 96, change)
+            self.assertNotIn("PRELUDE-PASSED", finished.stdout)
+            self.facts(hv="1", model="VirtualMac2,1", uuid=self.UUID)
+        self.assertEqual(self.run_copy("--in-vm", "clean", "20261123T000000Z-abcdef").returncode, 96)  # no UUID
+
+    def test_the_guard_refuses_the_real_script_with_in_vm(self):
+        with self.assertRaises(OsOperationReached):
+            subprocess.run(["/bin/bash", str(SCRIPT), "--in-vm", "clean", "x", "y"], capture_output=True)
+        with self.assertRaises(OsOperationReached):
+            subprocess.run(["/bin/bash", str(SCRIPT), "--in-vm-clean", "clean", "x", "y"], capture_output=True)
+
+
 class ShellOrder(unittest.TestCase):
     """The order of the script (design 7 "中断", review v1): read, never run."""
 
@@ -1409,21 +1666,32 @@ class ShellOrder(unittest.TestCase):
         self.text = SCRIPT.read_text()
 
     def test_the_vm_half_starts_clean_and_checks_three_facts_first(self):
-        lines = [l for l in self.text.splitlines() if l.strip() and not l.lstrip().startswith("#")]
+        lines = [l.strip() for l in self.text.splitlines() if l.strip() and not l.lstrip().startswith("#")]
         self.assertEqual(lines[0], "set -euo pipefail")
-        self.assertTrue(lines[1].startswith('if [[ "${1:-}" == "--in-vm" && "${NTK_IN_VM_CLEAN:-}" != 1 ]]; then'))
-        self.assertIn("exec /usr/bin/env -i NTK_IN_VM_CLEAN=1", lines[2])
+        self.assertEqual(lines[1], 'if [[ "${1:-}" == "--in-vm" || "${1:-}" == "--in-vm-clean" ]]; then')
+        self.assertTrue(lines[2].startswith('[[ "$(/usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || {'))
+        self.assertTrue(lines[3].startswith('case "$(/usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *)'))
+        self.assertIn('/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice', lines[4])
+        self.assertIn('== "$4" ]]', lines[4])
+        self.assertTrue(lines[5].endswith("exit 96; }"))
+        self.assertEqual(lines[6], 'if [[ "$1" == "--in-vm" ]]; then')
+        self.assertTrue(lines[7].startswith("exec /usr/bin/env -i HOME="))
+        self.assertIn('/bin/bash --noprofile --norc -p "${BASH_SOURCE[0]}" --in-vm-clean "${@:2}"', lines[8])
+        self.assertNotIn("NTK_IN_VM_CLEAN", self.text)  # nothing the caller can set skips the restart (Codex v2 A-1)
+        prelude = self.text[:self.text.index("# --- end of the VM prelude ---")]
+        self.assertIn('[[ -o privileged && -z "$(declare -F)" && "${PATH}" == "/usr/bin:/bin:/usr/sbin:/sbin"', prelude)
+        self.assertIn("HOME|USER|LOGNAME|LC_ALL|PATH|PWD|SHLVL|OLDPWD|_) ;;", prelude)
         body = [l.strip() for l in function_body(self.text, "in_vm_main").splitlines()]
-        self.assertTrue(body[0].startswith('[[ "$(command /usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || {'))
-        self.assertTrue(body[0].endswith("exit 96; }"))
-        self.assertTrue(body[1].startswith('case "$(command /usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *)'))
-        self.assertIn("command /usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice", body[2])
-        self.assertIn('== "$3" ]]', body[2])
-        self.assertTrue(body[3].endswith("exit 96; }"))
+        self.assertTrue(body[0].startswith('[[ "$(/usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)" == "1" ]] || {'))
+        self.assertTrue(body[1].startswith('case "$(/usr/sbin/sysctl -n hw.model 2>/dev/null)" in VirtualMac*) ;; *)'))
+        self.assertIn("/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice", body[2])
+        self.assertEqual(body[3], '|| { echo "Error: --in-vm runs only in the qualified VM" >&2; exit 96; }')
+        self.assertIn('if [[ "${1:-}" == "--in-vm-clean" ]]; then\n  shift\n  in_vm_main "$@"', self.text)
 
     def test_nothing_destructive_runs_before_the_vm_dispatch(self):
-        top = self.text[:self.text.index('if [[ "${1:-}" == "--in-vm" ]]; then\n  shift')]
+        top = self.text[:self.text.index('if [[ "${1:-}" == "--in-vm-clean" ]]; then\n  shift')]
         outside = re.sub(r"^[a-z_]+\(\) \{.*?^\}\n", "", top, flags=re.S | re.M)
+        outside = re.sub(r"^CAPPED_PERL='.*?'$", "", outside, flags=re.S | re.M)
         for line in outside.splitlines():
             stripped = line.strip()
             if not stripped or stripped.startswith("#") or re.match(r"^[A-Z_]+=\"[^\"$`]*\"$", stripped):
@@ -1436,11 +1704,26 @@ class ShellOrder(unittest.TestCase):
         self.assertLess(main.index("trap on_exit EXIT"), main.index('RUN_ID="$(date'))
         self.assertIn("trap 'exit 129' HUP", main)
         self.assertLess(main.index('PRIVATE="$(umask 077; mktemp -d'), main.index("trap on_exit EXIT"))
+        self.assertLess(main.index("trap on_exit EXIT"), main.index('runner private --dir "${PRIVATE}" --own "$$"'))
+        self.assertLess(main.index('runner private --dir "${PRIVATE}" --own "$$"'),
+                        main.index('runner private --scan-root "${SCAN_ROOT}" --dir "${PRIVATE}"'))
         body = function_body(self.text, "on_exit")
         self.assertLess(body.index("mac_cleanup"), body.index('rm -rf "${PRIVATE}"'))
         run_mac = function_body(self.text, "run_mac")
-        self.assertLess(run_mac.index("runner approve"), run_mac.index('MAC_TMP="$(umask 077'))
-        self.assertLess(run_mac.index("runner marker --root"), run_mac.index("mac_xcodebuild "))
+        self.assertLess(run_mac.index("runner approve"), run_mac.index("runner make-run-folder"))
+        self.assertNotIn("mktemp", run_mac)
+        self.assertLess(run_mac.index("runner make-run-folder"), run_mac.index("mac_xcodebuild "))
+        at = run_mac.index("--current-root \"${MAC_TMP}\" --stop")
+        stop = run_mac[at:at + 200]
+        self.assertIn('--approved "${MAC_TMP}/approval.approved.json" --repo "${ROOT_DIR}"', stop)
+
+    def test_perl_signals_the_group_only_while_its_leader_is_its_own(self):
+        perl = self.text[self.text.index("CAPPED_PERL='"):self.text.index("capped_group() {")]
+        stop = perl[perl.index("my $stop = sub {"):perl.index("};", perl.index("my $stop = sub {"))]
+        self.assertLess(stop.index("return if $reaped;"), stop.index('kill "TERM", -$pid;'))
+        self.assertIn('if (waitpid($pid, 1) > 0) { $reaped = 1; return; }', stop)
+        self.assertLess(stop.index("return; }"), stop.index('kill "KILL", -$pid;'))
+        self.assertIn("waitpid($pid, 0); $status = $?; $reaped = 1;", perl)
 
     def test_the_cleanup_stops_writers_before_anything_goes(self):
         self.assertIn('runner stop-current --root "${MAC_TMP}"', function_body(self.text, "mac_cleanup"))
@@ -1452,12 +1735,17 @@ class ShellOrder(unittest.TestCase):
                   and "mac_xcodebuild" not in line and "-version" not in line and not line.strip().startswith("#")]
         self.assertEqual(direct, [])
         gate = function_body(self.text, "mac_xcodebuild")
+        start = gate.index('/usr/bin/perl -e "${CAPPED_PERL}"')
         self.assertLess(gate.index("mac_gate"), gate.index("runner check-call"))
-        self.assertLess(gate.index("runner check-call"), gate.index("capped_group"))
-        self.assertIn("|| exit 97", gate[gate.index("runner check-call"):gate.index("capped_group")])
+        self.assertLess(gate.index("runner check-call"), start)
+        self.assertIn("|| exit 97", gate[gate.index("runner check-call"):start])
+        self.assertIn('/usr/bin/env -i "${environment[@]}"', gate)   # Claude v2 C-2
+        self.assertIn('< /dev/null > "${log}" 2>&1 &\n  local waiter=$!', gate)  # $! is perl (Claude v2 B-1)
+        self.assertNotIn("capped_group", gate)
         self.assertIn('runner marker --root "${MAC_TMP}" --pid', gate)
+        self.assertIn('--expect-under "$(cd -P "${MAC_XCODE_DIR}" && pwd -P)"', gate)
+        self.assertIn('kill -TERM "${waiter}"', gate)
         self.assertIn('fail "the xcodebuild could not be recorded', gate)
-        self.assertIn("-u XCODE_XCCONFIG_FILE -u TOOLCHAINS", gate)
 
     def test_names_are_read_on_their_own(self):
         body = function_body(self.text, "read_only_testing")

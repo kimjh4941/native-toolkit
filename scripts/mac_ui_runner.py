@@ -240,7 +240,19 @@ MAC_RUN_PREREQUISITES = {
     "u8MonitorStopsTheTest": None,         # U-8: the monitor really stops a test (a harmless alert in the VM)
     "killDuringRecording": None,           # 9.1: the parent KILLed during a real recording; the writers stop
     "windowOwnersReadableOn26": None,      # U-30 mac26: CGWindowListCopyWindowInfo on this Mac
+    "decoyNotificationRoot": None,         # 6c and 7 "根（動き）": nothing reaches a decoy with the same title
 }
+
+
+def prerequisite_status(repo, table=None):
+    """{name: record path or None}. A value counts only when it is a path inside artifact/ of the
+    repository that exists (Claude v2 C-5); anything else is None, as if not checked."""
+    status = {}
+    for name, value in (MAC_RUN_PREREQUISITES if table is None else table).items():
+        ok = isinstance(value, str) and value.startswith("artifact/") and ".." not in value.split("/") \
+            and (pathlib.Path(repo) / value).is_file()
+        status[name] = value if ok else None
+    return status
 DEFAULT_LEDGER = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir) / "Library" / "Application Support" / "native-toolkit" \
     / "test_mac-approvals.log"
 LEDGER_LINE = re.compile(r"^[0-9a-f]{32}\t\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\+00:00|Z)\tmac$")
@@ -509,7 +521,7 @@ def git_file_list(repo, paths):
     finished = subprocess.run(["git", "-C", str(repo), "ls-files", "-co", "--exclude-standard", "-z", "--", *paths],
                               capture_output=True)
     if finished.returncode != 0:
-        raise RunnerError(f"git ls-files failed: {finished.stderr.decode(errors='replace').strip()}")
+        raise RunnerError("git ls-files failed")
     names = [n.decode() for n in finished.stdout.split(b"\0") if n]
     return sorted(n for n in names if not n.startswith(MAC_OUTPUT_PREFIX) and not n.endswith("/.DS_Store")
                   and n != ".DS_Store")
@@ -1190,15 +1202,50 @@ def call_problems(root, arguments, kind, expected_only_testing=()):
         for i in positions:
             if i + 1 >= len(arguments) or not _inside(root, arguments[i + 1]):
                 problems.append(f"{option} must name a path inside the run's private folder")
+    problems += _option_problems(arguments, kind)
     named = [a[len("-only-testing:"):] for a in arguments if a.startswith("-only-testing:")]
-    if any(a.lower().startswith("-only-testing") and not a.startswith("-only-testing:") for a in arguments) or \
-            any(a.lower().startswith("-skip-testing") for a in arguments):
-        problems.append("-only-testing must be written as -only-testing:<name>; -skip-testing is not used")
+    # Any other spelling (-only-testing without the colon, -skip-testing) is refused by _option_problems.
     if kind == "build":
         if named:
             problems.append("a build names no test")
     elif not named or named != list(expected_only_testing):
         problems.append("the -only-testing names differ from the plan's for this call")
+    return problems
+
+
+# The options a call may carry and the values they may take (Claude v2 C-3); None = any value (paths
+# are checked above).
+CALL_OPTIONS = {
+    "build": {"-workspace": None, "-scheme": ("MacLibraryExample", "MacLibrary"),
+              "-destination": ("platform=macOS,arch=arm64",), "-derivedDataPath": None},
+    "test": {"-xctestrun": None, "-destination": ("platform=macOS,arch=arm64",), "-derivedDataPath": None,
+             "-resultBundlePath": None, "-parallel-testing-enabled": ("NO",), "-test-timeouts-enabled": ("YES",),
+             "-default-test-execution-time-allowance": ("120",), "-maximum-test-execution-time-allowance": ("240",),
+             "-collect-test-diagnostics": ("never",)},
+}
+
+
+def _option_problems(arguments, kind):
+    problems = []
+    allowed = CALL_OPTIONS[kind]
+    i = 0
+    while i < len(arguments):
+        a = arguments[i]
+        if a in XCODEBUILD_ACTIONS or a.startswith("-only-testing:"):
+            i += 1
+            continue
+        if a not in allowed:
+            problems.append(f"an argument the runner does not pass: {a.split('=', 1)[0][:40]}")
+            i += 1
+            continue
+        if i + 1 >= len(arguments):
+            problems.append(f"{a} without a value")
+            break
+        if allowed[a] is not None and arguments[i + 1] not in allowed[a]:
+            problems.append(f"{a} with a value the runner does not pass")
+        i += 2
+    if kind == "test" and "-destination" not in arguments:
+        problems.append("-destination is missing")
     return problems
 
 
@@ -1250,7 +1297,7 @@ def unit_invocations(where, audit_suites, unit_keys=None):
 def make_plan(where, identifiers, declarations, allowed, feature, os_major, head, mac_tree, trusted_changes,
               unit, audit_state, name_each_test=False, runner_files=None, qualification=None, tables_hash=None,
               declarations_hash=None, lsregister=None, stale=None, unit_keys=None, environment=None,
-              baseline=False):
+              baseline=False, prerequisites=None):
     selected, excluded = select_tests(identifiers, declarations, where, os_major, allowed, feature,
                                       qualification=qualification)
     if where == "mac":
@@ -1287,7 +1334,7 @@ def make_plan(where, identifiers, declarations, allowed, feature, os_major, head
         "nameEachTest": name_each_test or where == "mac", "runnerFiles": dict(runner_files or {}),
         "lsregister": lsregister or [], "stale": stale or [], "auditSuites": list(suites),
         "environment": dict(environment or {}), "baseline": bool(baseline),
-        "prerequisites": dict(MAC_RUN_PREREQUISITES) if where == "mac" else {},
+        "prerequisites": dict(prerequisites if prerequisites is not None else MAC_RUN_PREREQUISITES) if where == "mac" else {},
     }
 
 
@@ -1652,6 +1699,9 @@ def vm_qualification(facts):
         ("noAppleAccount", get("mobileMeAccounts") == "absent"),
         ("accountsOnlySystem", accounts_ok),
         ("noSharedFolder", get("virtiofsMounts") == "0"),
+        ("tartIsThePeer", isinstance(get("macAddress"), str) and
+         re.fullmatch(r"[0-9a-f]{2}(:[0-9a-f]{2}){5}", get("macAddress").lower()) is not None and
+         str(get("tartMacAddress") or "").lower() == get("macAddress").lower()),
         ("xcode", (get("xcodeVersion"), get("xcodeBuild")) == VM_XCODE),
         ("identity", isinstance(get("platformUUID"), str) and
          re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", get("platformUUID")) is not None
@@ -1778,6 +1828,15 @@ def parse_xcresult_tests(text):
     return cases, [d.get("deviceId") for d in data.get("devices", [])]
 
 
+def destination_ok(tests_text):
+    """Exactly one device, and it is a Mac of arm64 (this Mac or the VM; Claude v2 C-4)."""
+    devices = json.loads(tests_text).get("devices", [])
+    if len(devices) != 1 or not isinstance(devices[0], dict):
+        return False
+    device = devices[0]
+    return device.get("platform", "macOS") == "macOS" and device.get("architecture", "arm64") == "arm64"
+
+
 def summary_problems(summary_text, cases):
     summary = json.loads(summary_text)
     counted = {"Passed": "passedTests", "Failed": "failedTests", "Skipped": "skippedTests",
@@ -1844,8 +1903,8 @@ def record_invocation(invocation, tests_text, summary_text, exit_code, timed_out
         pseudo("noResult")
         return [public_record(r) for r in records], True
     cases, devices = parse_xcresult_tests(tests_text)
-    if len(devices) != 1:
-        pseudo("destination")  # one run is one Mac (this one or the VM); more or none is not this run
+    if not destination_ok(tests_text):
+        pseudo("destination")  # one run is one Mac (this one or the VM); more, none, or not a Mac is not this run
     if not cases:
         pseudo("zeroTests")
     if summary_text is None or summary_problems(summary_text, cases):
@@ -1902,6 +1961,8 @@ def parse_unit_enumeration(text, targets):
     values = data.get("values")
     if not isinstance(values, list) or len(values) != 1:
         raise RunnerError("the enumeration must have exactly one value")
+    if values[0].get("disabledTests"):
+        raise RunnerError("the enumeration lists disabled tests")
     keys = []
     for test in values[0].get("enabledTests", []):
         identifier = test.get("identifier", "")
@@ -1911,7 +1972,39 @@ def parse_unit_enumeration(text, targets):
     return keys
 
 
-def unit_records(target, tests_text, exit_code, vocabulary, expected=None):
+def _argument_problems(case_node):
+    """The `Arguments` children of a parameterized test: each has a result that agrees with its case,
+    and no child of its own but messages (Codex v2 B-1)."""
+    problems = []
+    result = case_node.get("result")
+    for child in case_node.get("children", []):
+        if child.get("nodeType") != "Arguments":
+            continue
+        if child.get("result") not in ("Passed", "Failed", "Skipped", "Expected Failure"):
+            problems.append("unknownShape")
+        elif result == "Passed" and child.get("result") != "Passed":
+            problems.append("summary")
+        if {str(c.get("nodeType")) for c in child.get("children", [])} - KNOWN_CASE_CHILDREN:
+            problems.append("unknownShape")
+    return problems
+
+
+def _unit_case_nodes(tests_text):
+    data = json.loads(tests_text)
+    nodes = []
+
+    def walk(node):
+        if node.get("nodeType") == "Test Case":
+            nodes.append(node)
+            return
+        for child in node.get("children", []):
+            walk(child)
+    for node in data.get("testNodes", []):
+        walk(node)
+    return nodes
+
+
+def unit_records(target, tests_text, exit_code, vocabulary, expected=None, summary_text=None):
     """Unit test results as `<target>/<suite>[/<nested suite>]/<test>` (Swift Testing and XCTest alike).
     A parameterized Swift Testing test is one record with `runs`, its expanded count (its `Arguments`
     children, whose values stay out; 6.3 "件数は展開の後の数"). Skips fail like UI skips; the messages
@@ -1921,10 +2014,15 @@ def unit_records(target, tests_text, exit_code, vocabulary, expected=None):
         return [public_record({"test": f"{target}#noResult", "result": "failed", "codes": ["NTK-RUNNER:noResult"]})]
     cases, _ = parse_xcresult_tests(tests_text)
     records, problems = [], []
+    if not destination_ok(tests_text):
+        problems.append("destination")
+    if summary_text is not None and summary_problems(summary_text, cases):
+        problems.append("summary")
+    for node in _unit_case_nodes(tests_text):
+        problems += _argument_problems(node)
     for case in cases:
         if case["bundle"] != target:
-            if case["bundle"] in UNIT_TARGETS or case["bundle"] == UI_TARGET:
-                problems.append("otherBundle")
+            problems.append("otherBundle")  # any bundle but the named target (Codex v2 B-1)
             continue
         if set(case["unknownShape"]) - UNIT_CASE_CHILDREN:
             problems.append("unknownShape")
@@ -2179,14 +2277,22 @@ def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
             alive.append(p)
     group = None
     pgid = marker.get("pgid")
-    if pgid is not None and alive:
+    if pgid is not None:
         leader = [p for p in processes if p.get("pid") == pgid]
         members = [p for p in processes if p.get("pgid") == pgid]
-        leader_ok = len(leader) == 1 and any(matches(leader[0], w) for w in writers)
         members_ok = bool(members) and all(
             _under(p.get("exe"), root) or any(_under(p.get("exe"), t) for t in tool_roots) for p in members)
-        if leader_ok and members_ok:
+        leader_ok = len(leader) == 1 and any(matches(leader[0], w) for w in writers)
+        # After the leader ended (TERM), the rest of its group: only while every member is a tool or this
+        # run's own build and started after the marker, so a group number taken by something else is never
+        # one of ours (Claude v2 C-1).
+        orphaned_ok = not leader and all(isinstance(p.get("start"), (int, float)) and p["start"] >= created
+                                          for p in members)
+        if members_ok and (leader_ok or orphaned_ok):
             group = pgid
+            for p in members:
+                if p not in alive:
+                    alive.append(p)
     return {"removeOnly": not alive, "signal": sorted(p["pid"] for p in alive), "group": group, "refuse": None}
 
 
@@ -2244,16 +2350,25 @@ def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0
     each signal from the process list of that moment (PID, start time and real executable, and the
     group's members), so a PID that ended and was reused in between is never signalled (Codex A-5).
     Returns None when no writer is left, or the reason the folder must stay."""
+    def fresh():
+        return stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
+
     for number, wait in ((15, term_wait), (9, kill_wait)):
-        plan = stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)
+        plan = fresh()
         if plan["refuse"]:
             return plan["refuse"]
         if not plan["signal"]:
             return None
         if plan["group"] is not None:
             port.signal_group(plan["group"], number)
+        # Each process is checked again right before its own signal (review v2: Codex A-2): one that ended
+        # with the group, or whose number was taken meanwhile, is no longer in the fresh plan.
         for pid in plan["signal"]:
-            port.signal(pid, number)
+            current = fresh()
+            if current["refuse"]:
+                return current["refuse"]
+            if pid in current["signal"]:
+                port.signal(pid, number)
         deadline = port.now() + wait
         while port.now() < deadline:
             if not stale_plan(marker, port.boottime(), port.processes(), tool_roots, folder)["signal"]:
@@ -2292,6 +2407,7 @@ def writer_entry(pid, processes, expect_under):
     """The marker's entry of a writer once its real executable is under `expect_under` (the Xcode the
     runner calls): a process caught between fork and exec is not recorded (Claude B-4)."""
     found = [p for p in processes if p.get("pid") == pid]
+    expect_under = os.path.realpath(expect_under) if expect_under else expect_under
     if len(found) != 1 or not _under(found[0].get("exe"), expect_under):
         return None
     return {"pid": pid, "start": found[0]["start"], "exe": found[0]["exe"], "pgid": found[0]["pgid"]}
@@ -2529,9 +2645,12 @@ def completeness_problems(plan, records):
         problems.append(f"{len(set(expected) - set(ui))} planned test(s) without a record, "
                         f"{len(set(ui) - set(expected))} record(s) outside the plan")
     for u in plan.get("unitInvocations", []):
-        got = {r["test"] for r in records if r["test"].split("/", 1)[0].split("#", 1)[0] == u["target"]}
-        if not got:
+        got = [r["test"] for r in records if r["test"].split("/", 1)[0].split("#", 1)[0] == u["target"]
+               and "#" not in r["test"]]
+        if not got and not any(r["test"].startswith(u["target"] + "#") for r in records):
             problems.append(f"no record of {u['target']}")
+        elif "expected" in u and (sorted(set(got)) != sorted(set(u["expected"])) or duplicates(got)):
+            problems.append(f"the records of {u['target']} are not exactly its planned tests")
     names = {r["test"] for r in records}
     required = []
     if plan["where"] == "vm":
@@ -2581,7 +2700,7 @@ def baseline_refusal(env, plan, failed, dirty_mac, executed=None, lost=None):
 def make_baseline(env, plan, results, durations, created, runs=None, runner_files=None):
     eligible = sorted(key_from_enumeration_id(i) for i in plan["selected"])
     excluded = excluded_map(plan)
-    executed = sorted(t for t in results if t.startswith(UI_TARGET + "/"))
+    executed = sorted(t.split("/", 1)[1] for t in results if t.startswith(UI_TARGET + "/"))
     return {
         "schema": 1, "createdAt": created,
         "where": plan["where"], "os": env.get("os"), "osBuild": env.get("osBuild"), "arch": env.get("arch"),
@@ -2679,7 +2798,7 @@ def dry_run_text(plan, durations, now_text):
             lines.append(f"  COPY    {copy['mark']} ({copy['place']})")
         lines.append("  (to see them yourself: lsregister -dump | grep -B2 -A2 " + SAMPLE_BUNDLE_ID + ")")
     if plan["stale"]:
-        alive = sum(entry.get("processes", 0) for entry in plan["stale"])
+        alive = sum(len(entry.get("writers", [])) for entry in plan["stale"])
         lines.append(f"[dry-run] stopped runs left {len(plan['stale'])} folder(s)"
                      + (f" and NTK-STALE:alive {alive} process(es)" if alive else "")
                      + "; the approved run stops those processes, then removes the folders and their fixtures")
@@ -2704,8 +2823,21 @@ def _write_json(path, value):
     pathlib.Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+_ABSOLUTE_PATH = re.compile(r"(?<![\w.])/(?:[^\s'\"():,;]+/)*[^\s'\"():,;]*")
+
+
+def public_message(text):
+    """A message as it may be shown: every absolute path replaced by <path> (review v2: Codex B-6,
+    Claude C-9). The places stay in the private folders."""
+    return _ABSOLUTE_PATH.sub("<path>", str(text))
+
+
+def _say(text):
+    print(public_message(text))
+
+
 def _fail(message, code=1):
-    print(f"Error: {message}", file=sys.stderr)
+    print(f"Error: {public_message(message)}", file=sys.stderr)
     return code
 
 
@@ -2717,7 +2849,7 @@ def cmd_check_sources(args):
     problems = check_test_folder(args.tests_dir, _read(args.pbxproj))
     problems += frozen_file_problems(args.tests_dir)
     for problem in problems:
-        print(f"  FAIL {problem}")
+        _say(f"  FAIL {problem}")
     if problems:
         return _fail(f"{len(problems)} closed source rule violation(s) (design 6.1)")
     print("[sources] the closed source rules pass (design 6.1)")
@@ -2803,7 +2935,7 @@ def cmd_preflight(args):
     declarations = parse_declarations(_read(declarations_path))
     problems = check_enumeration(identifiers, declarations)
     for problem in problems:
-        print(f"  FAIL {problem}")
+        _say(f"  FAIL {problem}")
     if problems:
         return _fail(f"{len(problems)} problem(s) between the enumeration and the declarations (design 6.3 step 3)")
     print(f"[enumeration] {len(identifiers)} UI tests match {DECLARATIONS_FILE} exactly")
@@ -2824,7 +2956,7 @@ def cmd_preflight(args):
                      unit_keys=parse_unit_enumeration(_read(args.enumeration), (EXAMPLE_UNIT_TARGET,)) +
                      parse_unit_enumeration(_read(args.unit_enumeration), (LIBRARY_UNIT_TARGET,)),
                      environment={"osVersion": args.os_version, "osBuild": args.os_build, "xcode": args.xcode},
-                     baseline=args.baseline)
+                     baseline=args.baseline, prerequisites=prerequisite_status(args.repo))
     _write_json(args.plan, plan)
     if args.where == "vm":
         print(f"[select] vm: {len(plan['selected'])} UI tests to run, {len(plan['excluded'])} excluded, "
@@ -2930,7 +3062,7 @@ def cmd_approve(args):
     problems += tree_problems(plan, args.repo, _head(args.repo))
     problems += runner_problems(plan, args.repo)
     for problem in problems:
-        print(f"  FAIL {problem}")
+        _say(f"  FAIL {problem}")
     if problems:
         return _fail("the approval does not match this run; run --dry-run and ask the user again")
     ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
@@ -2948,7 +3080,7 @@ def cmd_gate(args):
     ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
     problems = gate_problems(plan, approval, args.repo, _head(args.repo), ledger)
     for problem in problems:
-        print(f"  FAIL {problem}", file=sys.stderr)
+        print(public_message(f"  FAIL {problem}"), file=sys.stderr)
     if problems:
         return _fail("not running on this Mac: the approved plan, the runner or the tree changed", 97)
     return 0
@@ -2995,8 +3127,11 @@ def cmd_unit_record(args):
     plan = json.loads(_read(args.plan))
     invocation = plan["unitInvocations"][args.index]
     tests_text = _read(args.tests_json) if pathlib.Path(args.tests_json).is_file() else None
+    summary_text = _read(args.summary_json) if args.summary_json and pathlib.Path(args.summary_json).is_file() else None
+    if summary_text is None and tests_text is not None:
+        summary_text = "{}"  # a missing summary is a problem, not a pass
     for record in unit_records(invocation["target"], tests_text, args.exit_code, _vocabulary(args.tests_dir),
-                               invocation["expected"]):
+                               invocation["expected"], summary_text):
         print(json.dumps(record, ensure_ascii=False))
     return 0
 
@@ -3015,7 +3150,7 @@ def cmd_check_call(args):
     if args.kind == "ui":
         problems += mac_selection_leaks(plan["invocations"][args.index]["onlyTesting"], plan["allow"])
     for problem in problems:
-        print(f"  FAIL {problem}", file=sys.stderr)
+        print(public_message(f"  FAIL {problem}"), file=sys.stderr)
     return _fail("the xcodebuild call is not the planned one in the private folder", 97) if problems else 0
 
 
@@ -3085,7 +3220,7 @@ def cmd_check_build(args):
     keys = binary_test_keys(parse_otool_classes(_read(args.otool_objc), _read(args.otool_load)))
     problems += binary_inventory_problems(keys, identifiers)
     for problem in problems:
-        print(f"  FAIL {problem}")
+        _say(f"  FAIL {problem}")
     if problems:
         return _fail("the built tests do not match the enumeration (design 6.3)")
     print(f"[binary] the built bundle has the {len(keys)} enumerated tests and the same declarations")
@@ -3199,27 +3334,73 @@ def _read_marker(folder):
     return json.loads(_read(pathlib.Path(folder) / MARKER_NAME))
 
 
+STALE_HINT = ("look for folders whose names start with `ntk-test-mac.` in your temporary folder ($TMPDIR); "
+              "each holds ntk-run-marker.json")
+
+
+def _mark(text):
+    return sha256_bytes(str(text).encode())[:12]
+
+
+def stale_entry(folder, marker, plan):
+    """What the approval fixes about one previous run folder (review v2: Codex A-3): the folder (an
+    opaque mark of its real path), its run ID, a digest of its marker, and each process to stop by PID,
+    start time and an opaque mark of its executable. Not a count, so another folder with as many
+    processes is not the same entry."""
+    return {"folder": _mark(os.path.realpath(folder)), "runId": str(marker.get("runId", "")),
+            "marker": sha256_bytes(json.dumps(marker, sort_keys=True).encode())[:16],
+            "writers": sorted(({"pid": p["pid"], "start": p["start"], "exe": _mark(p.get("exe"))}
+                               for p in plan["processes"]), key=lambda w: (w["pid"], w["start"]))}
+
+
 def stale_listing(folders, port, tool_roots, read_marker):
-    """[{"processes": n}] for each previous run folder (what --dry-run shows and the approval fixes), or
-    RunnerError when a folder has no readable marker or its marker cannot be trusted (Codex A-6)."""
+    """The entries of the previous run folders (stale_entry), or RunnerError when a folder has no
+    readable marker or its marker cannot be trusted (Codex A-6). The message says where to look
+    without naming the place (Claude v2 B-3)."""
     listing = []
     boot = port.boottime()
     for folder in folders:
         try:
             marker = read_marker(folder)
         except (OSError, ValueError):
-            raise RunnerError("NTK-STALE:refused a previous run folder has no readable marker; check it by hand")
-        plan = stale_plan(marker, boot, port.processes(), tool_roots, folder)
+            raise RunnerError("NTK-STALE:refused a previous run folder has no readable marker; check it by hand: "
+                              + STALE_HINT)
+        processes = port.processes()
+        plan = stale_plan(marker, boot, processes, tool_roots, folder)
         if plan["refuse"]:
-            raise RunnerError(f"NTK-STALE:refused a previous run folder's marker cannot be trusted ({plan['refuse']})")
-        listing.append({"processes": len(plan["signal"])})
-    return listing
+            raise RunnerError(f"NTK-STALE:refused a previous run folder's marker cannot be trusted ({plan['refuse']}): "
+                              + STALE_HINT)
+        plan["processes"] = [p for p in processes if p["pid"] in plan["signal"]]
+        listing.append(stale_entry(folder, marker, plan))
+    return sorted(listing, key=lambda e: e["folder"])
+
+
+def stale_changes(approved, now):
+    """Problems between the approved entries and the ones of now. A folder that went away, or a process
+    that ended, is fine; a new folder, another marker or run, or a process not in the approval is not."""
+    if not isinstance(approved, list):
+        return ["the approved list of stopped runs is missing"]
+    by_folder = {e.get("folder"): e for e in approved if isinstance(e, dict)}
+    problems = []
+    for entry in now:
+        was = by_folder.get(entry["folder"])
+        if was is None:
+            problems.append("a stopped run folder that was not approved")
+            continue
+        if (was.get("runId"), was.get("marker")) != (entry["runId"], entry["marker"]):
+            problems.append("a stopped run folder whose marker changed")
+        approved_writers = [(w.get("pid"), w.get("start"), w.get("exe")) for w in was.get("writers", [])]
+        for w in entry["writers"]:
+            if (w["pid"], w["start"], w["exe"]) not in approved_writers:
+                problems.append("a process to stop that was not approved")
+    return problems
 
 
 def cmd_stale(args):
-    """Previous run folders of this Mac. `--list` writes what --dry-run shows; `--stop` (an approved run
-    only) first checks that the folders and their processes are still what the approved plan lists, then
-    stops the writers and removes each folder and its fixture. Neither option is an error (Claude C-4)."""
+    """Previous run folders of this Mac. `--list` writes the entries --dry-run puts into the approval;
+    `--stop` runs only with a consumed approval whose plan holds those entries (the same gate as every
+    xcodebuild), checks that nothing new is there, then stops the writers and removes each folder, its
+    registrations and its fixture (review v2: Codex A-3). Exactly one of the two."""
     if args.list == args.stop:
         return _fail("give exactly one of --list and --stop")
     port = OsPort()
@@ -3228,13 +3409,19 @@ def cmd_stale(args):
     listing = stale_listing(folders, port, tools, _read_marker)
     if args.list:
         _write_json(args.out, listing)
-        alive = sum(x["processes"] for x in listing)
+        alive = sum(len(x["writers"]) for x in listing)
         if alive:
             print(f"NTK-STALE:alive {alive} process(es) of a stopped run")
         return 0
-    approved = json.loads(_read(args.plan)).get("stale")
-    if approved != listing:
-        return _fail("NTK-STALE:changed the stopped runs differ from the approved list; plan and ask again")
+    if not (args.plan and args.approved and args.repo):
+        return _fail("--stop needs --plan, --approved and --repo")
+    plan = json.loads(_read(args.plan))
+    approval = json.loads(_read(args.approved))
+    ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
+    problems = gate_problems(plan, approval, args.repo, _head(args.repo), ledger)
+    problems += stale_changes(plan.get("stale"), listing)
+    if problems:
+        return _fail("NTK-STALE:changed the stopped runs or the approval differ; plan and ask again")
     for folder in folders:
         problem = clean_run_folder(folder, port, tools, _read_marker)
         if problem:
@@ -3243,15 +3430,115 @@ def cmd_stale(args):
     return 0
 
 
+def current_run_problem(marker, approval, ledger_text):
+    """The current run's folder is cleaned only as the run its approval made: the marker names that
+    approval, and the approval was consumed (review v2: Codex A-3)."""
+    if not isinstance(marker, dict) or not isinstance(approval, dict):
+        return "no marker or no approval"
+    if not APPROVAL_ID.match(str(marker.get("approvalId", ""))) or marker.get("approvalId") != approval.get("approvalId"):
+        return "the marker does not name this run's approval"
+    try:
+        if marker["approvalId"] not in ledger_ids(ledger_text):
+            return "the approval was not consumed"
+    except RunnerError:
+        return "the approval ledger cannot be read"
+    return None
+
+
 def cmd_stop_current(args):
-    """The end of a run on this Mac: its writers stopped and found gone by the same three-way match,
-    then its fixture and folder removed; otherwise nothing is removed and the run fails (Codex A-4)."""
+    """The end of a run on this Mac: the folder must be the one the approval made (its marker names the
+    consumed approval), its writers stopped and found gone by the same three-way match, then its
+    registrations, fixture and folder removed; otherwise nothing is removed and the run fails (Codex A-4)."""
     root = os.path.realpath(args.root)
     if not os.path.basename(root).startswith(RUN_FOLDER_PREFIX):
         return _fail("not a run folder")
+    ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
+    try:
+        marker = _read_marker(root)
+        approval = json.loads(_read(pathlib.Path(root) / "approval.approved.json"))
+        ledger_text = ledger.read_text(encoding="utf-8") if ledger.exists() else ""
+    except (OSError, ValueError):
+        return _fail("the run's private folder stays: no readable marker or approval; " + STALE_HINT)
+    problem = current_run_problem(marker, approval, ledger_text)
+    if problem:
+        return _fail(f"the run's private folder stays ({problem}); " + STALE_HINT)
     problem = clean_run_folder(root, OsPort(), _tool_roots(), _read_marker)
     if problem:
         return _fail(f"the run's private folder stays because its writers did not stop ({problem}); its place is not shown")
+    return 0
+
+
+def make_run_folder(scan_root, run_id, approval_id, boottime, now):
+    """The private run folder and its marker in one step, so no folder is ever left without a marker
+    (Claude v2 B-3). The marker names the approval the run consumed."""
+    if not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}", run_id) or not APPROVAL_ID.match(approval_id):
+        raise RunnerError("malformed run ID or approval ID")
+    root = os.path.realpath(tempfile.mkdtemp(prefix=RUN_FOLDER_PREFIX, dir=scan_root))
+    marker = {"schema": 1, "runId": run_id, "approvalId": approval_id, "boottime": boottime, "created": now,
+              "root": root, "writers": [], "pgid": None}
+    path = pathlib.Path(root) / MARKER_NAME
+    tmp = path.with_suffix(".tmp")
+    _write_json(tmp, marker)
+    os.replace(tmp, path)
+    return root
+
+
+def cmd_make_run_folder(args):
+    approval = json.loads(_read(args.approved))
+    ledger = pathlib.Path(args.ledger_for_self_test) if args.ledger_for_self_test else DEFAULT_LEDGER
+    if approval.get("approvalId") not in ledger_ids(ledger.read_text(encoding="utf-8") if ledger.exists() else ""):
+        return _fail("the approval was not consumed; no run folder")
+    print(make_run_folder(args.scan_root, args.run_id, approval["approvalId"], _boottime(), time.time()))
+    return 0
+
+
+PRIVATE_PREFIX = "ntk-test-mac-private."
+OWNER_NAME = "owner.json"
+
+
+def orphaned_private_folders(folders, owners, processes, now, grace=120.0):
+    """The private folders (VM facts, LaunchServices dumps) a run killed without its trap left (Claude v2
+    B-3): those whose owner (the runner's shell: PID and start time) is no longer running. A folder
+    without an owner file counts only once it is older than `grace` (a run that is just starting)."""
+    alive = {(p.get("pid"), p.get("start")) for p in processes}
+    out = []
+    for folder in folders:
+        owner, made = owners.get(folder, (None, None))
+        if owner is None:
+            if made is not None and now - made > grace:
+                out.append(folder)
+        elif (owner.get("pid"), owner.get("start")) not in alive:
+            out.append(folder)
+    return out
+
+
+def cmd_private(args):
+    """`--own <pid>`: record the runner's shell as the owner of its private folder. `--clean`: remove the
+    private folders of earlier runs of this user that their owner left behind."""
+    if args.own is not None:
+        found = [p for p in _processes() if p["pid"] == args.own]
+        if len(found) != 1:
+            return _fail("the owner is not running")
+        _write_json(pathlib.Path(args.dir) / OWNER_NAME, {"pid": found[0]["pid"], "start": found[0]["start"]})
+        return 0
+    folders, owners = [], {}
+    current = os.path.realpath(args.dir) if args.dir else None
+    for folder in sorted(pathlib.Path(args.scan_root).glob(PRIVATE_PREFIX + "*")):
+        if folder.is_symlink() or not folder.is_dir() or folder.stat().st_uid != os.getuid() \
+                or os.path.realpath(folder) == current:
+            continue
+        try:
+            owner = json.loads(_read(folder / OWNER_NAME))
+        except (OSError, ValueError):
+            owner = None
+        folders.append(str(folder))
+        owners[str(folder)] = (owner, folder.stat().st_mtime)
+    removed = 0
+    for folder in orphaned_private_folders(folders, owners, _processes(), time.time()):
+        subprocess.run(["/bin/rm", "-rf", "--", folder], check=True)
+        removed += 1
+    if removed:
+        print(f"[private] removed {removed} private folder(s) an earlier run left")
     return 0
 
 
@@ -3498,6 +3785,7 @@ def main(argv=None):
     p = sub.add_parser("unit-record")
     p.add_argument("--plan", required=True)
     p.add_argument("--index", type=int, required=True)
+    p.add_argument("--summary-json")
     p.add_argument("--tests-json", required=True)
     p.add_argument("--exit-code", type=int, required=True)
     p.add_argument("--tests-dir", required=True)
@@ -3567,12 +3855,29 @@ def main(argv=None):
     p.add_argument("--list", action="store_true")
     p.add_argument("--stop", action="store_true")
     p.add_argument("--plan")
+    p.add_argument("--approved")
+    p.add_argument("--repo")
     p.add_argument("--out")
+    p.add_argument("--ledger-for-self-test", help=argparse.SUPPRESS)
     p.set_defaults(func=cmd_stale)
 
     p = sub.add_parser("stop-current")
     p.add_argument("--root", required=True)
+    p.add_argument("--ledger-for-self-test", help=argparse.SUPPRESS)
     p.set_defaults(func=cmd_stop_current)
+
+    p = sub.add_parser("make-run-folder")
+    p.add_argument("--scan-root", required=True)
+    p.add_argument("--run-id", required=True)
+    p.add_argument("--approved", required=True)
+    p.add_argument("--ledger-for-self-test", help=argparse.SUPPRESS)
+    p.set_defaults(func=cmd_make_run_folder)
+
+    p = sub.add_parser("private")
+    p.add_argument("--scan-root", default="")
+    p.add_argument("--dir", default="")
+    p.add_argument("--own", type=int)
+    p.set_defaults(func=cmd_private)
 
     p = sub.add_parser("audit-check")
     p.add_argument("--repo", required=True)
