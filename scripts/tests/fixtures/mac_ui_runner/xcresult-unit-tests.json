@@ -1,0 +1,2861 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "2150290d73c8ee3602c9700daee42afa0bcc3237",
+      "deviceName" : "My Mac",
+      "modelName" : "Apple Virtual Machine 1",
+      "osBuildNumber" : "24H241",
+      "osVersion" : "15.8.3",
+      "platform" : "macOS"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "name" : "IT-09: a restart that cannot resolve its scope leaves the existing observation running",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/failedRestartKeepsExistingObservation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/failedRestartKeepsExistingObservation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-10: a change is reported exactly once",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/reportsChangeOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/reportsChangeOnce()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-10: no change means no event",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/unchangedProducesNoEvent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/unchangedProducesNoEvent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-10: stopping ends delivery",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/stopEndsDelivery()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/stopEndsDelivery()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "stopping twice is a no-op",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/stopIsIdempotent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/stopIsIdempotent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-11: a tick from a previous subscription is discarded",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/staleGenerationIsDiscarded()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/staleGenerationIsDiscarded()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "CT-07: restarting does not deliver an event twice",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/restartDoesNotDuplicate()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/restartDoesNotDuplicate()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "CT-07: repeated starts leave exactly one poller",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/repeatedStartsLeaveOnePoller()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/repeatedStartsLeaveOnePoller()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "-1.0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "0.0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "61.0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "an interval outside the allowed range is rejected",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/rejectsInvalidInterval(interval:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/rejectsInvalidInterval(interval:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the boundary interval is accepted",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/acceptsBoundaryInterval()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/acceptsBoundaryInterval()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a pasteboard that disappears stops the observation",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/unreadableScopeStopsObservation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/unreadableScopeStopsObservation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the monitor and the foreground check share one tracker",
+                  "nodeIdentifier" : "ClipboardChangeMonitorTests/trackerIsShared()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests/trackerIsShared()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardChangeMonitor",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeMonitorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "the first observation counts as a change",
+                  "nodeIdentifier" : "ClipboardChangeTrackerTests/firstObservationIsAChange()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests/firstObservationIsAChange()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the same change count twice is not a change",
+                  "nodeIdentifier" : "ClipboardChangeTrackerTests/sameValueIsNotAChange()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests/sameValueIsNotAChange()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an increment is a change",
+                  "nodeIdentifier" : "ClipboardChangeTrackerTests/incrementIsAChange()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests/incrementIsAChange()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "scopes are tracked independently",
+                  "nodeIdentifier" : "ClipboardChangeTrackerTests/scopesAreIndependent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests/scopesAreIndependent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "resetting a scope makes the next observation a change again",
+                  "nodeIdentifier" : "ClipboardChangeTrackerTests/resetForgetsOneScope()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests/resetForgetsOneScope()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "resetting everything forgets every scope",
+                  "nodeIdentifier" : "ClipboardChangeTrackerTests/resetAllForgetsEverything()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests/resetAllForgetsEverything()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardChangeTracker",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardChangeTrackerTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "default satisfies its own constraints",
+                  "nodeIdentifier" : "ClipboardLimitsTests/defaultIsValid()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLimitsTests/defaultIsValid()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "accepts values exactly on the boundary",
+                  "nodeIdentifier" : "ClipboardLimitsTests/acceptsEqualThresholds()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLimitsTests/acceptsEqualThresholds()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "-1, 10, 20",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "0, 10, 20",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "10, 0, 20",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "10, 20, 0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "rejects non positive values",
+                  "nodeIdentifier" : "ClipboardLimitsTests/rejectsNonPositive(warn:max:total:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLimitsTests/rejectsNonPositive(warn:max:total:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "rejects warn greater than max",
+                  "nodeIdentifier" : "ClipboardLimitsTests/rejectsWarnAboveMax()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLimitsTests/rejectsWarnAboveMax()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "rejects max greater than total",
+                  "nodeIdentifier" : "ClipboardLimitsTests/rejectsMaxAboveTotal()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLimitsTests/rejectsMaxAboveTotal()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardLimits",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLimitsTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "valid content passes",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/acceptsValidContent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/acceptsValidContent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "empty content is rejected",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/rejectsEmptyContent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/rejectsEmptyContent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an item with no representations is rejected and names its index",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/rejectsEmptyRepresentations()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/rejectsEmptyRepresentations()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an invalid identifier is rejected",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/rejectsInvalidIdentifier()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/rejectsInvalidIdentifier()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "every identifier is checked",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/checksEveryIdentifier()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/checksEveryIdentifier()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a representation exactly on the hard limit is accepted",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/acceptsRepresentationAtLimit()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/acceptsRepresentationAtLimit()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a representation one byte over the hard limit is rejected",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/rejectsRepresentationOverLimit()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/rejectsRepresentationOverLimit()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a representation exactly on the warn threshold is accepted",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/acceptsRepresentationAtWarnThreshold()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/acceptsRepresentationAtWarnThreshold()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a total exactly on the limit is accepted",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/acceptsTotalAtLimit()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/acceptsTotalAtLimit()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a total one byte over the limit is rejected",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/rejectsTotalOverLimit()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/rejectsTotalOverLimit()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the per representation limit is reported before the total",
+                  "nodeIdentifier" : "ClipboardContentValidatorTests/representationLimitTakesPrecedence()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests/representationLimitTakesPrecedence()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardContentValidator",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardContentValidatorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "every domain pattern maps to a distinct key path",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/patternsMapOneToOne()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/patternsMapOneToOne()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the mapping round trips",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/patternRoundTrip()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/patternRoundTrip()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an unknown key path is ignored rather than failing",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/unknownKeyPathIsIgnored()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/unknownKeyPathIsIgnored()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "metadata key paths cover every domain type",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/metadataKeyPaths()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/metadataKeyPaths()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detecting on an empty pasteboard reports no patterns",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/detectOnEmptyPasteboard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/detectOnEmptyPasteboard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an email address is detected without reading the contents",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/detectsEmailAddress()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/detectsEmailAddress()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detected values keep every field of the match",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/detectedValuesKeepFields()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/detectedValuesKeepFields()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a pattern that did not match leaves its field nil",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/unmatchedPatternIsNil()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/unmatchedPatternIsNil()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "metadata reports the content type of a file reference",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/detectsMetadataForFileReference()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/detectsMetadataForFileReference()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "metadata detection on plain text fails rather than returning nothing",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/metadataFailsForPlainText()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/metadataFailsForPlainText()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "accessBehavior reports a value rather than throwing",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/accessBehaviorReturnsValue()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/accessBehaviorReturnsValue()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "accessBehavior rejects an unresolvable scope even before 15.4",
+                  "nodeIdentifier" : "ClipboardDetectionMapperTests/accessBehaviorRejectsBadScope()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests/accessBehaviorRejectsBadScope()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Clipboard detection",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDetectionMapperTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "the source tree was found",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/sourcesAreReadable()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/sourcesAreReadable()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "every public symbol carries a doc comment",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/everyPublicSymbolIsDocumented()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/everyPublicSymbolIsDocumented()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "doc comments are in English",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentationIsEnglish()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentationIsEnglish()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "RK-01, RK-02 and RK-22: no operation is documented as silent",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/doesNotPromiseSilence()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/doesNotPromiseSilence()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "RK-24: the read and write asymmetry is stated",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentsReadSuperset()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentsReadSuperset()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "RK-23: append's contract difference from iOS is stated",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentsAppendOwnership()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentsAppendOwnership()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "RK-06: pasteboard lifetime beyond the process is stated",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentsPasteboardLifetime()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentsPasteboardLifetime()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "V-8: localOnly is documented as unverified",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentsLocalOnlyUnverified()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentsLocalOnlyUnverified()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "RK-16: the paste button's lack of validation is stated",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentsPasteButtonValidation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentsPasteButtonValidation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "RK-25: metadata detection failing on plain text is stated",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/documentsMetadataFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/documentsMetadataFailure()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "every error case has a message and a code in its own band",
+                  "nodeIdentifier" : "ClipboardDocumentationTests/errorContractIsComplete()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests/errorContractIsComplete()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Clipboard documentation",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardDocumentationTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "every case is covered by the table",
+                  "nodeIdentifier" : "ClipboardErrorTests/caseCount()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/caseCount()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "error codes are unique",
+                  "nodeIdentifier" : "ClipboardErrorTests/codesAreUnique()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/codesAreUnique()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "error codes stay inside the reserved clipboard band",
+                  "nodeIdentifier" : "ClipboardErrorTests/codesInBand()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/codesInBand()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "error codes do not collide with the bridge band",
+                  "nodeIdentifier" : "ClipboardErrorTests/noBridgeCollision()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/noBridgeCollision()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "messages are non empty, English and end with a period",
+                  "nodeIdentifier" : "ClipboardErrorTests/messagesWellFormed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/messagesWellFormed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "messages interpolate their associated values",
+                  "nodeIdentifier" : "ClipboardErrorTests/messagesCarryContext()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/messagesCarryContext()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "localizedDescription mirrors errorMessage",
+                  "nodeIdentifier" : "ClipboardErrorTests/localizedDescriptionMatches()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/localizedDescriptionMatches()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "specific codes match the design table",
+                  "nodeIdentifier" : "ClipboardErrorTests/spotCheckCodes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests/spotCheckCodes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardError",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardErrorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "every logged expression is a count, a flag, or goes through ClipboardLog",
+                  "nodeIdentifier" : "ClipboardLogAuditTests/noValueReachesTheLogVerbatim()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLogAuditTests/noValueReachesTheLogVerbatim()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the audit actually inspects the sources",
+                  "nodeIdentifier" : "ClipboardLogAuditTests/auditHasSubjects()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLogAuditTests/auditHasSubjects()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a creation request never logs its name",
+                  "nodeIdentifier" : "ClipboardLogAuditTests/requestIsHashed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLogAuditTests/requestIsHashed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Clipboard log redaction",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardLogAuditTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "every representation reaches the pasteboard item",
+                  "nodeIdentifier" : "ClipboardMappersTests/writesEveryRepresentation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/writesEveryRepresentation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "item order is preserved",
+                  "nodeIdentifier" : "ClipboardMappersTests/preservesItemOrder()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/preservesItemOrder()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "each call produces fresh items",
+                  "nodeIdentifier" : "ClipboardMappersTests/producesFreshItems()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/producesFreshItems()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an empty content maps to no items",
+                  "nodeIdentifier" : "ClipboardMappersTests/emptyContent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/emptyContent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an item with no representations maps to an empty pasteboard item",
+                  "nodeIdentifier" : "ClipboardMappersTests/emptyRepresentations()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/emptyRepresentations()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a malformed identifier is reported rather than silently dropped",
+                  "nodeIdentifier" : "ClipboardMappersTests/rejectsMalformedIdentifier()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/rejectsMalformedIdentifier()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "reading returns every representation of every item",
+                  "nodeIdentifier" : "ClipboardMappersTests/readsEveryRepresentation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/readsEveryRepresentation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a write followed by a read round trips",
+                  "nodeIdentifier" : "ClipboardMappersTests/roundTrips()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/roundTrips()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "reading no items yields no data",
+                  "nodeIdentifier" : "ClipboardMappersTests/readsEmpty()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/readsEmpty()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "types are reported without reading any payload",
+                  "nodeIdentifier" : "ClipboardMappersTests/reportsTypesOnly()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests/reportsTypesOnly()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardMappers",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardMappersTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "children" : [
+                    {
+                      "name" : "the adapter loads through a real NSItemProvider",
+                      "nodeIdentifier" : "ClipboardPasteLoaderTests/ItemProviderSourceTests/loadsThroughRealProvider()",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/loadsThroughRealProvider()",
+                      "nodeType" : "Test Case",
+                      "result" : "Passed"
+                    },
+                    {
+                      "name" : "M-4: cancelling before the Progress exists still cancels the provider work",
+                      "nodeIdentifier" : "ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelBeforeProgressInstalled()",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelBeforeProgressInstalled()",
+                      "nodeType" : "Test Case",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "1s",
+                      "durationInSeconds" : 1,
+                      "name" : "M-4: cancelling after the Progress exists cancels it",
+                      "nodeIdentifier" : "ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelAfterProgressInstalled()",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelAfterProgressInstalled()",
+                      "nodeType" : "Test Case",
+                      "result" : "Passed"
+                    },
+                    {
+                      "name" : "a cancelled load reports cancellation rather than hanging",
+                      "nodeIdentifier" : "ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelledLoadThrows()",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests/cancelledLoadThrows()",
+                      "nodeType" : "Test Case",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "Item provider adapter",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/ItemProviderSourceTests",
+                  "nodeType" : "Test Suite",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-01: every provider is loaded and returned",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/loadsEveryProvider()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/loadsEveryProvider()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "no providers means an empty result, not a failure",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/emptyInputIsEmptyResult()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/emptyInputIsEmptyResult()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "1s",
+                  "durationInSeconds" : 1,
+                  "name" : "PT-02: one failure does not stop the others",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/partialFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/partialFailure()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-07: every provider failing is a complete failure, not a partial one",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/completeFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/completeFailure()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a provider with no accepted type is a failure, not a silent drop",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/unmatchedProviderFails()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/unmatchedProviderFails()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-03: a provider that never answers is timed out and onPaste still runs once",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/timeoutDeliversOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/timeoutDeliversOnce()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "1s",
+                  "durationInSeconds" : 1,
+                  "name" : "PT-03: every provider index appears exactly once in the result",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/everyIndexAccountedFor()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/everyIndexAccountedFor()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-04: the accepted type order decides which representation is loaded",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/typePriorityIsDeterministic()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/typePriorityIsDeterministic()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-04: reversing the priority reverses the choice",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/typePriorityReversed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/typePriorityReversed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "1s",
+                  "durationInSeconds" : 1,
+                  "name" : "PT-06: results are in input order, not completion order",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/resultsAreInInputOrder()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/resultsAreInInputOrder()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-05: cancelling suppresses delivery",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/cancelSuppressesDelivery()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/cancelSuppressesDelivery()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-05: cancelling twice is a no-op",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/cancelIsIdempotent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/cancelIsIdempotent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "cancelling after delivery does not undo it",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/cancelAfterDelivery()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/cancelAfterDelivery()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "H-4: a second press delivers its own result",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/secondPressDelivers()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/secondPressDelivers()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "1s",
+                  "durationInSeconds" : 1,
+                  "name" : "H-4: a new press supersedes one still running",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/newPressSupersedesRunning()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/newPressSupersedesRunning()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "H-4: cancelling still suppresses a later press",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/cancelSuppressesSubsequentPresses()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/cancelSuppressesSubsequentPresses()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "1s",
+                  "durationInSeconds" : 1,
+                  "name" : "H-1: a provider that never calls back still hits the deadline",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/hangingProviderStillTimesOut()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/hangingProviderStillTimesOut()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "1s",
+                  "durationInSeconds" : 1,
+                  "name" : "H-1: every provider hanging still produces a result",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/allHangingStillTimesOut()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/allHangingStillTimesOut()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an empty accepted type list is rejected",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/rejectsEmptyAcceptedTypes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/rejectsEmptyAcceptedTypes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a malformed accepted type is rejected",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/rejectsMalformedAcceptedType()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/rejectsMalformedAcceptedType()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "-1.0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "0.0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "301.0",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "a timeout outside the allowed range is rejected",
+                  "nodeIdentifier" : "ClipboardPasteLoaderTests/rejectsInvalidTimeout(timeout:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests/rejectsInvalidTimeout(timeout:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Paste loading",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardPasteLoaderTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "PT-08: releasing the container view cancels the paste",
+                  "nodeIdentifier" : "PasteButtonLifetimeTests/deinitCancelsPaste()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteButtonLifetimeTests/deinitCancelsPaste()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-16: an accepted type the system cannot resolve is rejected, not dropped",
+                  "nodeIdentifier" : "PasteButtonLifetimeTests/undeclaredAcceptedTypeThrows()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteButtonLifetimeTests/undeclaredAcceptedTypeThrows()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-16: system declared types build a button and register one loader",
+                  "nodeIdentifier" : "PasteButtonLifetimeTests/declaredAcceptedTypesSucceed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteButtonLifetimeTests/declaredAcceptedTypesSucceed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "PT-08: cancelling a paste twice does not crash",
+                  "nodeIdentifier" : "PasteButtonLifetimeTests/cancelPasteIsIdempotent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteButtonLifetimeTests/cancelPasteIsIdempotent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the coordinator holds the loader until the paste is cancelled",
+                  "nodeIdentifier" : "PasteButtonLifetimeTests/coordinatorOwnsLoader()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteButtonLifetimeTests/coordinatorOwnsLoader()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Paste button lifetime",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteButtonLifetimeTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "IT-01: a write round trips through a read",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/writeReadRoundTrip()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/writeReadRoundTrip()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a read can report more representations than were written",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/readReportsDerivedRepresentations()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/readReportsDerivedRepresentations()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-01: readData returns the bytes for one type",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/readDataReturnsBytes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/readDataReturnsBytes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "readData reports a missing type as nil rather than an error",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/readDataMissingTypeIsNil()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/readDataMissingTypeIsNil()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-02: append adds items and leaves the change count untouched",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/appendAddsItems()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/appendAddsItems()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-02: repeated appends keep accumulating",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/repeatedAppends()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/repeatedAppends()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-03: append after another owner takes over reports lost ownership",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/appendAfterOwnershipLost()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/appendAfterOwnershipLost()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-04: a write advances the change count exactly once",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/writeTakesOwnershipOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/writeTakesOwnershipOnce()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a rejected write leaves the pasteboard untouched",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/rejectedWriteLeavesContentsIntact()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/rejectedWriteLeavesContentsIntact()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-05: writing the same content twice does not throw",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/repeatedIdenticalWrites()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/repeatedIdenticalWrites()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-07: multiple items keep their count and order",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/multipleItemsArePreserved()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/multipleItemsArePreserved()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-08: an unfiltered snapshot reports every item",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/snapshotUnfiltered()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/snapshotUnfiltered()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-08: a filter matches by conformance, not equality",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/snapshotMatchesByConformance()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/snapshotMatchesByConformance()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-08: a filter that matches nothing yields no indexes",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/snapshotMatchesNothing()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/snapshotMatchesNothing()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an empty filter is rejected",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/snapshotRejectsEmptyFilter()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/snapshotRejectsEmptyFilter()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a snapshot filter can name an app's own undeclared type",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/snapshotMatchesUndeclaredType()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/snapshotMatchesUndeclaredType()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "clear empties the pasteboard and reports the new change count",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/clearEmptiesPasteboard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/clearEmptiesPasteboard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-06: releasing the general pasteboard is refused",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/refusesToReleaseGeneral()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/refusesToReleaseGeneral()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "IT-06: releasing any standard pasteboard by name is refused",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/refusesToReleaseStandardNames()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/refusesToReleaseStandardNames()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a unique pasteboard can be created and released",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/createsAndReleasesUniquePasteboard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/createsAndReleasesUniquePasteboard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a named pasteboard reports the requested name",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/createsNamedPasteboard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/createsNamedPasteboard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an empty pasteboard name is rejected",
+                  "nodeIdentifier" : "ClipboardRepositoryImplTests/rejectsEmptyName()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests/rejectsEmptyName()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardRepositoryImpl",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardRepositoryImplTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "a lazy provider is held until released",
+                  "nodeIdentifier" : "ClipboardSystemCoordinatorTests/lazyProviderLifecycle()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardSystemCoordinatorTests/lazyProviderLifecycle()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "releasing a lazy provider twice is a no-op",
+                  "nodeIdentifier" : "ClipboardSystemCoordinatorTests/lazyProviderReleaseIsIdempotent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardSystemCoordinatorTests/lazyProviderReleaseIsIdempotent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the registered types are recorded with the provider",
+                  "nodeIdentifier" : "ClipboardSystemCoordinatorTests/lazyProviderKeepsItsTypes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardSystemCoordinatorTests/lazyProviderKeepsItsTypes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an unknown handle resolves to no provider",
+                  "nodeIdentifier" : "ClipboardSystemCoordinatorTests/unknownLazyProviderResolvesToNil()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardSystemCoordinatorTests/unknownLazyProviderResolvesToNil()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardSystemCoordinator",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardSystemCoordinatorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.adobe.pdf\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.data\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.directory\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.file-url\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.png\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.rtf\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.utf8-plain-text\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "well known identifiers are valid",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/acceptsKnownIdentifiers(identifier:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsKnownIdentifiers(identifier:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\" \"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"abc\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"not a uti\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public..text\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"パブリック\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "malformed identifiers are rejected",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/rejectsMalformedIdentifiers(identifier:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsMalformedIdentifiers(identifier:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"a.b\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.mycompany.myformat\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.nativetoolkit.tests.custom-type\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "an app's own undeclared identifier is accepted",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/acceptsUndeclaredIdentifier(identifier:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsUndeclaredIdentifier(identifier:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a single segment is rejected",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/rejectsSingleSegment()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsSingleSegment()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"..\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\".\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\".com.a\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a..b\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "empty segments are rejected",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/rejectsEmptySegments(identifier:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsEmptySegments(identifier:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"-a.b\", false",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"a-.b\", false",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"a.--\", false",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"a.b--c\", true",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"a.b-\", false",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b-c\", true",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"public.utf8-plain-text\", true",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "hyphens are allowed inside a segment only",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/hyphenPlacement(identifier:expected:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/hyphenPlacement(identifier:expected:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b\tc\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b_c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b:c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b@c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b*c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b/c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b#c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b%c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.b+c\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "only ASCII alphanumerics and hyphens are allowed",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/rejectsDisallowedCharacters(identifier:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsDisallowedCharacters(identifier:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"1com.a\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"a.1-2\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.1\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : "\"com.a.B\"",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "uppercase and digits are allowed",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/acceptsUppercaseAndDigits(identifier:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsUppercaseAndDigits(identifier:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "long identifiers are not truncated or rejected",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/acceptsLongIdentifier()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/acceptsLongIdentifier()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "conformance matches a subtype against its supertype",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/conformsToSupertype()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToSupertype()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "conformance is not symmetric",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/conformanceIsDirectional()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformanceIsDirectional()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a type conforms to itself",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/conformsToSelf()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToSelf()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "unrelated types do not conform",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/rejectsUnrelated()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/rejectsUnrelated()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an unresolvable identifier conforms to nothing",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/unresolvableConformsToNothing()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/unresolvableConformsToNothing()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an undeclared custom type still matches a filter naming it exactly",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/undeclaredTypeMatchesItself()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/undeclaredTypeMatchesItself()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a malformed identifier does not even conform to itself",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/malformedDoesNotConformToItself()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/malformedDoesNotConformToItself()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "any-of matching succeeds when one filter conforms",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/conformsToAnyOf()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToAnyOf()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "any-of matching fails when no filter conforms",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/conformsToNoneOf()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/conformsToNoneOf()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an empty filter list matches nothing",
+                  "nodeIdentifier" : "ClipboardTypeIdentifierValidatorTests/emptyFilterMatchesNothing()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests/emptyFilterMatchesNothing()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ClipboardTypeIdentifierValidator",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ClipboardTypeIdentifierValidatorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "detectPatterns rejects an empty request before reaching the port",
+                  "nodeIdentifier" : "DetectionUseCaseTests/detectPatternsRejectsEmpty()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/detectPatternsRejectsEmpty()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detectValues rejects an empty request",
+                  "nodeIdentifier" : "DetectionUseCaseTests/detectValuesRejectsEmpty()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/detectValuesRejectsEmpty()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detectPatterns forwards a non empty request",
+                  "nodeIdentifier" : "DetectionUseCaseTests/detectPatternsForwards()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/detectPatternsForwards()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detectPatterns propagates unavailability below macOS 15.4",
+                  "nodeIdentifier" : "DetectionUseCaseTests/detectPatternsPropagatesUnavailable()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/detectPatternsPropagatesUnavailable()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detectValues propagates a denial",
+                  "nodeIdentifier" : "DetectionUseCaseTests/detectValuesPropagatesDenial()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/detectValuesPropagatesDenial()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "detectMetadata takes no pattern set and forwards directly",
+                  "nodeIdentifier" : "DetectionUseCaseTests/detectMetadataForwards()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/detectMetadataForwards()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "accessBehavior reports unavailability as a value, not an error",
+                  "nodeIdentifier" : "DetectionUseCaseTests/accessBehaviorReturnsUnavailable()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/accessBehaviorReturnsUnavailable()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "accessBehavior propagates an unresolvable scope",
+                  "nodeIdentifier" : "DetectionUseCaseTests/accessBehaviorPropagatesInvalidScope()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/accessBehaviorPropagatesInvalidScope()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "checkForegroundChange reports the first look as a change",
+                  "nodeIdentifier" : "DetectionUseCaseTests/foregroundFirstLookIsAChange()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/foregroundFirstLookIsAChange()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "checkForegroundChange reports no change when the count is unmoved",
+                  "nodeIdentifier" : "DetectionUseCaseTests/foregroundUnchanged()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/foregroundUnchanged()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "checkForegroundChange shares its tracker with the aggregate",
+                  "nodeIdentifier" : "DetectionUseCaseTests/foregroundSharesTracker()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests/foregroundSharesTracker()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Detection use cases",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/DetectionUseCaseTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "small content is written directly",
+                  "nodeIdentifier" : "LazyDataProviderTests/smallContentIsDirect()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/smallContentIsDirect()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "content exactly on the warn threshold is written directly",
+                  "nodeIdentifier" : "LazyDataProviderTests/thresholdIsExclusive()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/thresholdIsExclusive()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "multi item content is written directly regardless of size",
+                  "nodeIdentifier" : "LazyDataProviderTests/multiItemIsDirect()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/multiItemIsDirect()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a large copy registers a provider and writes it promised",
+                  "nodeIdentifier" : "LazyDataProviderTests/largeCopyUsesProvider()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/largeCopyUsesProvider()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a small copy leaves no registration behind",
+                  "nodeIdentifier" : "LazyDataProviderTests/smallCopyRegistersNothing()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/smallCopyRegistersNothing()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "R2-M12: a failed promised write rolls the registration back",
+                  "nodeIdentifier" : "LazyDataProviderTests/failedWriteReleasesProvider()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/failedWriteReleasesProvider()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the registered types are the item's representations",
+                  "nodeIdentifier" : "LazyDataProviderTests/registeredTypesMatchContent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/registeredTypesMatchContent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the provider supplies bytes only when a type is requested",
+                  "nodeIdentifier" : "LazyDataProviderTests/providerSuppliesOnDemand()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/providerSuppliesOnDemand()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "declining a type leaves it absent rather than empty",
+                  "nodeIdentifier" : "LazyDataProviderTests/providerCanDecline()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/providerCanDecline()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the pasteboard finishing releases the registration",
+                  "nodeIdentifier" : "LazyDataProviderTests/finishReleasesRegistration()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/finishReleasesRegistration()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a promised write round trips through a real pasteboard",
+                  "nodeIdentifier" : "LazyDataProviderTests/promisedWriteRoundTrips()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/promisedWriteRoundTrips()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a promised write with no types is rejected",
+                  "nodeIdentifier" : "LazyDataProviderTests/promisedWriteRejectsEmptyTypes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests/promisedWriteRejectsEmptyTypes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Lazy data provision",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/LazyDataProviderTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "the default object graph builds without a cycle",
+                  "nodeIdentifier" : "MacClipboardManagerTests/defaultGraphBuilds()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/defaultGraphBuilds()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "copy returns the ownership",
+                  "nodeIdentifier" : "MacClipboardManagerTests/copyReturnsOwnership()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/copyReturnsOwnership()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "copy defaults to the general pasteboard and localOnly",
+                  "nodeIdentifier" : "MacClipboardManagerTests/copyDefaults()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/copyDefaults()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a native call throws the domain error unchanged",
+                  "nodeIdentifier" : "MacClipboardManagerTests/nativeThrowsDomainError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/nativeThrowsDomainError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "readData reports a missing type as nil",
+                  "nodeIdentifier" : "MacClipboardManagerTests/readDataMissingIsNil()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/readDataMissingIsNil()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a successful callback reports (true, value, 0, nil)",
+                  "nodeIdentifier" : "MacClipboardManagerTests/callbackSuccessShape()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/callbackSuccessShape()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a failing callback reports the domain code and message",
+                  "nodeIdentifier" : "MacClipboardManagerTests/callbackFailureShape()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/callbackFailureShape()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the void callback omits the value argument",
+                  "nodeIdentifier" : "MacClipboardManagerTests/voidCallbackShape()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/voidCallbackShape()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a nil callback does not trap",
+                  "nodeIdentifier" : "MacClipboardManagerTests/nilCallbackIsSafe()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/nilCallbackIsSafe()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "readData reports a missing type as success with a nil value",
+                  "nodeIdentifier" : "MacClipboardManagerTests/readDataCallbackMissingType()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/readDataCallbackMissingType()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an async operation's callback is delivered on the main actor",
+                  "nodeIdentifier" : "MacClipboardManagerTests/asyncCallbackIsMainActor()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/asyncCallbackIsMainActor()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an async operation reports its error through the callback",
+                  "nodeIdentifier" : "MacClipboardManagerTests/asyncCallbackFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/asyncCallbackFailure()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an empty pattern set is rejected before the port is reached",
+                  "nodeIdentifier" : "MacClipboardManagerTests/emptyPatternsRejected()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/emptyPatternsRejected()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "accessBehavior is synchronous",
+                  "nodeIdentifier" : "MacClipboardManagerTests/accessBehaviorIsSynchronous()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/accessBehaviorIsSynchronous()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "checkForegroundChange reports the first look as a change",
+                  "nodeIdentifier" : "MacClipboardManagerTests/foregroundFirstLook()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests/foregroundFirstLook()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "MacClipboardManager",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacClipboardManagerTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "example()",
+                  "nodeIdentifier" : "MacLibraryTests/example()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacLibraryTests/example()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "MacLibraryTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacLibraryTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "shareCompletionSucceedsWithChosenService()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareCompletionSucceedsWithChosenService()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareCompletionSucceedsWithChosenService()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "shareCompletionReflectsCancellation()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareCompletionReflectsCancellation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareCompletionReflectsCancellation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "shareCompletionReturnsFailureMessageOnError()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareCompletionReturnsFailureMessageOnError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareCompletionReturnsFailureMessageOnError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "shareViaServiceCompletionSucceeds()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareViaServiceCompletionSucceeds()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareViaServiceCompletionSucceeds()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "shareViaServiceCompletionReturnsFailureMessageOnError()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareViaServiceCompletionReturnsFailureMessageOnError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareViaServiceCompletionReturnsFailureMessageOnError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "shareAsyncReturnsResult()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareAsyncReturnsResult()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareAsyncReturnsResult()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "shareAsyncThrowsTypedError()",
+                  "nodeIdentifier" : "MacShareManagerTests/shareAsyncThrowsTypedError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/shareAsyncThrowsTypedError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "canPerformReturnsStubbedValue()",
+                  "nodeIdentifier" : "MacShareManagerTests/canPerformReturnsStubbedValue()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests/canPerformReturnsStubbedValue()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "MacShareManagerTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/MacShareManagerTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "registerCategoryCallsSetCategories()",
+                  "nodeIdentifier" : "NotificationCategoryUseCasesTests/registerCategoryCallsSetCategories()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationCategoryUseCasesTests/registerCategoryCallsSetCategories()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "registerCategoryFailsOnEmptyId()",
+                  "nodeIdentifier" : "NotificationCategoryUseCasesTests/registerCategoryFailsOnEmptyId()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationCategoryUseCasesTests/registerCategoryFailsOnEmptyId()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removeCategoryRemovesFromRegisteredSet()",
+                  "nodeIdentifier" : "NotificationCategoryUseCasesTests/removeCategoryRemovesFromRegisteredSet()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationCategoryUseCasesTests/removeCategoryRemovesFromRegisteredSet()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removeCategoryFailsOnEmptyId()",
+                  "nodeIdentifier" : "NotificationCategoryUseCasesTests/removeCategoryFailsOnEmptyId()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationCategoryUseCasesTests/removeCategoryFailsOnEmptyId()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "NotificationCategoryUseCasesTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationCategoryUseCasesTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "showSuccessCallsAdd()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/showSuccessCallsAdd()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/showSuccessCallsAdd()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "showFailsOnEmptyTitle()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/showFailsOnEmptyTitle()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/showFailsOnEmptyTitle()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "showFailsOnInvalidId()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/showFailsOnInvalidId()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/showFailsOnInvalidId()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "showFailsOnTriggerBelowOneSecond()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/showFailsOnTriggerBelowOneSecond()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/showFailsOnTriggerBelowOneSecond()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "showPropagatesRepositoryError()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/showPropagatesRepositoryError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/showPropagatesRepositoryError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "updateSuccessCallsAdd()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/updateSuccessCallsAdd()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/updateSuccessCallsAdd()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "updateFailsOnInvalidContent()",
+                  "nodeIdentifier" : "NotificationDispatchUseCasesTests/updateFailsOnInvalidContent()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests/updateFailsOnInvalidContent()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "NotificationDispatchUseCasesTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDispatchUseCasesTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "unsupportedOSHasCode1001()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/unsupportedOSHasCode1001()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/unsupportedOSHasCode1001()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "permissionDeniedHasCode1002()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/permissionDeniedHasCode1002()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/permissionDeniedHasCode1002()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "permissionRequestFailedHasCode1003()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/permissionRequestFailedHasCode1003()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/permissionRequestFailedHasCode1003()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "invalidContentHasCode1101()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/invalidContentHasCode1101()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/invalidContentHasCode1101()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "invalidTriggerHasCode1102()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/invalidTriggerHasCode1102()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/invalidTriggerHasCode1102()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "invalidCategoryHasCode1103()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/invalidCategoryHasCode1103()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/invalidCategoryHasCode1103()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "notificationNotFoundHasCode1104()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/notificationNotFoundHasCode1104()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/notificationNotFoundHasCode1104()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "addFailedHasCode1201()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/addFailedHasCode1201()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/addFailedHasCode1201()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removeFailedHasCode1202()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/removeFailedHasCode1202()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/removeFailedHasCode1202()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "queryFailedHasCode1203()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/queryFailedHasCode1203()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/queryFailedHasCode1203()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "setBadgeFailedHasCode1204()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/setBadgeFailedHasCode1204()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/setBadgeFailedHasCode1204()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "openSettingsFailedHasCode1205()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/openSettingsFailedHasCode1205()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/openSettingsFailedHasCode1205()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "unknownHasCode1999()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/unknownHasCode1999()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/unknownHasCode1999()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "unsupportedOSErrorMessageContainsMinimum()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/unsupportedOSErrorMessageContainsMinimum()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/unsupportedOSErrorMessageContainsMinimum()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "notificationNotFoundErrorMessageContainsIdentifier()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/notificationNotFoundErrorMessageContainsIdentifier()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/notificationNotFoundErrorMessageContainsIdentifier()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "invalidContentErrorMessageContainsReason()",
+                  "nodeIdentifier" : "NotificationDomainErrorTests/invalidContentErrorMessageContainsReason()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests/invalidContentErrorMessageContainsReason()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "NotificationDomainErrorTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationDomainErrorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "getDeliveredSuccessReturnsEmpty()",
+                  "nodeIdentifier" : "NotificationQueryUseCasesTests/getDeliveredSuccessReturnsEmpty()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationQueryUseCasesTests/getDeliveredSuccessReturnsEmpty()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "getDeliveredPropagatesQueryFailure()",
+                  "nodeIdentifier" : "NotificationQueryUseCasesTests/getDeliveredPropagatesQueryFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationQueryUseCasesTests/getDeliveredPropagatesQueryFailure()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removeDeliveredCallsRepositoryWithIdentifier()",
+                  "nodeIdentifier" : "NotificationQueryUseCasesTests/removeDeliveredCallsRepositoryWithIdentifier()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationQueryUseCasesTests/removeDeliveredCallsRepositoryWithIdentifier()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removeAllDeliveredCallsRepository()",
+                  "nodeIdentifier" : "NotificationQueryUseCasesTests/removeAllDeliveredCallsRepository()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationQueryUseCasesTests/removeAllDeliveredCallsRepository()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "NotificationQueryUseCasesTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationQueryUseCasesTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "scheduleSuccessWithTimeInterval()",
+                  "nodeIdentifier" : "NotificationScheduleUseCasesTests/scheduleSuccessWithTimeInterval()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests/scheduleSuccessWithTimeInterval()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "scheduleRejectsImmediateTrigger()",
+                  "nodeIdentifier" : "NotificationScheduleUseCasesTests/scheduleRejectsImmediateTrigger()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests/scheduleRejectsImmediateTrigger()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "cancelScheduledCallsRemovePending()",
+                  "nodeIdentifier" : "NotificationScheduleUseCasesTests/cancelScheduledCallsRemovePending()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests/cancelScheduledCallsRemovePending()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "cancelAllScheduledCallsRemoveAllPending()",
+                  "nodeIdentifier" : "NotificationScheduleUseCasesTests/cancelAllScheduledCallsRemoveAllPending()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests/cancelAllScheduledCallsRemoveAllPending()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "getScheduledSuccessReturnsEmpty()",
+                  "nodeIdentifier" : "NotificationScheduleUseCasesTests/getScheduledSuccessReturnsEmpty()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests/getScheduledSuccessReturnsEmpty()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "getScheduledPropagatesQueryFailure()",
+                  "nodeIdentifier" : "NotificationScheduleUseCasesTests/getScheduledPropagatesQueryFailure()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests/getScheduledPropagatesQueryFailure()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "NotificationScheduleUseCasesTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/NotificationScheduleUseCasesTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "general resolves to the system general pasteboard",
+                  "nodeIdentifier" : "PasteboardResolverTests/resolvesGeneral()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/resolvesGeneral()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "a named scope resolves to a pasteboard carrying that name",
+                  "nodeIdentifier" : "PasteboardResolverTests/resolvesNamed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/resolvesNamed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "resolving the same name twice addresses the same pasteboard",
+                  "nodeIdentifier" : "PasteboardResolverTests/resolvesStableIdentity()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/resolvesStableIdentity()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : ".named(\"\")",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0s",
+                      "durationInSeconds" : 0,
+                      "name" : ".unique(\"\")",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "name" : "an empty name is rejected",
+                  "nodeIdentifier" : "PasteboardResolverTests/rejectsEmptyName(scope:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/rejectsEmptyName(scope:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "creating a named pasteboard returns the resolved name in the scope",
+                  "nodeIdentifier" : "PasteboardResolverTests/createNamed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/createNamed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "creating a unique pasteboard reports the system chosen name",
+                  "nodeIdentifier" : "PasteboardResolverTests/createUnique()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/createUnique()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "two unique pasteboards do not collide",
+                  "nodeIdentifier" : "PasteboardResolverTests/uniqueNamesDiffer()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/uniqueNamesDiffer()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "creating with an empty name is rejected",
+                  "nodeIdentifier" : "PasteboardResolverTests/createRejectsEmptyName()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/createRejectsEmptyName()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "general is always a standard pasteboard",
+                  "nodeIdentifier" : "PasteboardResolverTests/generalIsStandard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/generalIsStandard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "the five system pasteboard names are standard",
+                  "nodeIdentifier" : "PasteboardResolverTests/systemNamesAreStandard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/systemNamesAreStandard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "an app owned name is not standard",
+                  "nodeIdentifier" : "PasteboardResolverTests/customNameIsNotStandard()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests/customNameIsNotStandard()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "PasteboardResolver",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/PasteboardResolverTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "noValidItemsHasCode1401()",
+                  "nodeIdentifier" : "ShareErrorTests/noValidItemsHasCode1401()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/noValidItemsHasCode1401()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "invalidURLHasCode1402()",
+                  "nodeIdentifier" : "ShareErrorTests/invalidURLHasCode1402()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/invalidURLHasCode1402()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "imageLoadFailedHasCode1403()",
+                  "nodeIdentifier" : "ShareErrorTests/imageLoadFailedHasCode1403()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/imageLoadFailedHasCode1403()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "fileNotFoundHasCode1404()",
+                  "nodeIdentifier" : "ShareErrorTests/fileNotFoundHasCode1404()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/fileNotFoundHasCode1404()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "noAnchorViewHasCode1405()",
+                  "nodeIdentifier" : "ShareErrorTests/noAnchorViewHasCode1405()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/noAnchorViewHasCode1405()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "serviceUnavailableHasCode1406()",
+                  "nodeIdentifier" : "ShareErrorTests/serviceUnavailableHasCode1406()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/serviceUnavailableHasCode1406()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "presentationFailedHasCode1407()",
+                  "nodeIdentifier" : "ShareErrorTests/presentationFailedHasCode1407()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/presentationFailedHasCode1407()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "alreadyInProgressHasCode1408()",
+                  "nodeIdentifier" : "ShareErrorTests/alreadyInProgressHasCode1408()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/alreadyInProgressHasCode1408()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "unknownHasCode1499()",
+                  "nodeIdentifier" : "ShareErrorTests/unknownHasCode1499()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/unknownHasCode1499()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "noValidItemsMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/noValidItemsMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/noValidItemsMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "invalidURLMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/invalidURLMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/invalidURLMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "imageLoadFailedMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/imageLoadFailedMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/imageLoadFailedMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "fileNotFoundMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/fileNotFoundMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/fileNotFoundMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "noAnchorViewMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/noAnchorViewMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/noAnchorViewMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "serviceUnavailableMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/serviceUnavailableMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/serviceUnavailableMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "alreadyInProgressMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/alreadyInProgressMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/alreadyInProgressMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "errorDescriptionMatchesErrorMessage()",
+                  "nodeIdentifier" : "ShareErrorTests/errorDescriptionMatchesErrorMessage()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests/errorDescriptionMatchesErrorMessage()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ShareErrorTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareErrorTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "textConvertsToString()",
+                  "nodeIdentifier" : "ShareItemConverterTests/textConvertsToString()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/textConvertsToString()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "httpsURLConverts()",
+                  "nodeIdentifier" : "ShareItemConverterTests/httpsURLConverts()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/httpsURLConverts()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "httpURLConverts()",
+                  "nodeIdentifier" : "ShareItemConverterTests/httpURLConverts()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/httpURLConverts()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "fileURLConverts()",
+                  "nodeIdentifier" : "ShareItemConverterTests/fileURLConverts()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/fileURLConverts()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "emptyURLThrowsInvalidURL()",
+                  "nodeIdentifier" : "ShareItemConverterTests/emptyURLThrowsInvalidURL()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/emptyURLThrowsInvalidURL()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "whitespaceOnlyURLThrowsInvalidURL()",
+                  "nodeIdentifier" : "ShareItemConverterTests/whitespaceOnlyURLThrowsInvalidURL()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/whitespaceOnlyURLThrowsInvalidURL()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "schemelessURLThrowsInvalidURL()",
+                  "nodeIdentifier" : "ShareItemConverterTests/schemelessURLThrowsInvalidURL()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/schemelessURLThrowsInvalidURL()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "httpsURLWithoutHostThrowsInvalidURL()",
+                  "nodeIdentifier" : "ShareItemConverterTests/httpsURLWithoutHostThrowsInvalidURL()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/httpsURLWithoutHostThrowsInvalidURL()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "ftpURLThrowsInvalidURL()",
+                  "nodeIdentifier" : "ShareItemConverterTests/ftpURLThrowsInvalidURL()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/ftpURLThrowsInvalidURL()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "existingFileConverts()",
+                  "nodeIdentifier" : "ShareItemConverterTests/existingFileConverts()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/existingFileConverts()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "missingFileThrowsFileNotFound()",
+                  "nodeIdentifier" : "ShareItemConverterTests/missingFileThrowsFileNotFound()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/missingFileThrowsFileNotFound()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "missingImageFileThrowsImageLoadFailed()",
+                  "nodeIdentifier" : "ShareItemConverterTests/missingImageFileThrowsImageLoadFailed()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/missingImageFileThrowsImageLoadFailed()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "conversionPreservesInputOrder()",
+                  "nodeIdentifier" : "ShareItemConverterTests/conversionPreservesInputOrder()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests/conversionPreservesInputOrder()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ShareItemConverterTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareItemConverterTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "presentPickerThrowsAlreadyInProgressWhenBusy()",
+                  "nodeIdentifier" : "SharePickerPresenterTests/presentPickerThrowsAlreadyInProgressWhenBusy()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SharePickerPresenterTests/presentPickerThrowsAlreadyInProgressWhenBusy()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "performServiceThrowsAlreadyInProgressWhenBusy()",
+                  "nodeIdentifier" : "SharePickerPresenterTests/performServiceThrowsAlreadyInProgressWhenBusy()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SharePickerPresenterTests/performServiceThrowsAlreadyInProgressWhenBusy()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "SharePickerPresenterTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SharePickerPresenterTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "pickerExecuteReturnsStubbedResultAndCallsRepositoryOnce()",
+                  "nodeIdentifier" : "ShareUseCasesTests/pickerExecuteReturnsStubbedResultAndCallsRepositoryOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/pickerExecuteReturnsStubbedResultAndCallsRepositoryOnce()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "pickerExecutePropagatesRepositoryError()",
+                  "nodeIdentifier" : "ShareUseCasesTests/pickerExecutePropagatesRepositoryError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/pickerExecutePropagatesRepositoryError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "pickerExecuteThrowsNoValidItemsForEmptyItems()",
+                  "nodeIdentifier" : "ShareUseCasesTests/pickerExecuteThrowsNoValidItemsForEmptyItems()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/pickerExecuteThrowsNoValidItemsForEmptyItems()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "serviceExecuteReturnsStubbedResult()",
+                  "nodeIdentifier" : "ShareUseCasesTests/serviceExecuteReturnsStubbedResult()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/serviceExecuteReturnsStubbedResult()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "serviceExecuteThrowsServiceUnavailableForEmptyName()",
+                  "nodeIdentifier" : "ShareUseCasesTests/serviceExecuteThrowsServiceUnavailableForEmptyName()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/serviceExecuteThrowsServiceUnavailableForEmptyName()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "serviceExecuteThrowsNoValidItemsForEmptyItems()",
+                  "nodeIdentifier" : "ShareUseCasesTests/serviceExecuteThrowsNoValidItemsForEmptyItems()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/serviceExecuteThrowsNoValidItemsForEmptyItems()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "canPerformReturnsStubbedValue()",
+                  "nodeIdentifier" : "ShareUseCasesTests/canPerformReturnsStubbedValue()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/canPerformReturnsStubbedValue()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "canPerformReturnsFalseForEmptyItemsWithoutCallingRepository()",
+                  "nodeIdentifier" : "ShareUseCasesTests/canPerformReturnsFalseForEmptyItemsWithoutCallingRepository()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests/canPerformReturnsFalseForEmptyItemsWithoutCallingRepository()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "ShareUseCasesTests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/ShareUseCasesTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "name" : "copy validates, writes once and returns the ownership",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/copyWrites()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/copyWrites()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "copy rejects invalid content before touching the pasteboard",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/copyValidatesFirst()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/copyValidatesFirst()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "copy passes a repository error through unchanged",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/copyPropagatesError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/copyPropagatesError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "append forwards the ownership token",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/appendForwardsOwnership()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/appendForwardsOwnership()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "append validates before appending",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/appendValidatesFirst()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/appendValidatesFirst()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "append reports lost ownership unchanged",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/appendPropagatesOwnershipLost()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/appendPropagatesOwnershipLost()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "append reports a refused write unchanged",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/appendPropagatesAppendRejected()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/appendPropagatesAppendRejected()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "read returns the repository result",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/readReturnsItems()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/readReturnsItems()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "read of an empty pasteboard is not an error",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/readEmptyIsNotAnError()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/readEmptyIsNotAnError()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "read propagates an unavailable pasteboard",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/readPropagatesUnavailable()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/readPropagatesUnavailable()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "readData forwards the type and returns the bytes",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/readDataReturnsBytes()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/readDataReturnsBytes()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "readData reports a missing type as nil rather than throwing",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/readDataMissingIsNil()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/readDataMissingIsNil()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "snapshot forwards a nil filter unchanged",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/snapshotForwardsNilFilter()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/snapshotForwardsNilFilter()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "snapshot forwards a filter unchanged",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/snapshotForwardsFilter()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/snapshotForwardsFilter()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "snapshot propagates an empty filter rejection",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/snapshotPropagatesEmptyFilter()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/snapshotPropagatesEmptyFilter()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "clear returns the new change count",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/clearReturnsChangeCount()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/clearReturnsChangeCount()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "createPasteboard returns the scope naming the pasteboard",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/createReturnsScope()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/createReturnsScope()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "createPasteboard propagates an invalid name",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/createPropagatesInvalidName()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/createPropagatesInvalidName()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removePasteboard forwards the scope",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/removeForwardsScope()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/removeForwardsScope()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "name" : "removePasteboard propagates the standard pasteboard refusal",
+                  "nodeIdentifier" : "SynchronousUseCaseTests/removePropagatesRefusal()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests/removePropagatesRefusal()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Synchronous use cases",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests/SynchronousUseCaseTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "MacLibraryTests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/MacLibrary/MacLibraryTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Passed"
+        }
+      ],
+      "name" : "MacLibrary",
+      "nodeType" : "Test Plan",
+      "result" : "Passed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

@@ -1,0 +1,432 @@
+{
+  "errors" : [
+
+  ],
+  "values" : [
+    {
+      "disabledTests" : [
+
+      ],
+      "enabledTests" : [
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/buttonNamesMatchTheirReportedLabels()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/buttonsTakeTheirInputsFromTheClick()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/callerSuppliedNamesAreWithheld(code:)"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/commentDelimitersInsideLiteralsAreNotComments()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/detectionFixtureHasSubjects()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/escapedQuotesDoNotEndLiterals()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/expectedErrorVerdicts()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/fixturesAreWellFormed()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/interpolatedCallsSurvive()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/lineCommentDelimitersInsideLiteralsAreNotComments()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/literalTextIsRemoved()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/logsCarryNeitherMessageNorPayload()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/nestedBlockCommentsAreRemoved()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/outcomesFormat()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/partialPasteFixtureIsMixed()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/sampleDoesNotDependOnTheUnityPlugin()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/sampleExercisesEveryPublicOperation()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/standardNamesAreShown()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/ClipboardSampleTests/theSampleNeverLogsTheCallerSuppliedName()"
+        },
+        {
+          "identifier" : "MacLibraryExampleTests/MacLibraryExampleTests/example()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardPasteUITests/testCB1_pasteButtonPastesWithoutConfirmation()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardPrivacyUITests/testCB2_pasteButtonAllowPaste()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardPrivacyUITests/testCB3_pasteButtonDontAllowPaste()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardPrivacyUITests/testCB4_readDontAllowPaste()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardPrivacyUITests/testCB5_readAllowPasteThenReadAgain()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardPrivacyUITests/testCB6_accessBehaviorAndDetectionAskNothing()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testACallerSuppliedPasteboardNameIsNotShown()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testANamedPasteboardGoesFromCreationThroughUseToRemoval()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testAUniquePasteboardGoesFromCreationThroughUseToRemoval()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testAnExpectationThatDoesNotHoldIsShownAsAFailure()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testAnOrdinaryFailureIsRecordedInTheReachedList()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testAppendFollowsTheOwnershipTheCopyReturned()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testCreatingANamedPasteboardAgainKeepsItsContents()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testCreatingAUniquePasteboardAgainReleasesThePreviousOne()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testEveryButtonReportsAResult()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testObservationStopsWhenTheScreenIsLeft()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleViewUITests/testTheScopeArgumentFollowsThePicker()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleWaitRuleTests/testADetailWordDoesNotStandInForALabel()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleWaitRuleTests/testALongerButtonNameDoesNotStandInForTheShorterOne()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleWaitRuleTests/testARepeatWithIdenticalTextIsAccepted()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleWaitRuleTests/testAResultFromAnotherButtonIsNotAccepted()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleWaitRuleTests/testTheResultOfThisClickIsAccepted()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ClipboardSampleWaitRuleTests/testTheSameTextFromAnEarlierClickIsNotAccepted()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD10_showMultiFileDialogChoosesTwoFiles()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD11_showFolderDialogChoosesAFolder()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD12_showMultiFolderDialogChoosesTwoFolders()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD13_showSaveFileDialogReplacesDefault()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD14_showSaveFileDialogCancel()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD15_showSaveFileDialogNewName()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD16_eachAlertButtonCompletesOnce()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD17_eachPanelCancelCompletesOnce()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD1_showDialogOK()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD2_showDialogCancel()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD3_showDialogDelete()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD4_showDialogSuppressionChecked()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD5_showDialogHelpThenOK()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD6_showDialogKeys()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD7_showFileDialogCancel()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD8_showFileDialogChoosesAFile()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/DialogUITests/testD9_showFileDialogMovesToTheFixture()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/IdentifierInventoryUITests/testI1a_dialogIdentifiers()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/IdentifierInventoryUITests/testI1b_notificationIdentifiers()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/IdentifierInventoryUITests/testI1c_shareIdentifiers()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/IdentifierInventoryUITests/testI1d_clipboardIdentifiers()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NavigationUITests/testM1a_menuOpensEachScreen()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NavigationUITests/testM1b_backReturnsToTheMenu()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NavigationUITests/testM2_reopenedScreensStartFromTheirInitialState()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationColdStartUITests/testNC1_bodyClickLaunches()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationColdStartUITests/testNC2_openActionLaunches()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationColdStartUITests/testNC3_replyLaunches()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationEventUITests/testN20_categoryAddsOptions()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationEventUITests/testN21_bodyClickInTheBackground()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationEventUITests/testN22_bodyClickInTheForeground()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationEventUITests/testN23_openAction()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationEventUITests/testN24_replyAction()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationPermissionUITests/testNP1_requestPermissionAllow()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationPermissionUITests/testNP2_requestPermissionDontAllow()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationPermissionUITests/testNP3_showImmediateAsksThenShows()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN10_removeDeliveredById()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN11_removeDeliveredByIdKeepsTheImmediate()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN12_removeAllDelivered()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN13_scheduleTimeIntervalFires()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN14_cancelScheduledById()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN14b_scheduleCalendarFires()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN15_cancelScheduledTimeInterval()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN16_cancelAllScheduled()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN17_clearsWithoutAsking()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN18_setBadgeCount()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN1_permissionIsAuthorized()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN2_requestPermissionWhenAuthorized()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN3_openNotificationSettings()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN4_showImmediateBanner()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN5_showTimeIntervalFiresInTheBackground()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN6_showCalendarFiresAfterOneMinute()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN7_updateByIdReplacesTheScheduled()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN8_cancelByIdStopsTheScheduled()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/NotificationUITests/testN9_cancelAllClearsBothCalendarRequests()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SampleUITestCase"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS10_shareExcludingServicesHidesReadingList()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS11_shareViaMailCompletes()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS12_canPerformMail()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS13_shareEmptyFails()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS14_shareInvalidURLFails()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS15_shareMissingFileFails()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS16_shareMissingImageFails()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS17_shareUnknownServiceFails()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS1_shareTextPickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS2_shareTextCopy()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS3_shareURLPickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS4_shareURLCopy()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS5_shareImagePickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS6_shareFilePickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS7_shareMultipleImagesPickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS8_shareMultipleFilesPickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/ShareUITests/testS9_shareTextAndURLPickerEscape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testAllowanceRefusesUnknownAndVMOnlyCategoriesOnThisMac()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testBannerAnchorComparesTheWholeLabel()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testClipboardResultRuleAcceptsOnlyTheNextResultOfTheLabel()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testDeclarationTableRejectsBrokenShapes()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testFixtureIsOnlyTheRunnersFolder()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testHostIsTheVMOnlyByFact()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testLastEventMatchesEveryField()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testLaunchCopyIsTwelveHexDigits()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testNotificationListParsesOnlyTheExactShape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testNotificationOverlayPressesAMenuItemOnlyOnNotificationCenter()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testNotificationOverlayPressesOnlyTheOneWindowThatHoldsTheRoot()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayAllowsOnlyTheGivenOwners()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayPassesTheFullDisplayWindowsOfTheFixedOwners()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayPassesTransparentAndCursorWindows()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayStopsAtABannerListOverThePoint()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayStopsAtAFixedOwnerWindowSmallerThanTheDisplay()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayStopsAtAFullDisplayWindowOfAnotherOwner()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayStopsAtANotificationWindowOverlappingTheElementButNotThePoint()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayStopsAtAnotherAppsWindow()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testResultLineParsesOnlyTheNumberedShape()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testResultRuleAcceptsOnlyTheNextResultOfTheOperation()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testResultRuleDoesNotLetALongerNameStandInForAShorterOne()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testSecondsWindowWaitsUntilFiveToThirty()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testTestKeyIsReadFromTheTwoKnownShapesOnly()"
+        }
+      ],
+      "testPlan" : "MacLibraryExample"
+    }
+  ]
+}

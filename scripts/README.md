@@ -206,10 +206,29 @@ DEVELOPER_DIR=/Applications/Xcode26.3.app/Contents/Developer \
 It does not run while Simulator.app is open (`agent-rules/device-testing.md`), and boots and shuts down
 a simulator it found shut down.
 
+| Script | Runs |
+|---|---|
+| `test_mac.sh` | The macOS unit tests and the sample's UI tests, in the qualified tart VM (`--where vm`) or, after the user approved the list, on this Mac (`--where mac`). What runs and every check of what ran is in `mac_ui_runner.py`; the unit test suites this Mac may run are in `mac_unit_audit.json` (U-29) |
+| `test_mac.baseline.<vm\|mac>-<os>.json` | The recorded outcome of the last full run in each environment, which `--baseline` writes (an earlier one is kept with its date) |
+
+```bash
+scripts/test_mac.sh --where vm                               # everything in the VM (no approval)
+scripts/test_mac.sh --where vm --feature Dialog              # one feature's UI tests in the VM
+scripts/test_mac.sh --where mac --dry-run --allow panels     # the list to approve; nothing starts on this Mac
+scripts/test_mac.sh --where mac --allow panels --approved <approval.json>   # after the user approved the list
+```
+
+The VM must pass the qualification of `artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md`
+6.3 every time (no Apple account, `--no-clipboard`, no shared folder, macOS 15.8.3, Xcode 26.3); the runner
+never falls back to this Mac. On this Mac only the values of design 3.4 leave the run (test keys, results,
+the `NTK-` codes); the result bundles stay in a private temporary folder that is removed. Approvals are
+used once (`~/Library/Application Support/native-toolkit/test_mac-approvals.log`). The hashes of the
+trusted test files are pinned in `mac_ui_runner.py`; change them only after another model has reviewed the change.
+
 ## `tests/` is not the test suite
 
 `scripts/tests/` holds the **self-tests of the `check_` scripts** and of the
-decisions of `test_ios.sh` (`ios_ui_runner.py`, and `ios_capi_runner.py` for `--capi`), not tests of the product. Each case copies the files a checker reads into a temporary tree,
+decisions of `test_ios.sh` (`ios_ui_runner.py`, and `ios_capi_runner.py` for `--capi`) and of `test_mac.sh` (`mac_ui_runner.py`), not tests of the product. Each case copies the files a checker reads into a temporary tree,
 breaks exactly one of them there, and asserts that the matching check fails - so
 a checker cannot quietly stop checking. The real tree is never touched.
 

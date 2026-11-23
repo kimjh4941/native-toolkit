@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "about": "U-29 of artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md: the MacLibraryTests suites that may run on this Mac without approval. A suite is listed only after reading its body and what it builds; the word counts are a helper check, not the audit. Default-scope calls (copy without a scope) were looked for by hand in the listed suites.",
+  "auditedAt": "2026-11-23",
+  "auditedBy": "Claude (stage 0d)",
+  "review": null,
+  "treeHash": "5f7ddc2d384442120bd6821b8517d7bc8f071562060f5fdbb3341202168bfc52",
+  "suites": [
+    {
+      "suite": "MacLibraryTests",
+      "file": "MacLibraryTests.swift",
+      "reason": "the template test; touches nothing",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardContentValidatorTests",
+      "file": "Clipboard/Application/ClipboardContentValidatorTests.swift",
+      "reason": "the validator only, no pasteboard",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardChangeTrackerTests",
+      "file": "Clipboard/Application/ClipboardChangeTrackerTests.swift",
+      "reason": "the change tracker keyed by scope values; no pasteboard is resolved",
+      "allowed": [
+        {
+          "word": ".general",
+          "count": 13,
+          "reason": "a scope value passed to a mock or a tracker key; never resolved to a pasteboard"
+        }
+      ]
+    },
+    {
+      "suite": "DetectionUseCaseTests",
+      "file": "Clipboard/Application/DetectionUseCaseTests.swift",
+      "reason": "use cases over MockClipboardRepository; .general is a value passed to the mock",
+      "allowed": [
+        {
+          "word": ".general",
+          "count": 13,
+          "reason": "a scope value passed to a mock or a tracker key; never resolved to a pasteboard"
+        }
+      ]
+    },
+    {
+      "suite": "SynchronousUseCaseTests",
+      "file": "Clipboard/Application/SynchronousUseCaseTests.swift",
+      "reason": "use cases over MockClipboardRepository and mock validators; .general is a value passed to the mock",
+      "allowed": [
+        {
+          "word": ".general",
+          "count": 15,
+          "reason": "a scope value passed to a mock or a tracker key; never resolved to a pasteboard"
+        }
+      ]
+    },
+    {
+      "suite": "ClipboardDocumentationTests",
+      "file": "Clipboard/ClipboardDocumentationTests.swift",
+      "reason": "reads the library's own source files through #filePath",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardLogAuditTests",
+      "file": "Clipboard/ClipboardLogAuditTests.swift",
+      "reason": "reads the library's own source files through #filePath",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardMappersTests",
+      "file": "Clipboard/Data/ClipboardMappersTests.swift",
+      "reason": "pure mappers",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardTypeIdentifierValidatorTests",
+      "file": "Clipboard/Data/ClipboardTypeIdentifierValidatorTests.swift",
+      "reason": "pure type identifier checks",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardLimitsTests",
+      "file": "Clipboard/Domain/ClipboardConfigurationTests.swift",
+      "reason": "pure limits",
+      "allowed": []
+    },
+    {
+      "suite": "ClipboardErrorTests",
+      "file": "Clipboard/Domain/ClipboardErrorTests.swift",
+      "reason": "pure error values",
+      "allowed": []
+    },
+    {
+      "suite": "NotificationCategoryUseCasesTests",
+      "file": "Notification/NotificationCategoryUseCasesTests.swift",
+      "reason": "use cases over MockNotificationRepository",
+      "allowed": []
+    },
+    {
+      "suite": "NotificationDispatchUseCasesTests",
+      "file": "Notification/NotificationDispatchUseCasesTests.swift",
+      "reason": "use cases over MockNotificationRepository",
+      "allowed": []
+    },
+    {
+      "suite": "NotificationDomainErrorTests",
+      "file": "Notification/NotificationDomainErrorTests.swift",
+      "reason": "pure error values",
+      "allowed": []
+    },
+    {
+      "suite": "NotificationQueryUseCasesTests",
+      "file": "Notification/NotificationQueryUseCasesTests.swift",
+      "reason": "use cases over MockNotificationRepository",
+      "allowed": []
+    },
+    {
+      "suite": "NotificationScheduleUseCasesTests",
+      "file": "Notification/NotificationScheduleUseCasesTests.swift",
+      "reason": "use cases over MockNotificationRepository",
+      "allowed": []
+    },
+    {
+      "suite": "MacShareManagerTests",
+      "file": "Share/MacShareManagerTests.swift",
+      "reason": "the manager over MockShareRepository",
+      "allowed": []
+    },
+    {
+      "suite": "ShareErrorTests",
+      "file": "Share/ShareErrorTests.swift",
+      "reason": "pure error values",
+      "allowed": []
+    },
+    {
+      "suite": "ShareItemConverterTests",
+      "file": "Share/ShareItemConverterTests.swift",
+      "reason": "item conversion only; no picker or service",
+      "allowed": []
+    },
+    {
+      "suite": "ShareUseCasesTests",
+      "file": "Share/ShareUseCasesTests.swift",
+      "reason": "use cases over MockShareRepository",
+      "allowed": []
+    }
+  ],
+  "notListed": [
+    {
+      "suite": "ClipboardRepositoryImplTests",
+      "file": "Clipboard/Data/ClipboardRepositoryImplTests.swift",
+      "reason": "integration tests against a real NSPasteboard; some cases name .general (removePasteboard, resolve)"
+    },
+    {
+      "suite": "ClipboardDetectionMapperTests",
+      "file": "Clipboard/Data/ClipboardDetectionMapperTests.swift",
+      "reason": "a real ClipboardRepositoryImpl reads accessBehavior of .general"
+    },
+    {
+      "suite": "PasteboardResolverTests",
+      "file": "Clipboard/Data/PasteboardResolverTests.swift",
+      "reason": "resolve(.general) returns the real general pasteboard (design 7, U-29)"
+    },
+    {
+      "suite": "LazyDataProviderTests",
+      "file": "Clipboard/Data/LazyDataProviderTests.swift",
+      "reason": "a real ClipboardRepositoryImpl and ClipboardSystemCoordinator; not read through to the end"
+    },
+    {
+      "suite": "ClipboardSystemCoordinatorTests",
+      "file": "Clipboard/Manager/ClipboardSystemCoordinatorTests.swift",
+      "reason": "the real coordinator; not read through to the end"
+    },
+    {
+      "suite": "MacClipboardManagerTests",
+      "file": "Clipboard/Manager/MacClipboardManagerTests.swift",
+      "reason": "builds MacClipboardManager() with its real default repository; not read through to the end"
+    },
+    {
+      "suite": "ClipboardChangeMonitorTests",
+      "file": "Clipboard/Presentation/ClipboardChangeMonitorTests.swift",
+      "reason": "the change monitor with .general scopes; not read through to the end"
+    },
+    {
+      "suite": "ClipboardPasteLoaderTests",
+      "file": "Clipboard/Presentation/ClipboardPasteLoaderTests.swift",
+      "reason": "PasteButtonFactory and the coordinator; not read through to the end"
+    },
+    {
+      "suite": "PasteButtonLifetimeTests",
+      "file": "Clipboard/Presentation/ClipboardPasteLoaderTests.swift",
+      "reason": "PasteButtonFactory.makePasteButton and the real coordinator"
+    },
+    {
+      "suite": "SharePickerPresenterTests",
+      "file": "Share/SharePickerPresenterTests.swift",
+      "reason": "a 50 ms fixed wait guards a real Mail compose (U-29: VM only until fixed)"
+    }
+  ]
+}

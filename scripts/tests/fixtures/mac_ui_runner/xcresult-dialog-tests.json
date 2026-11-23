@@ -1,0 +1,197 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "2150290d73c8ee3602c9700daee42afa0bcc3237",
+      "deviceName" : "My Mac",
+      "modelName" : "Apple Virtual Machine 1",
+      "osBuildNumber" : "24H241",
+      "osVersion" : "15.8.3",
+      "platform" : "macOS"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "18s",
+                  "durationInSeconds" : 18.554744958877563,
+                  "name" : "testD10_showMultiFileDialogChoosesTwoFiles()",
+                  "nodeIdentifier" : "DialogUITests/testD10_showMultiFileDialogChoosesTwoFiles()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD10_showMultiFileDialogChoosesTwoFiles",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "16s",
+                  "durationInSeconds" : 16.724091053009033,
+                  "name" : "testD11_showFolderDialogChoosesAFolder()",
+                  "nodeIdentifier" : "DialogUITests/testD11_showFolderDialogChoosesAFolder()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD11_showFolderDialogChoosesAFolder",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "18s",
+                  "durationInSeconds" : 18.552986979484558,
+                  "name" : "testD12_showMultiFolderDialogChoosesTwoFolders()",
+                  "nodeIdentifier" : "DialogUITests/testD12_showMultiFolderDialogChoosesTwoFolders()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD12_showMultiFolderDialogChoosesTwoFolders",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "16s",
+                  "durationInSeconds" : 16.588433027267456,
+                  "name" : "testD13_showSaveFileDialogReplacesDefault()",
+                  "nodeIdentifier" : "DialogUITests/testD13_showSaveFileDialogReplacesDefault()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD13_showSaveFileDialogReplacesDefault",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "10s",
+                  "durationInSeconds" : 10.068916082382202,
+                  "name" : "testD14_showSaveFileDialogCancel()",
+                  "nodeIdentifier" : "DialogUITests/testD14_showSaveFileDialogCancel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD14_showSaveFileDialogCancel",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "14s",
+                  "durationInSeconds" : 14.606426000595093,
+                  "name" : "testD15_showSaveFileDialogNewName()",
+                  "nodeIdentifier" : "DialogUITests/testD15_showSaveFileDialogNewName()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD15_showSaveFileDialogNewName",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "20s",
+                  "durationInSeconds" : 20.38292896747589,
+                  "name" : "testD16_eachAlertButtonCompletesOnce()",
+                  "nodeIdentifier" : "DialogUITests/testD16_eachAlertButtonCompletesOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD16_eachAlertButtonCompletesOnce",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "34s",
+                  "durationInSeconds" : 34.65784192085266,
+                  "name" : "testD17_eachPanelCancelCompletesOnce()",
+                  "nodeIdentifier" : "DialogUITests/testD17_eachPanelCancelCompletesOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD17_eachPanelCancelCompletesOnce",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.764716982841492,
+                  "name" : "testD1_showDialogOK()",
+                  "nodeIdentifier" : "DialogUITests/testD1_showDialogOK()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD1_showDialogOK",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.213055968284607,
+                  "name" : "testD2_showDialogCancel()",
+                  "nodeIdentifier" : "DialogUITests/testD2_showDialogCancel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD2_showDialogCancel",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.114149928092957,
+                  "name" : "testD3_showDialogDelete()",
+                  "nodeIdentifier" : "DialogUITests/testD3_showDialogDelete()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD3_showDialogDelete",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.859065055847168,
+                  "name" : "testD4_showDialogSuppressionChecked()",
+                  "nodeIdentifier" : "DialogUITests/testD4_showDialogSuppressionChecked()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD4_showDialogSuppressionChecked",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.841955065727234,
+                  "name" : "testD5_showDialogHelpThenOK()",
+                  "nodeIdentifier" : "DialogUITests/testD5_showDialogHelpThenOK()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD5_showDialogHelpThenOK",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "18s",
+                  "durationInSeconds" : 18.81298291683197,
+                  "name" : "testD6_showDialogKeys()",
+                  "nodeIdentifier" : "DialogUITests/testD6_showDialogKeys()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD6_showDialogKeys",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "9s",
+                  "durationInSeconds" : 9.939321041107178,
+                  "name" : "testD7_showFileDialogCancel()",
+                  "nodeIdentifier" : "DialogUITests/testD7_showFileDialogCancel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD7_showFileDialogCancel",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "16s",
+                  "durationInSeconds" : 16.958666920661926,
+                  "name" : "testD8_showFileDialogChoosesAFile()",
+                  "nodeIdentifier" : "DialogUITests/testD8_showFileDialogChoosesAFile()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD8_showFileDialogChoosesAFile",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "15s",
+                  "durationInSeconds" : 15.656936049461365,
+                  "name" : "testD9_showFileDialogMovesToTheFixture()",
+                  "nodeIdentifier" : "DialogUITests/testD9_showFileDialogMovesToTheFixture()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests/testD9_showFileDialogMovesToTheFixture",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "DialogUITests",
+              "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests/DialogUITests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "MacLibraryExampleUITests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/MacLibraryExample/MacLibraryExampleUITests",
+          "nodeType" : "UI test bundle",
+          "result" : "Passed"
+        }
+      ],
+      "name" : "MacLibraryExample",
+      "nodeType" : "Test Plan",
+      "result" : "Passed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

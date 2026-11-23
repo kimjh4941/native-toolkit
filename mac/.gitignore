@@ -5,3 +5,6 @@
 # Unlike Debug/ or Release/, "xcuserdata" is an Xcode-reserved name, so matching it
 # at any depth is safe: it only ever appears inside .xcworkspace / .xcodeproj.
 xcuserdata/
+
+# The output of scripts/test_mac.sh (public results, approval lists; UI test design 3.4).
+/MacLibraryExample/build/
