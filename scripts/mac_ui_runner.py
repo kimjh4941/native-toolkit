@@ -3739,24 +3739,33 @@ def group_left(pgid, processes):
 def cmd_settle_report(args):
     """The VM's half of settle (review v6: Claude B-1, Codex B-2): after an xcodebuild there ended, waits up to
     --seconds for its group to be empty and only writes down what was left (the VM is cleaned anyway)."""
-    deadline = time.time() + args.seconds
+    started = time.time()
+    deadline = started + args.seconds
+    first = None
     while True:
-        left = group_left(args.pgid, _processes())
+        table = _processes()
+        left = group_left(args.pgid, table)
+        if first is None:
+            first = sorted(os.path.basename(str(p.get("exe"))) for p in table
+                           if p.get("pgid") == args.pgid and not p.get("zombie"))
         if left == 0 or time.time() >= deadline:
             break
         time.sleep(0.5)
     with open(args.log, "a", encoding="utf-8") as f:
-        f.write(f"{left}\n")
+        f.write(f"{left} {time.time() - started:.1f} {','.join(first) or '-'}\n")
     return 0
 
 
 def cmd_settle_summary(args):
     try:
-        counts = [int(x) for x in _read(args.log).split()]
+        rows = [line.split() for line in _read(args.log).splitlines() if line.strip()]
+        counts = [int(r[0]) for r in rows]
+        waits = [float(r[1]) for r in rows if len(r) > 1]
     except (OSError, ValueError):
-        counts = []
+        counts, waits = [], []
     left = [n for n in counts if n]
-    print(f"NTK-VM settle calls={len(counts)} left-after-15s={len(left)} most={max(left) if left else 0}")
+    print(f"NTK-VM settle calls={len(counts)} left-after-15s={len(left)} most={max(left) if left else 0} "
+          f"longest-wait={max(waits) if waits else 0:.1f}s")
     return 0
 
 

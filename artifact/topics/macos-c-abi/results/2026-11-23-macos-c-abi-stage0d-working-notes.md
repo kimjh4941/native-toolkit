@@ -419,3 +419,18 @@ Claude（A 1（致命的でない）、B 1、C 2）と Codex（A 0、B 2、C 2�
 
 Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で別に計算して一致したことは `reviews/2026-11-23-macos-c-abi-unit-audit-review-v1.md`。要点: 入れ子の suite を完全名で表に足し、列挙と表を突き合わせる照合を入れた（B-1）。plugin の Clipboard を監査のハッシュに入れた（B-2）。`review` を表の digest・記録・モデルに結び、監査者と同じモデルでは通さない（B-3）。新しい treeHash は `50c3fda0…9259` で、ランナーの関数と shell の計算が一致した（B-4）。理由の文を 2 つ直した（C-1・C-2）。`review` はまだ null（直した表を Codex に短く確かめてもらってから埋める）。
 
+## 16. 通知の UI テストの揺れの調べ（2026-11-24。2 時間で止めた。原因は突き止めていない）
+
+| 回 | 条件 | 結果 |
+|---|---|---|
+| n1 | `--feature Notification`、settle の判定あり、VM は 23 時間動き続けた後 | 59/60。N24 `NTK-STEP:finder` |
+| a1・a2 | settle の判定を一時的に外した（調べの間だけ。元に戻した） | 60/60、60/60 |
+| n2 | settle の判定あり（待った時間と、残ったものの名前も書くようにした） | 60/60。37 回の判定はどれも 0.0〜0.1 秒で、group は最初から空 |
+| r1 | VM のゲストを再起動した後、settle の判定あり | 59/60。N23 `NTK-STEP:finder` |
+
+- settle の判定（v6 で足した VM の道の `settle-report`）は、待ちが毎回 0.0〜0.1 秒で何にも触れないので、原因ではないと見る（外した 2 回が通ったのは偶然の範囲）。libproc は VM の道ではこの判定でしか使わないので、(b) も同じ。VM のゲストの再起動でも落ちたので、(c) の長く動いたことの溜まりでもない
+- 中を読めた 2 件（n1 の N24、r1 の N23）は同じ型だった: `OtherApps.swift:67`、`FinderFront.bringToFront` の 20 秒の待ちの終わりに「Finder did not come to the front with the sample behind (front com.apple.finder, sample 4)」。Finder は前面にいるのに、`XCUIApplication` のサンプルの `state` が `runningForeground`（4）のまま変わらない。0c の頃から続く N21 の揺れと同じ `NTK-STEP:finder` で、v6 の全件の N24 もこれ。残る 2 件（N14b `secondsWindow`、v6 の Notification の回の N23 `notificationRoot`）は別の型で、結果のバンドルを残していなかったので中は読めていない
+- 0c の揺れ（NP1 の `notNotDetermined`、許可の戻し方）とは別の型
+- 直すならテストの側（`FinderFront` が前面を `XCUIApplication.state` でなく前面のアプリの PID と、サンプルの窓が前面でないことで見る、など）。信頼する部分（Support）の変更でハッシュの固定の取り直しと別のモデルのレビューが要るので、この回では変えていない。基準も取り直していない
+- 調べのために `settle-report` の記録に、待った秒数と、最初に見た group の実行ファイルの名前（VM の中のファイルだけ）を足し、`finish` の要約に `longest-wait` を足した（コミットしていない）
+
