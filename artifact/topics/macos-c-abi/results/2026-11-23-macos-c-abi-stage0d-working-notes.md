@@ -2,7 +2,7 @@
 
 - 記録日: 2026-11-23
 - 段階: 0d（テストのランナー `scripts/test_mac.sh` と基準。企画 5 章、UI テストの設計書 `designs/2026-11-23-macos-c-abi-ui-test-design.md` の 3 章・6 章・7 章・8 章）
-- 状態: ランナーを作り、VM の道で全件を 1 回流して VM の基準を取った。この Mac の道は `--dry-run` の出力までを確かめた（流していない）。`036dc083` でコミットした。ランナーのレビュー v1（`reviews/2026-11-23-macos-c-abi-runner-review-v1.md`）の直しを `da6889a5` でコミットした（10 章）。レビュー v2（`reviews/2026-11-23-macos-c-abi-runner-review-v2.md`）の直しを `d89f9d46` でコミットした（11 章）。レビュー v3（`reviews/2026-11-23-macos-c-abi-runner-review-v3.md`）の直しと取り直した VM の基準を `1473c7ca` でコミットした（12 章）。レビュー v4（`reviews/2026-11-23-macos-c-abi-runner-review-v4.md`）の直しを `92b984ee` でコミットした（13 章）。レビュー v5（`reviews/2026-11-23-macos-c-abi-runner-review-v5.md`）の直しは 14 章で、コミットしていない
+- 状態: ランナーを作り、VM の道で全件を 1 回流して VM の基準を取った。この Mac の道は `--dry-run` の出力までを確かめた（流していない）。`036dc083` でコミットした。ランナーのレビュー v1（`reviews/2026-11-23-macos-c-abi-runner-review-v1.md`）の直しを `da6889a5` でコミットした（10 章）。レビュー v2（`reviews/2026-11-23-macos-c-abi-runner-review-v2.md`）の直しを `d89f9d46` でコミットした（11 章）。レビュー v3（`reviews/2026-11-23-macos-c-abi-runner-review-v3.md`）の直しと取り直した VM の基準を `1473c7ca` でコミットした（12 章）。レビュー v4（`reviews/2026-11-23-macos-c-abi-runner-review-v4.md`）の直しを `92b984ee` でコミットした（13 章）。レビュー v5（`reviews/2026-11-23-macos-c-abi-runner-review-v5.md`）の直しを `8834eb6f` でコミットした（14 章）。レビュー v6（`reviews/2026-11-23-macos-c-abi-runner-review-v6.md`。致命的な A は 0 で、利用者の指示によりランナーのレビューはこれで閉じる）の直しは 15 章で、コミットしていない
 - 元にした版: `623a919b`（feature/NTKIT-19、0c の終わり）
 - 環境: この Mac では UI・通知・クリップボードを使うものを何も動かしていない（組むのも VM の中だけ。この Mac で動かしたのはランナーの自己テスト、`--dry-run` の読むだけの操作と、レビュー v1 の前に限り変異のハーネス。設計書 7 章は変異を VM だけとしているので差。10 章のとおり、レビュー v1 の後は変異を VM の中だけで流し、この Mac の自己テストは本物の OS の操作に届かない形にした）。動かす確かめは VM `ntk-macos-15-new`（macOS 15.8.3、Xcode 26.3、en-US、`--no-graphics --no-clipboard`）だけ。区分 1 の単体テストもこの Mac では流していない
 
@@ -393,4 +393,29 @@ Claude（A 0、B 1、C 4）と Codex（A 3、B 1、C 1）の静的なレビュ�
 | 片付け | VM とこの Mac | VM の `~/ntk/runs` は空、自己テストの写しは消し、テストの sleep も残っていない。この Mac の一時フォルダーに `ntk-` で始まるものは残っていない |
 
 この Mac では、変異のハーネス、本物の kill・rm・pkill・killall・defaults・lsregister・ssh に届く自己テスト、`--in-vm` を流していない。
+
+## 15. ランナーのレビュー v6 の後（2026-11-23。レビューはこれで閉じる）
+
+Claude（A 1（致命的でない）、B 1、C 2）と Codex（A 0、B 2、C 2）の静的なレビューを受けて直した。致命的な A が 0 なので、利用者の 11-23 の指示によりランナーのレビューは v6 で閉じる（v7 は無い）。指摘ごとの直し方は `reviews/2026-11-23-macos-c-abi-runner-review-v6.md`。要点:
+
+- **プロセスの表**（Claude A-1）: `ps` をやめて `libproc` から読む。読めない実行ファイルはもう一度見て、まだ居るものだけを数える
+- **`settle`**（Claude B-1、Codex B-2）: 一覧・時計・sleep を渡す形に切り出して戻り値で確かめ、VM の道でも各 xcodebuild の後に同じ判定を知らせるだけ走らせる（`NTK-VM settle`）。空と確かめた group は閉じる（Claude C-1）
+- **表示と記述**（Claude C-2、Codex C-1・C-2）: `STALE_HINT` の種類ごとの探し方、`--dry-run` と終わりの表示、コメントと設計書を今の方針に合わせた
+
+### 15.1 確かめ
+
+| 何を | どこで | 結果 |
+|---|---|---|
+| 自己テスト（偽の口。プロセスの表も偽物。本物のプロセスと本物の表の 8 件は skip） | この Mac | 189 件、181 件が通り 8 件 skip（単体の監査の直しの分を含む） |
+| 同じ自己テスト（本物のプロセスの 6 件と、本物の表で片付けを判定する 2 件も） | VM | 189 件、188 件が通り 1 件 skip（写しが git のチェックアウトでない）。印だけの回のフォルダーは「消せる」と判定され、leader が終わって helper が残ると `settle` が失敗して後続が起きずフォルダーが残り、helper を終わらせた後は `settle` が通って group が閉じた |
+| 変異 226 個（ほかに変異なしの基準 1 項目。v6 の 11 個と単体の監査の 6 個を足し、ps の 1 個と監査の 1 個を新しい形に合わせた） | VM だけ | v6 までの 220 個の通しで 219 個が捕まり、1 個（VM が残りを書き留めない）が生き残った。シェルの行の形の自己テストを強めて流し直し、捕まった。単体の監査の 6 個と、形を合わせた監査の 2 個も流してすべて捕まった。変異なしの写しは通った（監査の直しはランナーの別の判定に触れないので、通しの流し直しはしていない） |
+| `--where vm`（全件。判定を変えたので）を 2 回と `--feature Notification` を 1 回 | VM | 3 回とも、ランナーの段（資格・写しの照合・組み立て・列挙・単体）はすべて通り、`NTK-VM settle calls=45 left-after-15s=0 most=0`（Notification は calls=37）で、どの xcodebuild の後も group は残らなかった。結果は 443/444・59/60・443/444 で、**基準との差は毎回 1 件、しかも毎回違う通知の UI テスト**（N14b `NTK-STEP:secondsWindow`、N23 `NTK-STEP:notificationRoot`、N24 `NTK-STEP:finder`）。v3〜v5 の全件 3 回は差 0 だった。v6 で VM の道に足したのは各 xcodebuild の後の `settle-report`（VM で 0.12 秒）だけで、テストの中の時間の測り方に触れないので、ランナーの直しが原因とは見ていないが、原因は突き止めていない（VM は 23 時間動き続けている）。基準は取り直していない |
+| `--where mac --dry-run` | この Mac（読むだけ。ランナー自身の残りを消すことを除く）と VM | 本物の列挙で、単体の監査の表との突き合わせに漏れは無く、`[audit]` は review が無いことだけを出した。「NOT READY」に前提の 4 項目。私物のパスは出なかった。許可の一覧のフォルダーは消した |
+| 片付け | VM とこの Mac | VM の `~/ntk/runs` は空、自己テストの写しは消し、テストの sleep も残っていない。この Mac の一時フォルダーに `ntk-` で始まるものは残っていない |
+
+この Mac では、変異のハーネス、本物の kill・rm・pkill・killall・defaults・lsregister・ssh に届く自己テスト、本物のプロセスの表を読む自己テスト、`--in-vm` を流していない。
+
+### 15.2 単体テストの監査（U-29）の Codex のレビュー v1 と直し
+
+Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で別に計算して一致したことは `reviews/2026-11-23-macos-c-abi-unit-audit-review-v1.md`。要点: 入れ子の suite を完全名で表に足し、列挙と表を突き合わせる照合を入れた（B-1）。plugin の Clipboard を監査のハッシュに入れた（B-2）。`review` を表の digest・記録・モデルに結び、監査者と同じモデルでは通さない（B-3）。新しい treeHash は `50c3fda0…9259` で、ランナーの関数と shell の計算が一致した（B-4）。理由の文を 2 つ直した（C-1・C-2）。`review` はまだ null（直した表を Codex に短く確かめてもらってから埋める）。
 

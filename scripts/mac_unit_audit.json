@@ -1,10 +1,11 @@
 {
   "schema": 1,
-  "about": "U-29 of artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md: the MacLibraryTests suites that may run on this Mac without approval. A suite is listed only after reading its body and what it builds; the word counts are a helper check, not the audit. Default-scope calls (copy without a scope) were looked for by hand in the listed suites. review: null until another model has reviewed this table; then {\"by\", \"date\", \"treeHash\"} naming the same tree.",
+  "about": "U-29 of artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md: the MacLibraryTests suites that may run on this Mac without approval. A suite is listed only after reading its body and what it builds; the word counts are a helper check, not the audit. Default-scope calls (copy without a scope) were looked for by hand in the listed suites. Every enumerated suite, nested ones by their full name (Outer.Inner), is either under suites or under notListed; a suite nested in an allowed one must be allowed itself. treeHash covers MacLibrary, MacLibraryTests, the Unity plugin's Clipboard sources (read by two suites), the project, the scheme and the workspace. review: null until another model has reviewed this table; then {\"by\", \"model\", \"file\" (the review record under artifact/topics/macos-c-abi/reviews/), \"date\", \"treeHash\", \"tableDigest\" (sha256 of this table without review)}; the model differs from auditedModel, and any change of the table or the tree makes the review stale.",
   "auditedAt": "2026-11-23",
   "auditedBy": "Claude (stage 0d)",
+  "auditedModel": "Claude",
   "review": null,
-  "treeHash": "884fb80508a032252d9de67bfb0027e9bf17ed14e787b10ec8d58f167df3a114",
+  "treeHash": "50c3fda00d98bfc548517118d37a034355940f7176a58db96b21bc1fdce99259",
   "suites": [
     {
       "suite": "MacLibraryTests",
@@ -57,13 +58,13 @@
     {
       "suite": "ClipboardDocumentationTests",
       "file": "Clipboard/ClipboardDocumentationTests.swift",
-      "reason": "reads the library's own source files through #filePath",
+      "reason": "reads the Swift sources of MacLibrary/Clipboard and UnityMacPlugin/Clipboard through #filePath and checks their text (both trees are in treeHash)",
       "allowed": []
     },
     {
       "suite": "ClipboardLogAuditTests",
       "file": "Clipboard/ClipboardLogAuditTests.swift",
-      "reason": "reads the library's own source files through #filePath",
+      "reason": "reads the Swift sources of MacLibrary/Clipboard and UnityMacPlugin/Clipboard through #filePath and checks their text (both trees are in treeHash)",
       "allowed": []
     },
     {
@@ -75,7 +76,7 @@
     {
       "suite": "ClipboardTypeIdentifierValidatorTests",
       "file": "Clipboard/Data/ClipboardTypeIdentifierValidatorTests.swift",
-      "reason": "pure type identifier checks",
+      "reason": "string syntax, and UTType resolution and conformance of synthetic type identifiers; no app registration, no file opening, no settings change",
       "allowed": []
     },
     {
@@ -177,7 +178,7 @@
     {
       "suite": "ClipboardRepositoryImplTests",
       "file": "Clipboard/Data/ClipboardRepositoryImplTests.swift",
-      "reason": "integration tests against a real NSPasteboard; some cases name .general (removePasteboard, resolve)"
+      "reason": "integration tests against real unique and named pasteboards; removing the general or a standard pasteboard checks the refusal before any resolve; adding it to the allowed suites needs its own review"
     },
     {
       "suite": "ClipboardDetectionMapperTests",
@@ -213,6 +214,11 @@
       "suite": "ClipboardPasteLoaderTests",
       "file": "Clipboard/Presentation/ClipboardPasteLoaderTests.swift",
       "reason": "PasteButtonFactory and the coordinator; not read through to the end"
+    },
+    {
+      "suite": "ClipboardPasteLoaderTests.ItemProviderSourceTests",
+      "file": "Clipboard/Presentation/ClipboardPasteLoaderTests.swift",
+      "reason": "nested in ClipboardPasteLoaderTests: NSItemProvider with synthetic data through PasteButtonFactory.ItemProviderSource; it stays out with its outer suite"
     },
     {
       "suite": "PasteButtonLifetimeTests",

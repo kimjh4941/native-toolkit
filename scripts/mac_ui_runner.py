@@ -261,8 +261,11 @@ LEDGER_LINE = re.compile(r"^[0-9a-f]{32}\t\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\+
 MAC_OUTPUT_PREFIX = "mac/MacLibraryExample/build/"
 RUNNER_FILES = ("scripts/mac_ui_runner.py", "scripts/test_mac.sh", "scripts/mac_unit_audit.json")
 AUDIT_FILE = "scripts/mac_unit_audit.json"
-# The audit is bound to these parts of the tree (U-29): MacLibrary, MacLibraryTests and the project.
+# The audit is bound to these parts of the tree (U-29): MacLibrary, MacLibraryTests, the project, and the Unity
+# plugin's Clipboard sources that ClipboardDocumentationTests and ClipboardLogAuditTests read (unit audit
+# review v1: Codex B-2).
 AUDIT_TREE_PATHS = ("mac/MacLibrary/MacLibrary", "mac/MacLibrary/MacLibraryTests",
+                    "mac/UnityMacPlugin/UnityMacPlugin/Clipboard",
                     "mac/MacLibrary/MacLibrary.xcodeproj/project.pbxproj",
                     "mac/MacLibrary/MacLibrary.xcodeproj/xcshareddata/xcschemes",
                     "mac/MacWorkspace.xcworkspace/contents.xcworkspacedata")
@@ -2284,6 +2287,8 @@ def run_processes(marker, boottime_now, processes, tool_roots, folder=None, uid=
     if marker.get("pgid") is not None:
         groups.add(int(marker["pgid"]))
     groups |= {int(w["pgid"]) for w in writers if isinstance(w.get("pgid"), int)}
+    # A group shown empty by settle is closed: its number may be taken later by anything (review v6: Claude C-1).
+    groups -= {int(g) for g in marker.get("closed") or []}
     if marker.get("launching"):
         if not isinstance(launched_pid, int):
             return {"refuse": "an xcodebuild was started and never recorded, and its number is not known; the folder "
@@ -2435,7 +2440,51 @@ def _declares(text, suite):
     return re.search(r"\b(struct|class|enum|actor)\s+" + re.escape(suite) + r"\b", text) is not None
 
 
-def audit_state(audit, current_tree_hash, file_texts, helper_texts=None):
+def audit_table_digest(audit):
+    """The digest of the table without its `review`: what a review names, so a changed table has none."""
+    return sha256_bytes(json.dumps({k: v for k, v in audit.items() if k != "review"}, sort_keys=True).encode())
+
+
+def audit_reviewed(audit):
+    """Whether the table has a review by another model of this very table and tree (unit audit review v1:
+    Codex B-3): by, model, the record's file and date, the tree hash and the table digest; the reviewing model
+    is not the auditing one."""
+    review = audit.get("review")
+    if not isinstance(review, dict):
+        return False
+    if not all(isinstance(review.get(k), str) and review.get(k) for k in ("by", "model", "file", "date")):
+        return False
+    if not str(review["file"]).startswith("artifact/topics/macos-c-abi/reviews/"):
+        return False
+    if str(review["model"]).strip().lower() == str(audit.get("auditedModel", "")).strip().lower():
+        return False
+    return review.get("treeHash") == audit.get("treeHash") and review.get("tableDigest") == audit_table_digest(audit)
+
+
+def enumerated_suites(unit_keys, target="MacLibraryTests"):
+    """The suites of the target's enumeration, nested ones by their full name (`Outer.Inner`)."""
+    out = set()
+    for key in unit_keys:
+        parts = key.split("/")
+        if parts[0] == target and len(parts) >= 3:
+            out.add(".".join(parts[1:-1]))
+    return sorted(out)
+
+
+def audit_inventory_problems(audit, suites):
+    """Every enumerated suite, nested ones too, is in the table (allowed or notListed), and a suite nested in
+    an allowed one is allowed itself, since running the outer one runs it (unit audit review v1: Codex B-1)."""
+    allowed = {e.get("suite") for e in audit.get("suites", [])}
+    known = allowed | {e.get("suite") for e in audit.get("notListed", [])}
+    problems = [f"{name}: enumerated but not in the table" for name in suites if name not in known]
+    for name in suites:
+        outer = [a for a in allowed if a and name.startswith(a + ".")]
+        if outer and name not in allowed:
+            problems.append(f"{name}: nested in an allowed suite but not allowed itself")
+    return problems
+
+
+def audit_state(audit, current_tree_hash, file_texts, helper_texts=None, suites_enumerated=None):
     """{"suites": [audited suites that may run on this Mac], "expired": bool, "hash", "problems"}.
 
     The table is expired (no suite on this Mac) when its tree hash is not the current tree's, or its
@@ -2448,14 +2497,14 @@ def audit_state(audit, current_tree_hash, file_texts, helper_texts=None):
     if not isinstance(audit, dict) or audit.get("schema") != 1:
         return {"suites": [], "expired": True, "hash": None, "problems": ["the audit is not a schema 1 table"]}
     digest = sha256_bytes(json.dumps(audit, sort_keys=True).encode())
-    review = audit.get("review")
-    reviewed = isinstance(review, dict) and bool(review.get("by")) and bool(review.get("date")) and \
-        review.get("treeHash") == audit.get("treeHash")
-    expired = audit.get("treeHash") != current_tree_hash or not reviewed
+    reviewed = audit_reviewed(audit)
+    inventory = audit_inventory_problems(audit, suites_enumerated) if suites_enumerated is not None else []
+    problems += inventory
+    expired = audit.get("treeHash") != current_tree_hash or not reviewed or bool(inventory)
     if audit.get("treeHash") != current_tree_hash:
         problems.append("the audited tree differs from the current one (expired)")
     if not reviewed:
-        problems.append("the audit has no review by another model of this tree yet")
+        problems.append("the audit has no review by another model of this table and tree yet")
     names = [e.get("suite") for e in audit.get("suites", [])]
     not_listed = {e.get("suite") for e in audit.get("notListed", [])}
     for name in duplicates(names):
@@ -2768,12 +2817,16 @@ HAPPENINGS = {
     None: ["The sample app (MacLibraryExample) comes to the front again and again; keep hands off the mouse "
            "and keyboard for the whole run",
            "XCUITest records the screen while the tests run. The runner keeps its DerivedData and result bundles "
-           "in a private temporary folder (xcodebuild's TMPDIR too) and deletes it at the end; that Xcode leaves "
-           "nothing elsewhere is not confirmed yet: the run counts the new names in $TMPDIR before and after",
+           "in a private temporary folder (xcodebuild's TMPDIR too) and deletes it at the end when nothing of the "
+           "run is shown running; otherwise it stays and the run says what still runs (NTK-STALE:alive). That "
+           "Xcode leaves nothing elsewhere is not confirmed yet: the run counts the new names in $TMPDIR before "
+           "and after",
            "Every run of the runner, this --dry-run too, first removes the runner's own private temporary folders "
            "that an earlier run killed without its cleanup left behind (their owner is no longer running)",
            "The runner registers its own build of the sample with LaunchServices and removes that registration "
-           "at the end"],
+           "with the folder (kept with it while something of the run runs)",
+           "The runner never stops a process of an earlier run on this Mac: an earlier run's folder goes only "
+           "when nothing of its run is shown running, and the approved run stops before it builds otherwise"],
     "notification": ["Notifications of the sample appear and play their sound; the sample's notifications are "
                      "removed and its schedule cancelled",
                      "Finder comes to the front (your Finder windows and file names may show)"],
@@ -2952,7 +3005,7 @@ def cmd_vm_qualify(args):
     return 0
 
 
-def _audit_for(repo, where):
+def _audit_for(repo, where, unit_keys=None):
     if where != "mac":
         return None
     audit_path = pathlib.Path(repo) / AUDIT_FILE
@@ -2967,7 +3020,8 @@ def _audit_for(repo, where):
         if file and path.is_file() and not path.is_symlink():
             texts[file] = _read(path)
     helpers = {p.relative_to(tests_root).as_posix(): _read(p) for p in sorted(tests_root.glob(AUDIT_HELPER_GLOB))}
-    return audit_state(audit, tree_hash(repo, AUDIT_TREE_PATHS), texts, helpers)
+    return audit_state(audit, tree_hash(repo, AUDIT_TREE_PATHS), texts, helpers,
+                       enumerated_suites(unit_keys, LIBRARY_UNIT_TARGET) if unit_keys is not None else None)
 
 
 def _durations(baseline_dir, os_version, where):
@@ -2995,7 +3049,8 @@ def cmd_preflight(args):
     if args.where == "mac" and args.runner_files and json.loads(_read(args.runner_files)) != runner_file_hashes(args.repo):
         return _fail("the runner changed after its copy was handed to the VM; run again")
     allowed = [c for c in (args.allow or "").split(",") if c]
-    audit = _audit_for(args.repo, args.where)
+    audit = _audit_for(args.repo, args.where,
+                       parse_unit_enumeration(_read(args.unit_enumeration), (LIBRARY_UNIT_TARGET,)))
     if audit:
         for problem in audit["problems"]:
             print(f"[audit] {problem}")
@@ -3310,31 +3365,93 @@ def cmd_lsregister(args):
     return 0
 
 
-def _processes():
-    """[{"pid", "pgid", "ppid", "uid", "zombie", "start", "exe"}] of this Mac (read only: ps and proc_pidpath).
-    A process list that cannot be read is an error, never an empty list (review v5: Codex A-1)."""
-    import ctypes
-    libproc = ctypes.CDLL("/usr/lib/libproc.dylib")
-    done = subprocess.run(["/bin/ps", "-axo", "pid=,pgid=,ppid=,uid=,stat=,lstart="], capture_output=True, text=True,
-                          env={"LC_ALL": "C", "PATH": "/usr/bin:/bin"})
-    if done.returncode != 0 or not done.stdout.strip():
+class LibProc:
+    """The process table through libproc (read only; review v6: Claude A-1). No `ps`: a listing tool would be
+    in its own list, gone (and its executable unreadable) by the time it is looked at."""
+    SHORT_INFO, BSD_INFO, ZOMBIE, ESRCH = 13, 3, 5, 3
+
+    def __init__(self):
+        import ctypes
+
+        class Short(ctypes.Structure):  # struct proc_bsdshortinfo
+            _fields_ = [("pid", ctypes.c_uint32), ("ppid", ctypes.c_uint32), ("pgid", ctypes.c_uint32),
+                        ("status", ctypes.c_uint32), ("comm", ctypes.c_char * 16), ("flags", ctypes.c_uint32),
+                        ("uid", ctypes.c_uint32), ("gid", ctypes.c_uint32), ("ruid", ctypes.c_uint32),
+                        ("rgid", ctypes.c_uint32), ("svuid", ctypes.c_uint32), ("svgid", ctypes.c_uint32),
+                        ("rfu", ctypes.c_uint32)]
+
+        class Bsd(ctypes.Structure):  # struct proc_bsdinfo (the start time; this user's processes only)
+            _fields_ = [("flags", ctypes.c_uint32), ("status", ctypes.c_uint32), ("xstatus", ctypes.c_uint32),
+                        ("pid", ctypes.c_uint32), ("ppid", ctypes.c_uint32), ("uid", ctypes.c_uint32),
+                        ("gid", ctypes.c_uint32), ("ruid", ctypes.c_uint32), ("rgid", ctypes.c_uint32),
+                        ("svuid", ctypes.c_uint32), ("svgid", ctypes.c_uint32), ("rfu", ctypes.c_uint32),
+                        ("comm", ctypes.c_char * 16), ("name", ctypes.c_char * 32), ("nfiles", ctypes.c_uint32),
+                        ("pgid", ctypes.c_uint32), ("pjobc", ctypes.c_uint32), ("tdev", ctypes.c_uint32),
+                        ("tpgid", ctypes.c_uint32), ("nice", ctypes.c_int32), ("start_sec", ctypes.c_uint64),
+                        ("start_usec", ctypes.c_uint64)]
+
+        self.ctypes, self.Short, self.Bsd = ctypes, Short, Bsd
+        self.lib = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+
+    def pids(self):
+        ctypes = self.ctypes
+        size = self.lib.proc_listallpids(None, 0)
+        if size <= 0:
+            return None
+        buf = (ctypes.c_int * (size + 256))()
+        n = self.lib.proc_listallpids(buf, ctypes.sizeof(buf))
+        return [buf[i] for i in range(n)] if n > 0 else None
+
+    def short(self, pid):
+        """(pid, ppid, pgid, uid, zombie), "gone", or None (cannot be read)."""
+        info = self.Short()
+        if self.lib.proc_pidinfo(pid, self.SHORT_INFO, 0, self.ctypes.byref(info), self.ctypes.sizeof(info)) \
+                == self.ctypes.sizeof(info):
+            return {"pid": info.pid, "ppid": info.ppid, "pgid": info.pgid, "uid": info.uid,
+                    "zombie": info.status == self.ZOMBIE}
+        return "gone" if self.ctypes.get_errno() == self.ESRCH else None
+
+    def start(self, pid):
+        info = self.Bsd()
+        if self.lib.proc_pidinfo(pid, self.BSD_INFO, 0, self.ctypes.byref(info), self.ctypes.sizeof(info)) \
+                == self.ctypes.sizeof(info):
+            return info.start_sec + info.start_usec / 1e6
+        return None
+
+    def path(self, pid):
+        buf = self.ctypes.create_string_buffer(4096)
+        if self.lib.proc_pidpath(pid, buf, 4096) > 0:
+            return os.path.realpath(buf.value.decode(errors="replace"))
+        return None
+
+
+def _processes(lib=None):
+    """[{"pid", "pgid", "ppid", "uid", "zombie", "start", "exe"}] of this Mac, read only. A table that cannot be
+    read is an error, never an empty list (review v5: Codex A-1). `start` (seconds, with the microseconds) is
+    read for this user's processes only (None for others). A process whose executable cannot be read is looked
+    at once more: one that ended meanwhile is left out, so only one still there counts (review v6: Claude
+    A-1)."""
+    lib = lib or LibProc()
+    pids = lib.pids()
+    if not pids:
         raise RunnerError("the process list could not be read")
+    me = os.getuid()
     processes = []
-    for line in done.stdout.splitlines():
-        parts = line.split(None, 5)
-        if len(parts) != 6:
+    for pid in pids:
+        info = lib.short(pid)
+        if info == "gone":
+            continue
+        if info is None:
             raise RunnerError("the process list could not be read")
-        try:
-            pid, pgid, ppid, uid = (int(x) for x in parts[:4])
-            start = int(time.mktime(time.strptime(parts[5].strip(), "%a %b %d %H:%M:%S %Y")))
-        except ValueError:
-            raise RunnerError("the process list could not be read")
-        buf = ctypes.create_string_buffer(4096)
-        exe = None
-        if libproc.proc_pidpath(pid, buf, 4096) > 0:
-            exe = os.path.realpath(buf.value.decode(errors="replace"))
-        processes.append({"pid": pid, "pgid": pgid, "ppid": ppid, "uid": uid, "zombie": parts[4].startswith("Z"),
-                          "start": start, "exe": exe})
+        info["start"] = lib.start(pid) if info["uid"] == me else None
+        info["exe"] = lib.path(pid)
+        processes.append(info)
+    for info in [p for p in processes if p["exe"] is None]:
+        again = lib.short(info["pid"])
+        if again == "gone" or (isinstance(again, dict) and info["uid"] == me and lib.start(info["pid"]) != info["start"]):
+            processes.remove(info)
+        else:
+            info["exe"] = lib.path(info["pid"])
     return processes
 
 
@@ -3399,8 +3516,8 @@ def cmd_marker(args):
     path = pathlib.Path(args.root) / MARKER_NAME
     if args.launching:
         # Written before an xcodebuild starts; only recording it clears this. A folder whose marker still
-        # says so may hold an xcodebuild nobody recorded, and is never removed in this boot (review v4:
-        # Codex A-2, Claude C-5).
+        # says so is followed by the number in its pid file, and stays while that number or its group runs, or
+        # when the file holds no number (review v4: Codex A-2; v5: Claude C-3).
         marker = json.loads(_read(path))
         marker["launching"] = True
     elif args.pid is None:
@@ -3444,8 +3561,11 @@ def _read_marker(folder):
 
 STALE_HINT = ("look for folders whose names start with `ntk-test-mac.` in your temporary folder ($TMPDIR); "
               "each holds ntk-run-marker.json. The runner never stops a process of a run on this Mac after its own "
-              "supervisor ended: quit what still runs (Activity Monitor: xcodebuild, xctest, MacLibraryExample) or "
-              "restart the Mac, and the next run removes the folder")
+              "supervisor ended: quit what still runs, or restart the Mac, and the next run removes the folder. "
+              "In Activity Monitor (review v6: Claude C-2): xcodebuild = a process named xcodebuild; tool = "
+              "xctest, XCTestAgent, testmanagerd or another process from Xcode; group = another process xcodebuild "
+              "started (Show Process Group); sample = MacLibraryExample or MacLibraryExampleUITests-Runner; "
+              "unknown = a process of yours that started during the run and whose program cannot be read")
 
 
 def _mark(text):
@@ -3568,18 +3688,76 @@ def cmd_stop_current(args):
     return 0
 
 
+def settle(read_marker, processes, tool_roots, boottime, clock, sleep, seconds, folder):
+    """Waits up to `seconds` until nothing of the run's open xcodebuild groups runs. Returns (None, the groups
+    now shown empty) or (the reason the run stops, None); a table that cannot be read stops it too (review
+    v6: Claude B-1, Codex B-2)."""
+    deadline = clock() + seconds
+    while True:
+        try:
+            marker = read_marker(folder)
+            problem = settle_problem(marker, processes(), tool_roots, boottime(), folder)
+        except (OSError, ValueError, RunnerError):
+            return "NTK-STALE:refused the marker or the process list could not be read", None
+        if problem is None:
+            return None, open_groups(marker)
+        if clock() >= deadline:
+            return f"{problem} of this run's xcodebuild after it ended; the run stops and its folder stays", None
+        sleep(0.5)
+
+
+def open_groups(marker):
+    """The run's groups not yet shown empty."""
+    closed = set(marker.get("closed") or [])
+    groups = set(marker.get("groups") or []) | ({marker["pgid"]} if marker.get("pgid") is not None else set())
+    groups |= {w["pgid"] for w in marker.get("writers", []) if isinstance(w, dict) and isinstance(w.get("pgid"), int)}
+    return sorted(g for g in groups if g not in closed)
+
+
 def cmd_settle(args):
-    """Waits (up to --seconds) until nothing of the run's xcodebuild groups runs; otherwise fails and the
-    run stops with its folder kept (review v5: Codex A-2)."""
+    """After an xcodebuild of this Mac ended: settle, then the groups shown empty are written to the marker as
+    closed, so a later process that takes such a number is never counted as this run's (review v6: Claude
+    C-1). Otherwise the run stops with its folder kept (review v5: Codex A-2)."""
     root = os.path.realpath(args.root)
+    problem, empty = settle(_read_marker, _processes, _tool_roots(), _boottime, time.time, time.sleep, args.seconds, root)
+    if problem:
+        return _fail(problem)
+    path = pathlib.Path(root) / MARKER_NAME
+    marker = _read_marker(root)
+    marker["closed"] = sorted(set(marker.get("closed") or []) | set(empty))
+    tmp = path.with_suffix(".tmp")
+    _write_json(tmp, marker)
+    os.replace(tmp, path)
+    return 0
+
+
+def group_left(pgid, processes):
+    """How many processes (zombies aside) of that group are there."""
+    return sum(1 for p in processes if p.get("pgid") == pgid and not p.get("zombie"))
+
+
+def cmd_settle_report(args):
+    """The VM's half of settle (review v6: Claude B-1, Codex B-2): after an xcodebuild there ended, waits up to
+    --seconds for its group to be empty and only writes down what was left (the VM is cleaned anyway)."""
     deadline = time.time() + args.seconds
     while True:
-        problem = settle_problem(_read_marker(root), _processes(), _tool_roots(), _boottime(), root)
-        if problem is None:
-            return 0
-        if time.time() >= deadline:
-            return _fail(f"{problem} of this run's xcodebuild after it ended; the run stops and its folder stays")
+        left = group_left(args.pgid, _processes())
+        if left == 0 or time.time() >= deadline:
+            break
         time.sleep(0.5)
+    with open(args.log, "a", encoding="utf-8") as f:
+        f.write(f"{left}\n")
+    return 0
+
+
+def cmd_settle_summary(args):
+    try:
+        counts = [int(x) for x in _read(args.log).split()]
+    except (OSError, ValueError):
+        counts = []
+    left = [n for n in counts if n]
+    print(f"NTK-VM settle calls={len(counts)} left-after-15s={len(left)} most={max(left) if left else 0}")
+    return 0
 
 
 STAGING_PREFIX = "ntk-test-mac-staging."
@@ -4067,6 +4245,16 @@ def main(argv=None):
     p.add_argument("--root", required=True)
     p.add_argument("--seconds", type=float, default=15.0)
     p.set_defaults(func=cmd_settle)
+
+    p = sub.add_parser("settle-report")
+    p.add_argument("--pgid", type=int, required=True)
+    p.add_argument("--seconds", type=float, default=15.0)
+    p.add_argument("--log", required=True)
+    p.set_defaults(func=cmd_settle_report)
+
+    p = sub.add_parser("settle-summary")
+    p.add_argument("--log", required=True)
+    p.set_defaults(func=cmd_settle_summary)
 
     p = sub.add_parser("runner-hashes")
     p.add_argument("--dir", required=True)

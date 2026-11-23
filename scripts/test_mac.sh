@@ -126,9 +126,18 @@ CAPPED_PERL='use POSIX ();
     select(undef, undef, undef, 0.2);
   }
   exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);'
+# The VM half's xcodebuild. After it, the same judgement as this Mac's settle runs, only written down: how
+# many processes of its group are left after 15 s (the VM is cleaned anyway; review v6: Claude B-1, Codex
+# B-2). `finish` prints the summary.
 capped_group() {  # <seconds> <pid file or -> <command...>
-  local seconds="$1" pidfile="$2"; shift 2
-  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${pidfile}" - "$@" < /dev/null
+  local seconds="$1" pidfile="$2" code=0; shift 2
+  [[ "${pidfile}" != - ]] || pidfile="${RUN_DIR}/capped.pid"
+  rm -f "${pidfile}"
+  /usr/bin/perl -e "${CAPPED_PERL}" "${seconds}" "${pidfile}" - "$@" < /dev/null || code=$?
+  if [[ -s "${pidfile}" ]]; then
+    vrunner settle-report --pgid "$(cat "${pidfile}")" --log "${RUN_DIR}/settle.log" > /dev/null 2>&1 || true
+  fi
+  return "${code}"
 }
 
 # ============================================================================================
@@ -424,6 +433,7 @@ vm_finish() {
       echo '{"test": "MacLibraryExampleUITests#fixture", "result": "failed", "codes": ["NTK-RUNNER:fixture"]}'
     fi
   fi
+  [[ -f "${RUN_DIR}/settle.log" ]] && vrunner settle-summary --log "${RUN_DIR}/settle.log"
   vm_stop_sample || true
   pkill -x Mail 2>/dev/null || true
   for app in "${DD_UI}/Build/Products/Debug/MacLibraryExample.app" \
@@ -750,8 +760,9 @@ run_mac() {
   if [[ "${DRY_RUN}" == 1 ]]; then
     runner stale --scan-root "${SCAN_ROOT}" --list --out "${stale}"
   else
-    # The approved run plans with the stopped runs the user saw; what is there now is checked against that
-    # list when they are stopped (a run that ended since is fine; review v3: Codex B-5).
+    # The approved run plans with the earlier runs' folders the user saw (so a run that ended since does not
+    # change the plan; review v3: Codex B-5). Those folders are never stopped: `stale --clean` removes each
+    # one only where nothing of its run runs, and otherwise the run stops before it builds (review v5).
     runner approval-stale --approved "${APPROVED}" --out "${stale}"
   fi
   echo '[]' > "${lsreg}"
@@ -895,7 +906,8 @@ run_mac() {
   fi
   echo "[mac] left on this Mac: the test strings on the pasteboard (clipboard), the category sample-category and badge 0"
   echo "      (notification, badge), System Settings or Finder brought to the front. The run's own registrations, fixture"
-  echo "      and private folder are removed at the end"
+  echo "      and private folder are removed at the end when nothing of the run is shown running; otherwise they stay"
+  echo "      and the run says what still runs (NTK-STALE:alive)"
   python3 - "${OUT}/environment.json" "${os_version}" "${os_build}" "$(uname -m)" \
     "$(defaults read -g AppleLanguages 2>/dev/null | sed -n 2p | tr -d ' ",')" "${xcode}" <<'PY'
 import json, sys

@@ -107,6 +107,16 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import mac_ui_runner as r  # noqa: E402
 
+
+def _guard_libproc(*args, **kwargs):
+    raise OsOperationReached("a self-test reached the real process table (libproc)")
+
+
+# The process table is read through libproc (review v6): on this Mac the self-tests never read it. Only
+# RealProcessesInTheVM, in the VM, takes the real one explicitly.
+_REAL_LIBPROC = r.LibProc
+r.LibProc = _guard_libproc
+
 # Every plan of this Mac needs the VM checks recorded; the tests that approve set them here.
 READY = {k: "recorded in a test" for k in r.MAC_RUN_PREREQUISITES}
 
@@ -899,12 +909,40 @@ class Stopping(unittest.TestCase):
         self.assertEqual(port.log, [])
 
     def test_a_process_list_that_cannot_be_read_is_an_error(self):
-        real = r.subprocess.run
-        self.addCleanup(setattr, r.subprocess, "run", real)
-        for code, out in ((1, ""), (0, ""), (0, "  1     1     0     0 Ss   not a date\n")):
-            r.subprocess.run = lambda *a, code=code, out=out, **k: subprocess.CompletedProcess(a, code, out, "")
+        class Lib:
+            def __init__(self, pids, short, paths=None, starts=None):
+                self._pids, self._short, self.paths, self.starts, self.looked = pids, short, paths or {}, starts or {}, {}
+
+            def pids(self):
+                return self._pids
+
+            def short(self, pid):
+                self.looked[pid] = self.looked.get(pid, 0) + 1
+                value = self._short(pid, self.looked[pid])
+                return dict(value) if isinstance(value, dict) else value
+
+            def start(self, pid):
+                return self.starts.get(pid, 100.0)
+
+            def path(self, pid):
+                return self.paths.get(pid)
+
+        me = os.getuid()
+        mine = {"pid": 10, "ppid": 1, "pgid": 10, "uid": me, "zombie": False}
+        for lib in (Lib(None, None), Lib([], None), Lib([10], lambda pid, n: None)):
             with self.assertRaises(r.RunnerError):      # never an empty list (review v5: Codex A-1)
-                r._processes()
+                r._processes(lib)
+        # A process gone between the listing and the look at it is left out (review v6: Claude A-1).
+        self.assertEqual(r._processes(Lib([10, 11], lambda pid, n: dict(mine, pid=pid) if pid == 10 else "gone",
+                                          {10: "/bin/x"})), [dict(mine, start=100.0, exe="/bin/x")])
+        # Its executable unread: looked at again; gone by then, or another process of that number, left out.
+        self.assertEqual(r._processes(Lib([10], lambda pid, n: mine if n == 1 else "gone")), [])
+        lib = Lib([10], lambda pid, n: mine)
+        self.assertEqual(r._processes(lib), [dict(mine, start=100.0, exe=None)])  # still there: counted
+        self.assertEqual(lib.looked[10], 2)
+        other = {"pid": 20, "ppid": 1, "pgid": 20, "uid": 0, "zombie": False}
+        self.assertEqual(r._processes(Lib([20], lambda pid, n: other, {20: "/usr/sbin/x"})),
+                         [dict(other, start=None, exe="/usr/sbin/x")])  # another user's: no start time
 
     def test_an_unreadable_process_list_keeps_the_folder(self):
         port = FakePort([], fail=True)  # Codex v5 A-1: a list that cannot be read is not an empty one
@@ -949,6 +987,52 @@ class Stopping(unittest.TestCase):
             port = FakePort([])
             self.assertIsNone(r.clean_run_folder(root, port, [self.XCODE], lambda f: marker))
             self.assertIn(("remove", root), port.log)
+
+    def settle_with(self, tables, seconds=15.0, marker=None):
+        """settle() over a list of process tables, one per look, with a clock that the sleeps move."""
+        clock = [0.0]
+        looks = iter(tables)
+
+        def processes():
+            table = next(looks)
+            if isinstance(table, Exception):
+                raise table
+            return table
+
+        def sleep(n):
+            clock[0] += n
+        return r.settle(lambda f: marker or self.marker(), processes, [self.XCODE], lambda: 1000, lambda: clock[0],
+                        sleep, seconds, self.ROOT_DIR), clock[0]
+
+    def test_settle_waits_for_the_group_and_stops_at_its_end(self):
+        helper = {"pid": 302, "pgid": 300, "start": 5003, "exe": self.XCODE + "/Developer/usr/bin/xctest", "uid": 501}
+        # Left, then gone: settled, and the group is closed (review v6: Claude B-1, C-1; Codex B-2).
+        (problem, empty), waited = self.settle_with([[helper], [helper], []])
+        self.assertIsNone(problem)
+        self.assertEqual((empty, waited), ([300], 1.0))
+        # Left until the end: the run stops.
+        (problem, empty), waited = self.settle_with([[helper]] * 40, seconds=2.0)
+        self.assertIn("NTK-STALE:alive 1 process(es) (1 tool)", problem)
+        self.assertIsNone(empty)
+        self.assertEqual(waited, 2.0)
+        # A table that cannot be read stops it at once.
+        (problem, empty), waited = self.settle_with([r.RunnerError("x")])
+        self.assertIn("could not be read", problem)
+        self.assertEqual(waited, 0.0)
+
+    def test_a_closed_group_is_not_counted(self):
+        # A number shown empty by settle may be taken by anything later (review v6: Claude C-1).
+        later = {"pid": 301, "pgid": 300, "start": 9000, "exe": "/usr/bin/ditto", "uid": 501}
+        self.assertEqual(r.run_processes(self.marker(closed=[300]), 1000, [later], [self.XCODE], self.ROOT_DIR, 501,
+                                         None)["running"], {})
+        self.assertEqual(r.run_processes(self.marker(), 1000, [later], [self.XCODE], self.ROOT_DIR, 501,
+                                         None)["running"], {"group": 1})
+        self.assertEqual(r.open_groups(self.marker(groups=[300, 400], closed=[300])), [400])
+
+    def test_the_vm_writes_down_what_is_left(self):
+        table = [{"pid": 5, "pgid": 7}, {"pid": 6, "pgid": 7, "zombie": True}, {"pid": 8, "pgid": 8}]
+        self.assertEqual(r.group_left(7, table), 1)
+        self.assertEqual(r.group_left(9, table), 0)
 
     def test_a_stale_folder_that_stays_stops_the_run(self):
         alive = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB, "uid": 501}])
@@ -1019,13 +1103,20 @@ class Stopping(unittest.TestCase):
 class Audit(unittest.TestCase):
     MOCK = "struct MacClipboardManagerTests {}\nrepo.copy(scope: .general)\nrepo.read(scope: .general)\n"
 
-    def audit(self, **change):
-        audit = {"schema": 1, "treeHash": "t", "review": {"by": "another model", "date": "2026-11-24", "treeHash": "t"},
+    def audit(self, review=True, **change):
+        audit = {"schema": 1, "treeHash": "t", "auditedBy": "Claude (stage 0d)", "auditedModel": "Claude",
                  "suites": [{"suite": "MacClipboardManagerTests", "file": "M.swift",
                              "allowed": [{"word": ".general", "count": 2, "reason": "passed to the mock"}]}],
                  "helpers": [{"file": "Mock/MockRepo.swift", "allowed": []}]}
         audit.update(change)
+        audit["review"] = self.review(audit) if review is True else review
         return audit
+
+    def review(self, audit, **change):
+        review = {"by": "Codex", "model": "Codex", "file": "artifact/topics/macos-c-abi/reviews/unit-audit-v2.md",
+                  "date": "2026-11-24", "treeHash": audit["treeHash"], "tableDigest": r.audit_table_digest(audit)}
+        review.update(change)
+        return review
 
     def state(self, audit=None, text=None, helpers=None, tree="t"):
         return r.audit_state(audit or self.audit(), tree, {"M.swift": self.MOCK if text is None else text},
@@ -1066,12 +1157,36 @@ class Audit(unittest.TestCase):
     def test_an_expired_or_unreviewed_table_selects_nothing(self):
         state = self.state(tree="other")
         self.assertEqual((state["suites"], state["expired"]), ([], True))
-        for review in (None, True, {"by": "x"}, {"by": "x", "date": "d", "treeHash": "older"}):
+        for review in (None, {"by": "x"}, {"by": "x", "date": "d", "treeHash": "older"}):
             state = self.state(audit=self.audit(review=review))
             self.assertEqual((state["suites"], state["expired"]), ([], True), review)
+        good = self.audit()
+        for change in ({"treeHash": "older"}, {"tableDigest": "0" * 64}, {"model": "claude "}, {"file": ""},
+                       {"file": "somewhere/else.md"}, {"by": ""}):
+            audit = dict(good, review=self.review(good, **change))
+            self.assertEqual(self.state(audit=audit)["suites"], [], change)  # unit audit review v1: Codex B-3
+        changed = dict(good, suites=good["suites"] + [{"suite": "Other", "file": "O.swift", "allowed": []}])
+        self.assertFalse(r.audit_reviewed(changed))   # the table changed after its review: stale
+        self.assertTrue(r.audit_reviewed(good))
         plan = mac_plan(audit=state)
         self.assertEqual(plan["unitInvocations"], [])
         self.assertEqual(plan["unitExcluded"], [{"target": "MacLibraryTests", "reason": "auditExpired"}])
+
+    def test_every_enumerated_suite_nested_too_is_in_the_table(self):
+        keys = ["MacLibraryTests/MacClipboardManagerTests/a", "MacLibraryTests/P/I/b", "MacLibraryTests/P/c",
+                "MacLibraryExampleTests/X/d"]
+        self.assertEqual(r.enumerated_suites(keys), ["MacClipboardManagerTests", "P", "P.I"])
+        listed = self.audit(notListed=[{"suite": "P"}, {"suite": "P.I"}])
+        self.assertEqual(r.audit_state(listed, "t", {"M.swift": self.MOCK}, {"Mock/MockRepo.swift": ""},
+                                       r.enumerated_suites(keys))["suites"], ["MacClipboardManagerTests"])
+        missing = self.audit(notListed=[{"suite": "P"}])  # Codex B-1: the nested one is missing
+        state = r.audit_state(missing, "t", {"M.swift": self.MOCK}, {"Mock/MockRepo.swift": ""}, r.enumerated_suites(keys))
+        self.assertEqual((state["suites"], state["expired"]), ([], True))
+        self.assertIn("P.I: enumerated but not in the table", state["problems"])
+        nested = ["MacLibraryTests/MacClipboardManagerTests/Inner/e"]
+        inner = self.audit(notListed=[{"suite": "MacClipboardManagerTests.Inner"}])
+        self.assertIn("MacClipboardManagerTests.Inner: nested in an allowed suite but not allowed itself",
+                      r.audit_inventory_problems(inner, r.enumerated_suites(nested)))
 
     def test_the_repository_table_is_bound_to_the_tree(self):
         audit = json.loads((ROOT / r.AUDIT_FILE).read_text(encoding="utf-8"))
@@ -1079,6 +1194,9 @@ class Audit(unittest.TestCase):
         self.assertTrue(all(a["reason"] for s in audit["suites"] for a in s["allowed"]))
         self.assertNotIn("SharePickerPresenterTests", [s["suite"] for s in audit["suites"]])
         self.assertNotIn("PasteboardResolverTests", [s["suite"] for s in audit["suites"]])
+        self.assertIn("mac/UnityMacPlugin/UnityMacPlugin/Clipboard", r.AUDIT_TREE_PATHS)  # Codex B-2
+        keys = r.parse_unit_enumeration(fixture("unit-enumeration.json"), ("MacLibraryTests",))
+        self.assertEqual(r.audit_inventory_problems(audit, r.enumerated_suites(keys)), [])  # Codex B-1
         if subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--git-dir"], capture_output=True).returncode != 0:
             self.skipTest("not a git checkout (the mutation harness's copy)")
         self.assertEqual(audit["treeHash"], r.tree_hash(ROOT, r.AUDIT_TREE_PATHS),
@@ -1742,7 +1860,7 @@ class RealProcessesInTheVM(unittest.TestCase):
         self.dir = pathlib.Path(tempfile.mkdtemp(prefix="ntk-real."))
         self.addCleanup(shutil.rmtree, self.dir, True)
         text = SCRIPT.read_text()
-        self.perl = text[text.index("CAPPED_PERL='") + len("CAPPED_PERL='"):text.index("'\ncapped_group() {")]
+        self.perl = text[text.index("CAPPED_PERL='") + len("CAPPED_PERL='"):text.index("'", text.index("CAPPED_PERL='") + len("CAPPED_PERL='"))]
         self.env = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HOME": str(self.dir), "P": self.perl,
                     "D": str(self.dir), "RUNNER": str(ROOT / "scripts" / "mac_ui_runner.py"), "PY": sys.executable}
 
@@ -1802,6 +1920,86 @@ class RealProcessesInTheVM(unittest.TestCase):
         code, out, err = self.bash('/usr/bin/perl -e "$P" 1 "$D/pid" - /bin/sh -c "sleep 60"; echo "rc=$?"')
         self.assertIn("rc=142", out, err)
         self.assertEqual(self.group(int((self.dir / "pid").read_text())), [])
+
+
+@unittest.skipUnless(_in_the_vm(), "the real process table is read only in the VM (review v6: Claude A-1, B-1)")
+class RealCleanupInTheVM(unittest.TestCase):
+    """The cleanup's judgement over the VM's real process table (libproc): what it removes is logged by a fake
+    port (nothing is removed or signalled through it); only the test's own sh and sleep are started, and the
+    one sleep left is ended by the test in the VM."""
+
+    def setUp(self):
+        self.scan = pathlib.Path(tempfile.mkdtemp(prefix="ntk-real-scan."))
+        self.addCleanup(shutil.rmtree, self.scan, True)
+        out = _real(["/usr/sbin/sysctl", "-n", "kern.boottime"])[1]
+        self.boot = int(re.search(r"sec = (\d+)", out).group(1))
+        self.root = r.make_run_folder(str(self.scan), "20261123T000000Z-abcdef", "a" * 32, self.boot, time.time())
+
+    def port(self):
+        test = self
+
+        class Port:
+            log = []
+
+            def processes(self):
+                return r._processes(_REAL_LIBPROC())
+
+            def boottime(self):
+                return test.boot
+
+            def uid(self):
+                return os.getuid()
+
+            def remove(self, folder):
+                self.log.append(("remove", folder))
+
+            def remove_fixture(self, path):
+                self.log.append(("fixture", path))
+
+            def unregister(self, app):
+                self.log.append(("unregister", app))
+        return Port()
+
+    def test_a_folder_with_only_its_marker_can_be_removed(self):
+        port = self.port()
+        self.assertIsNone(r.clean_run_folder(self.root, port, [], r._read_marker))  # Claude v6 A-1
+        self.assertIn(("remove", self.root), port.log)
+        table = r._processes(_REAL_LIBPROC())
+        self.assertTrue(any(p["pid"] == os.getpid() and p["exe"] for p in table))
+        self.assertFalse([p for p in table if p["uid"] == os.getuid() and p["exe"] is None and not p["zombie"]
+                          and p["start"] and p["start"] >= r._read_marker(self.root)["created"]])
+
+    def test_a_helper_left_by_its_leader_stops_the_next_call_and_keeps_the_folder(self):
+        env = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HOME": str(self.scan), "ROOT": self.root,
+               "RUNNER": str(ROOT / "scripts" / "mac_ui_runner.py"), "PY": sys.executable}
+        text = SCRIPT.read_text()
+        env["P"] = text[text.index("CAPPED_PERL='") + len("CAPPED_PERL='"):text.index("'", text.index("CAPPED_PERL='") + len("CAPPED_PERL='"))]
+        code, out, err = _real(["/bin/bash", "-c",
+                                '/usr/bin/perl -e "$P" 60 "$ROOT/xcodebuild.pid" - /bin/sh -c "/bin/sleep 60 > /dev/null 2>&1 & exit 0"'],
+                               env=env)
+        pgid = int(pathlib.Path(self.root, r.PIDFILE_NAME).read_text())
+        marker_path = pathlib.Path(self.root, r.MARKER_NAME)
+        marker = r.record_writer(json.loads(marker_path.read_text()), {"pid": pgid, "pgid": pgid, "start": 0.0, "exe": "/bin/sh"},
+                                 "xcodebuild")
+        marker_path.write_text(json.dumps(marker))
+        try:
+            code, out, err = _real(["/bin/bash", "-c", '"$PY" "$RUNNER" settle --root "$ROOT" --seconds 2 || exit 1\n'
+                                                        'touch "$ROOT/next"'], env=env)
+            self.assertEqual(code, 1, err)
+            self.assertIn("NTK-STALE:alive 1 process(es) (1 group)", err)
+            self.assertFalse(pathlib.Path(self.root, "next").exists())       # the next call never starts
+            port = self.port()
+            self.assertEqual(r.clean_run_folder(self.root, port, [], r._read_marker),
+                             "NTK-STALE:alive 1 process(es) (1 group)")
+            self.assertEqual(port.log, [])                                  # the folder stays
+        finally:
+            for p in r._processes(_REAL_LIBPROC()):
+                if p["pgid"] == pgid and p["pid"] != pgid:
+                    _real(["/bin/kill", "-TERM", str(p["pid"])])
+        time.sleep(0.5)
+        code, out, err = _real(["/bin/bash", "-c", '"$PY" "$RUNNER" settle --root "$ROOT" --seconds 5'], env=env)
+        self.assertEqual(code, 0, err)
+        self.assertIn(pgid, json.loads(marker_path.read_text())["closed"])  # shown empty: closed (Claude v6 C-1)
 
 
 class PreludeLauncher(unittest.TestCase):
@@ -2009,6 +2207,15 @@ class ShellOrder(unittest.TestCase):
         unblock = perl.index("POSIX::sigprocmask(POSIX::SIG_SETMASK(), $before);\n  if ($f)")
         self.assertLess(perl.index("$pid = $child; setpgrp($pid, $pid);"), unblock)
         self.assertIn('if ($f) { unless ((print {$f} "$pid\\n") && close($f)) { $stop->(); exit 125; } }', perl)
+
+    def test_the_vm_writes_down_what_each_xcodebuild_left(self):
+        capped = function_body(self.text, "capped_group")
+        self.assertLess(capped.index('/usr/bin/perl -e "${CAPPED_PERL}"'),
+                        capped.index('vrunner settle-report --pgid "$(cat "${pidfile}")" --log "${RUN_DIR}/settle.log"'))
+        self.assertIn('[[ "${pidfile}" != - ]] || pidfile="${RUN_DIR}/capped.pid"', capped)  # review v6: Claude B-1
+        self.assertIn('return "${code}"', capped)
+        self.assertIn('  if [[ -s "${pidfile}" ]]; then\n    vrunner settle-report', capped)
+        self.assertIn('vrunner settle-summary --log "${RUN_DIR}/settle.log"', function_body(self.text, "vm_finish"))
 
     def test_the_shell_never_signals_a_number_on_this_mac(self):
         stop = function_body(self.text, "stop_waiter")
