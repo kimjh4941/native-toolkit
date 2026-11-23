@@ -2,7 +2,7 @@
 
 - 記録日: 2026-11-23
 - 段階: 0d（テストのランナー `scripts/test_mac.sh` と基準。企画 5 章、UI テストの設計書 `designs/2026-11-23-macos-c-abi-ui-test-design.md` の 3 章・6 章・7 章・8 章）
-- 状態: ランナーを作り、VM の道で全件を 1 回流して VM の基準を取った。この Mac の道は `--dry-run` の出力までを確かめた（流していない）。`036dc083` でコミットした。ランナーのレビュー v1（`reviews/2026-11-23-macos-c-abi-runner-review-v1.md`）の直しを `da6889a5` でコミットした（10 章）。レビュー v2（`reviews/2026-11-23-macos-c-abi-runner-review-v2.md`）の直しを `d89f9d46` でコミットした（11 章）。レビュー v3（`reviews/2026-11-23-macos-c-abi-runner-review-v3.md`）の直しは 12 章で、コミットしていない
+- 状態: ランナーを作り、VM の道で全件を 1 回流して VM の基準を取った。この Mac の道は `--dry-run` の出力までを確かめた（流していない）。`036dc083` でコミットした。ランナーのレビュー v1（`reviews/2026-11-23-macos-c-abi-runner-review-v1.md`）の直しを `da6889a5` でコミットした（10 章）。レビュー v2（`reviews/2026-11-23-macos-c-abi-runner-review-v2.md`）の直しを `d89f9d46` でコミットした（11 章）。レビュー v3（`reviews/2026-11-23-macos-c-abi-runner-review-v3.md`）の直しと取り直した VM の基準を `1473c7ca` でコミットした（12 章）。レビュー v4（`reviews/2026-11-23-macos-c-abi-runner-review-v4.md`）の直しは 13 章で、コミットしていない
 - 元にした版: `623a919b`（feature/NTKIT-19、0c の終わり）
 - 環境: この Mac では UI・通知・クリップボードを使うものを何も動かしていない（組むのも VM の中だけ。この Mac で動かしたのはランナーの自己テスト、`--dry-run` の読むだけの操作と、レビュー v1 の前に限り変異のハーネス。設計書 7 章は変異を VM だけとしているので差。10 章のとおり、レビュー v1 の後は変異を VM の中だけで流し、この Mac の自己テストは本物の OS の操作に届かない形にした）。動かす確かめは VM `ntk-macos-15-new`（macOS 15.8.3、Xcode 26.3、en-US、`--no-graphics --no-clipboard`）だけ。区分 1 の単体テストもこの Mac では流していない
 
@@ -339,8 +339,33 @@ Claude（A 0、B 1、C 8）と Codex（A 5、B 6、C 2）の静的なレビュ�
 | 自己テスト（偽の口） | この Mac | 166 件、すべて通った |
 | 同じ自己テスト | VM | 165 件が通り、1 件 skip（写しが git のチェックアウトでない） |
 | 変異 194 個（v3 の指摘ごとの変異を足し、変わった文の 9 個を新しい形に合わせた） | VM だけ | 1 回目で **194 個すべて捕まり**、変異なしの写しは通った。本物の台帳は変わらなかった |
-| `--where vm --baseline`（全件。判定を変えたので） | VM | **444/444**（N21 も通った）。資格の 10 項目はすべて合格し、VM の写しの木は計画の `macTree` と一致した。古い基準とは `expandedRuns` の合計で比べ、`changed=0, added=0, removed=0, excluded changed=0, fewer runs=0`。新しい基準を保存した（`runs` にテストごとの展開後の回数 328 件・計 373 回、`counts` に宣言の数と展開後の数の両方（MacLibraryTests は passed 308・runs 352、MacLibraryExampleTests は passed 20・runs 21）、`source.runnerFiles` が入った。`eligible` と `executed` は 113 件で一致）。前の基準はランナーの決まりどおり `test_mac.baseline.vm-15.8.3.2026-11-23.json` として残った（中身はコミット済みのものと同じ） |
+| `--where vm --baseline`（全件。判定を変えたので） | VM | **444/444**（N21 も通った）。資格の 10 項目はすべて合格し、VM の写しの木は計画の `macTree` と一致した。古い基準とは `expandedRuns` の合計で比べ、`changed=0, added=0, removed=0, excluded changed=0, fewer runs=0`。新しい基準を保存した（`runs` にテストごとの展開後の回数 328 件・計 373 回、`counts` に宣言の数と展開後の数の両方（MacLibraryTests は passed 308・runs 352、MacLibraryExampleTests は passed 20・runs 21）、`source.runnerFiles` が入った。`eligible` と `executed` は 113 件で一致）。前の基準はランナーの決まりどおり `test_mac.baseline.vm-15.8.3.2026-11-23.json` に移されたが、中身がコミット済みのもの（`d89f9d46`）と同じで git の履歴にあるので消した。基準の `source.head` は `d89f9d46` だが、`source.runnerFiles` は保存したときのコミットしていないランナー（後の `1473c7ca` のもの）のハッシュである（`mac/` はその間に変わっていない。レビュー v4 の Claude C-2）。次からはランナーをコミットしてから基準を取る |
 | 片付け | VM とこの Mac | VM の `~/ntk/runs` は空、自己テストの写しは消した。この Mac の一時フォルダーに `ntk-` で始まるものは残っていない |
+
+この Mac では、変異のハーネス、本物の kill・rm・pkill・killall・defaults・lsregister・ssh に届く自己テスト、`--in-vm` を流していない。
+
+## 13. ランナーのレビュー v4 の後（2026-11-23）
+
+Claude（A 0、B 0、C 6）と Codex（A 3、B 3、C 1）の静的なレビューを受けて直した。指摘ごとの直し方は `reviews/2026-11-23-macos-c-abi-runner-review-v4.md`。要点:
+
+- **許可のファイルの読み取り**（Codex A-1）: シェルの `python3 -c` をやめ、ランナーの `approval-stale` で読む。読めないときは決まった文だけを出す（場所も traceback も出さない）。オプションを読んだ直後に、ファイルがあって読めることも確かめる（文に場所を入れない）
+- **止めたことを示せない回**（Codex A-2、Claude C-5）: perl は signal の処理を fork の前に置き、PID のファイルも fork の前に開く（開けなければ何も起こさない。書けなければ子を止めてから終わる）。xcodebuild を起こす前に印に「起こしている」を書き、記録したら消す。この印が残るフォルダーは、その起動のあいだは消さない（再起動の後に消える）。印に書けなかった回と、`own-child` が照らせなかった回は、シェルも `stop-current` に進まずフォルダーを残して知らせる
+- **VM のランナーの写し**（Codex A-3）: ランナーの 3 ファイルを私的なフォルダーに一度写し（snapshot）、そのハッシュを計画の `runnerFiles` にし、VM にはその写しから渡す。VM の中の 2 つのスクリプトのハッシュを組む前に照らす。基準の `runnerFiles` は計画の値で、保存の時にリポジトリのランナーが違えば保存しない。この Mac の道は、計画を作るときに写しとリポジトリのランナーが同じことを照らす
+- **`own-child`**（Codex B-1、Claude C-6）: 実行ファイルの実体のパスが `/usr/bin/perl` か `/usr/bin/perl5.<n>` と完全に一致するときだけ（VM で、背景の perl の実体のパスが `/usr/bin/perl` であることを確かめた）
+- **展開の回数の増え**（Codex B-2）: 増えても `RUNS` に出し、見出しに `more runs=` を足した（lost にはしない）
+- **本物の振る舞い**（Codex B-3）: VM の中だけで動く自己テスト（`RealProcessesInTheVM`。この Mac では事実を読んで skip）で、PID のファイルを作れないと子が起きないこと、TERM で leader が自分の子の間に group が止まること、leader が終わった後は残りに何も送らないこと、`own-child` が動いている perl だけを認め、bash が刈り取った後は認めないことを、テスト自身の子のプロセスで確かめる
+- **記述**（Codex C-1、Claude C-1〜C-4）: leader の居ない group の説明、12.1 の前の基準の扱い、`head` と `runnerFiles` のずれ、fixture の文から道を外した、残った group の数と種類を出し、止まり続けるときの手順（再起動か、利用者が見る）を `STALE_HINT` に足した
+
+### 13.1 確かめ
+
+| 何を | どこで | 結果 |
+|---|---|---|
+| 自己テスト（偽の口。本物のプロセスの 4 件は skip） | この Mac | 181 件、177 件が通り 4 件 skip |
+| 同じ自己テスト（本物のプロセスの 4 件も） | VM | 181 件、180 件が通り 1 件 skip（写しが git のチェックアウトでない） |
+| 変異 211 個（v4 の指摘ごとの変異を足し、変わった文の 5 個を新しい形に合わせた） | VM だけ | 1 回目は 208 個が捕まり 3 個が生き残った（記録したら `launching` を消すこと、VM のランナーの写しの照合の行、基準の `runnerFiles` が計画の値であること。どれも切り出す自己テストが無かったので、`record_writer` と `make_baseline` の形にして自己テストを足し、シェルの照合の行の形も確かめた）。直した後の通しで **211 個すべて捕まり**、変異なしの写しは通った。本物の台帳は変わらなかった |
+| `--where vm`（全件。判定を変えたので。ランナーがコミットされていないので基準は取らない） | VM | **444/444**。資格の 10 項目、VM の写しの木、VM のランナーの写しの照合（新しい段）を通った。基準（v3 で取ったもの。テストごとの展開の回数入り）との差は `changed=0, added=0, removed=0, excluded changed=0, fewer runs=0, more runs=0` |
+| `--where mac --dry-run`（区分なし） | この Mac（読むだけ。ランナー自身の残りを消すことを除く）と VM | 計画を作るときのランナーの写しとリポジトリの照合を通った。「what happens」に TMPDIR と残りの片付けの行が出た。「NOT READY」に前提の 4 項目。私物のパスは出なかった。許可の一覧のフォルダーは使わないので消した |
+| 片付け | VM とこの Mac | VM の `~/ntk/runs` は空、自己テストの写しは消し、テストの sleep も残っていない。この Mac の一時フォルダーに `ntk-` で始まるものは残っていない |
 
 この Mac では、変異のハーネス、本物の kill・rm・pkill・killall・defaults・lsregister・ssh に届く自己テスト、`--in-vm` を流していない。
 

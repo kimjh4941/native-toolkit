@@ -77,11 +77,7 @@ RUN_ID_PATTERN='^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$'
 # sends nothing more and the rest is the runner's three-way match (review v2: Codex A-2). With a pid
 # file, the leader's PID is written there first. stdin is /dev/null.
 CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds\n" unless $seconds =~ /^[1-9][0-9]*$/;
-  my $pid = fork; die "fork: $!\n" unless defined $pid;
-  if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
-  setpgrp($pid, $pid);
-  if ($pidfile ne "-") { open(my $f, ">", $pidfile) or die "pid file: $!\n"; print $f "$pid\n"; close $f; }
-  my $reaped = 0; my $status = 0;
+  my $pid = 0; my $reaped = 0; my $status = 0;
   # Before every signal: is the leader still the own unreaped child of this perl? waitpid with WNOHANG answers
   # it even when the main waitpid already reaped it and a handler ran before $reaped was set (-1, ECHILD).
   my $gone = sub {
@@ -91,6 +87,7 @@ CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds
     return 0;
   };
   my $stop = sub {
+    return unless $pid > 0;
     return if $gone->();
     kill "TERM", -$pid;
     for (1..60) { return if $gone->(); select(undef, undef, undef, 0.5); }
@@ -98,9 +95,17 @@ CAPPED_PERL='my $seconds = shift; my $pidfile = shift; die "time limit: $seconds
     kill "KILL", -$pid;
     waitpid($pid, 0); $reaped = 1;
   };
+  # The handlers come before the fork, and the pid file is opened before it: a pid file that cannot be made
+  # starts nothing, and one that cannot be written stops the child before perl ends (review v4: Codex A-2).
   $SIG{ALRM} = sub { $stop->(); exit 142; };
   my %number = (HUP => 1, INT => 2, TERM => 15);
   for my $name (keys %number) { $SIG{$name} = sub { $stop->(); exit 128 + $number{$name}; }; }
+  my $f;
+  if ($pidfile ne "-") { open($f, ">", $pidfile) or die "pid file: $!\n"; }
+  $pid = fork; die "fork: $!\n" unless defined $pid;
+  if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+  setpgrp($pid, $pid);
+  if ($f) { unless ((print {$f} "$pid\n") && close($f)) { $stop->(); exit 125; } }
   alarm $seconds; waitpid($pid, 0); $status = $?; $reaped = 1; alarm 0;
   exit(($status & 127) ? 128 + ($status & 127) : $status >> 8);'
 capped_group() {  # <seconds> <pid file or -> <command...>
@@ -137,6 +142,7 @@ in_vm_main() {
   case "${op}" in
     clean) vm_clean "${run_id}" ;;
     tree-hash) vrunner tree-hash --dir "${RUN_DIR}/src" ;;
+    runner-hashes) vrunner runner-hashes --dir "${RUN_DIR}/runner" ;;
     build) vm_build ;;
     enumerate) vm_enumerate "${DD_UI}" enumeration ;;
     enumerate-lib) vm_enumerate "${DD_LIB}" unit-enumeration ;;
@@ -471,6 +477,8 @@ else
     [[ -z "${APPROVED}" ]] || fail "--dry-run and --approved go to separate runs"
   else
     [[ -n "${APPROVED}" ]] || fail "this Mac runs only with --approved <file> (run --dry-run first and ask the user)"
+    # Its place is never shown (design 3.4; review v4: Codex A-1); every read of it is the runner's.
+    [[ -f "${APPROVED}" && -r "${APPROVED}" ]] || fail "the approval file does not exist or cannot be read"
   fi
 fi
 [[ -z "${FEATURE}" ]] || SKIP_UNIT=1
@@ -482,7 +490,7 @@ UNIT=1; [[ "${SKIP_UNIT}" == 1 ]] && UNIT=0
 # exit (Codex A-9, Claude A-2, B-7). One EXIT trap for everything the run may leave.
 SCAN_ROOT="${TMPDIR:-/tmp}"; SCAN_ROOT="${SCAN_ROOT%/}"
 PRIVATE="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac-private.XXXXXX")"
-MAC_TMP=""; MAC_WAITER=""; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
+MAC_TMP=""; MAC_WAITER=""; MAC_KEEP=0; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
 on_exit() {
   local code=$?
   trap - EXIT INT TERM HUP
@@ -595,7 +603,14 @@ vm_push() {  # 6.3 step 1: mac/ as git would hand it over, and the runner, by ta
   runner file-list --repo "${ROOT_DIR}" > "${list}"
   (cd "${ROOT_DIR}" && COPYFILE_DISABLE=1 tar --null -T "${list}" -cf -) | \
     vm_ssh "tar -xf - -C \"\$HOME/ntk/runs/${RUN_ID}/src\""
-  (cd "${ROOT_DIR}/scripts" && COPYFILE_DISABLE=1 tar -cf - mac_ui_runner.py test_mac.sh) | \
+  # The runner goes from a snapshot taken once; its hashes are what the plan and the baseline name, after
+  # the VM's copy is checked against them (review v4: Codex A-3).
+  rm -rf "${PRIVATE}/runner-snapshot"
+  mkdir "${PRIVATE}/runner-snapshot"
+  cp "${ROOT_DIR}/scripts/mac_ui_runner.py" "${ROOT_DIR}/scripts/test_mac.sh" "${ROOT_DIR}/scripts/mac_unit_audit.json" \
+    "${PRIVATE}/runner-snapshot/"
+  runner runner-hashes --dir "${PRIVATE}/runner-snapshot" > "${PRIVATE}/runner-files.json"
+  (cd "${PRIVATE}/runner-snapshot" && COPYFILE_DISABLE=1 tar -cf - mac_ui_runner.py test_mac.sh) | \
     vm_ssh "tar -xf - -C \"\$HOME/ntk/runs/${RUN_ID}/runner\""
   echo "[vm] handed over $(tr -cd '\0' < "${list}" | wc -c | tr -d ' ') files of mac/ and the runner"
   rm -f "${list}"
@@ -612,6 +627,8 @@ vm_enumeration() {  # <HEAD> <mac tree>: 6.3 steps 0-3 in the VM: qualification,
   # The copy the VM builds is the tree the plan and the baseline name (review v3: Codex A-4).
   [[ "$(vm_op tree-hash "${RUN_ID}")" == "${mac_tree}" && "$(git -C "${ROOT_DIR}" rev-parse HEAD)" == "${head}" ]] \
     || fail "mac/ changed while it was handed to the VM; run again"
+  runner runner-hashes-match --vm "$(vm_op runner-hashes "${RUN_ID}")" --snapshot "${PRIVATE}/runner-files.json" \
+    || fail "the VM's copy of the runner is not the snapshot handed over; run again"
   vm_op clean "${RUN_ID}" | grep '^NTK-VM' | sed 's/^/  /'
   echo "[vm] building (Xcode 26.3, ad-hoc)"
   vm_op build "${RUN_ID}" | sed 's/^/  /'
@@ -641,7 +658,7 @@ run_vm() {
     --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" \
     --os-major "${VM_OS_VERSION%%.*}" --os-version "${VM_OS_VERSION}" --os-build "${VM_OS_BUILD}" --xcode "${VM_XCODE}" \
     --head "${head}" --mac-tree "${mac_tree}" --unit "${UNIT}" --plan "${plan}" --baseline-dir "${BASELINE_DIR}" \
-    $([[ "${NAME_EACH_TEST}" == 1 ]] && echo --name-each-test) $([[ "${BASELINE}" == 1 ]] && echo --baseline)
+    --runner-files "${PRIVATE}/runner-files.json" $([[ "${NAME_EACH_TEST}" == 1 ]] && echo --name-each-test) $([[ "${BASELINE}" == 1 ]] && echo --baseline)
   vm_send_plan "${plan}"
   vm_op check-build "${RUN_ID}" | sed 's/^/  /'
   vm_op prepare "${RUN_ID}" | grep '^NTK-VM' | sed 's/^/  /'
@@ -730,6 +747,9 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
   runner check-call --plan "${MAC_TMP}/plan.approved.json" --root "${MAC_TMP}" --kind "${kind}" --index "${index}" "$@" \
     || exit 97
   rm -f "${MAC_PIDFILE}"
+  # The marker says an xcodebuild is starting until it is recorded: a run that cannot record it keeps its
+  # folder (review v4: Codex A-2, Claude C-5).
+  runner marker --root "${MAC_TMP}" --launching || fail "the run's marker could not be written; nothing was started"
   # Only what the run sets reaches xcodebuild (Claude v2 C-2): an empty environment with HOME, USER,
   # LOGNAME, TMPDIR, a fixed PATH, the Xcode, and the runner's TEST_RUNNER_NTK_ values.
   local environment=(HOME="${HOME}" USER="${USER:-}" LOGNAME="${LOGNAME:-}" TMPDIR="${MAC_TMP}/tmp/"
@@ -746,8 +766,9 @@ mac_xcodebuild() {  # <seconds> <log> <build|unit|ui> <index> <xcodebuild argume
   for i in $(seq 1 100); do [[ -s "${MAC_PIDFILE}" ]] && break; sleep 0.1; done
   if ! { [[ -s "${MAC_PIDFILE}" ]] && runner marker --root "${MAC_TMP}" --pid "$(cat "${MAC_PIDFILE}")" \
            --role xcodebuild --expect-under "$(cd -P "${MAC_XCODE_DIR}" && pwd -P)"; }; then
+    MAC_KEEP=1
     stop_waiter
-    fail "the xcodebuild could not be recorded as a writer; stopped"
+    fail "the xcodebuild could not be recorded as a writer; the run's folder stays"
   fi
   wait "${MAC_WAITER}" || code=$?
   MAC_WAITER=""
@@ -766,6 +787,8 @@ stop_waiter() {
     kill -TERM "${MAC_WAITER}" 2>/dev/null || true
     wait "${MAC_WAITER}" 2>/dev/null || true
   else
+    # perl may still run with an xcodebuild nobody recorded: the folder is not removed (review v4: Codex A-2).
+    MAC_KEEP=1
     echo "Note: the background xcodebuild supervisor could not be confirmed as this run's; nothing was signalled" >&2
   fi
   MAC_WAITER=""
@@ -777,6 +800,10 @@ stop_waiter() {
 mac_cleanup() {
   [[ -n "${MAC_TMP}" && -d "${MAC_TMP}" ]] || return 0
   stop_waiter
+  if [[ "${MAC_KEEP}" == 1 ]]; then
+    echo "Error: the run's private folder stays: an xcodebuild of this run could not be shown stopped. Restart the Mac (the next run then removes the folder) or look at the processes yourself" >&2
+    return 1
+  fi
   runner stop-current --root "${MAC_TMP}"
 }
 
@@ -811,8 +838,7 @@ run_mac() {
   else
     # The approved run plans with the stopped runs the user saw; what is there now is checked against that
     # list when they are stopped (a run that ended since is fine; review v3: Codex B-5).
-    python3 -c 'import json,sys; json.dump(json.load(open(sys.argv[1])).get("stale"), open(sys.argv[2], "w"))' \
-      "${APPROVED}" "${stale}"
+    runner approval-stale --approved "${APPROVED}" --out "${stale}"
   fi
   echo '[]' > "${lsreg}"
   if [[ ",${ALLOW}," == *,coldstart,* ]]; then
@@ -825,7 +851,8 @@ run_mac() {
     --unit-enumeration "${OUT}/unit-enumeration.json" --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}"
     --allow "${ALLOW}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" --os-major "${os_version%%.*}"
     --os-version "${os_version}" --os-build "${os_build}" --xcode "${xcode}" --head "${head}" --mac-tree "${mac_tree}"
-    --unit "${UNIT}" --plan "${plan}" --baseline-dir "${BASELINE_DIR}" --lsregister "${lsreg}" --stale "${stale}")
+    --unit "${UNIT}" --plan "${plan}" --baseline-dir "${BASELINE_DIR}" --lsregister "${lsreg}" --stale "${stale}"
+    --runner-files "${PRIVATE}/runner-files.json")
   [[ "${BASELINE}" == 1 ]] && preflight+=(--baseline)
   if [[ "${DRY_RUN}" == 1 ]]; then
     runner "${preflight[@]}" --dry-run --approval-out "${approval_out}"
@@ -835,7 +862,7 @@ run_mac() {
     echo "[dry-run] the approval list: mac/MacLibraryExample/build/test_mac/${RUN_ID}-mac/approval.json"
     return 0
   fi
-  [[ -f "${APPROVED}" ]] || fail "the approval file does not exist"
+  [[ -f "${APPROVED}" ]] || fail "the approval file does not exist or cannot be read"
   runner "${preflight[@]}" > /dev/null
   runner approve --plan "${plan}" --approved "${APPROVED}" --repo "${ROOT_DIR}"
   # Step 4: the private run folder and its marker before the first xcodebuild (the EXIT trap is set

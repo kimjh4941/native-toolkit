@@ -2149,7 +2149,7 @@ def fixture_create(root):
     the files with O_CREAT | O_EXCL | O_NOFOLLOW, so nothing is written through a symlink (U-11)."""
     root = str(root)
     if not FIXTURE_NAME.match(root):
-        raise RunnerError("the fixture is not /private/tmp/ntk-uitest-<id>")
+        raise RunnerError("the fixture is not the shared temporary folder ntk-uitest-<id>")
     try:
         os.mkdir(root, 0o700)
     except FileExistsError:
@@ -2170,7 +2170,7 @@ def fixture_manifest(root):
     open panel writes one, 0c 1.7 (3)); a symlink is recorded as such and fails the comparison."""
     root = str(root)
     if not FIXTURE_NAME.match(root):
-        raise RunnerError("the fixture is not /private/tmp/ntk-uitest-<id>")
+        raise RunnerError("the fixture is not the shared temporary folder ntk-uitest-<id>")
     problem = _fixture_root_problem(root)
     if problem:
         raise RunnerError(problem)
@@ -2278,6 +2278,10 @@ def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
     if boot > boottime_now:
         return {"removeOnly": False, "signal": [], "group": None, "refuse": "the marker's boot time is later than now",
                 "unverified": []}
+    if marker.get("launching"):
+        return {"removeOnly": False, "signal": [], "group": None, "unverified": [],
+                "refuse": "an xcodebuild was started and never recorded; nothing is signalled and the folder stays "
+                          "until the Mac restarts"}
 
     def matches(p, w):
         return p.get("pid") == w.get("pid") and p.get("start") == w.get("start") and p.get("exe") == w.get("exe") \
@@ -2301,8 +2305,9 @@ def stale_plan(marker, boottime_now, processes, tool_roots, folder=None):
         if members_ok and leader_ok:
             group = pgid
         elif not leader and members:
-            # A group whose leader is gone cannot be shown to be this run's by the three-way match: its
-            # members are never signalled; they are reported and the folder stays (review v3: Codex A-2).
+            # A group whose leader is gone cannot be shown to be this run's by the three-way match: it is not
+            # signalled as a group, and its members that are not writers shown one by one are reported and
+            # keep the folder (review v3: Codex A-2; v4 C-1).
             unverified = sorted(p["pid"] for p in members if p not in alive)
     return {"removeOnly": not alive and not unverified, "signal": sorted(p["pid"] for p in alive), "group": group,
             "refuse": None, "unverified": unverified}
@@ -2367,8 +2372,9 @@ def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0
     ended and was reused in between is never signalled (Codex A-5, v2 A-2). With `approved` (the
     identities a stopped run's approval listed), only those are signalled, one by one, and a process
     that is not among them stops the cleanup instead (review v3: Codex B-1). Returns None when no writer
-    is left, or the reason the folder must stay; processes of a group whose leader is gone are never
-    signalled and keep the folder (Codex v3 A-2)."""
+    is left, or the reason the folder must stay. A group whose leader is gone is never signalled as a group;
+    its writers shown one by one (three-way match, or under the folder and started after the marker) are,
+    and the members that cannot be shown are not and keep the folder (Codex v3 A-2, v4 C-1)."""
     allowed = None if approved is None else {tuple(a) for a in approved}
 
     def fresh():
@@ -2412,7 +2418,11 @@ def stop_writers(marker, folder, port, tool_roots, term_wait=30.0, kill_wait=5.0
     if plan["signal"]:
         return "writers are still running"
     if plan["unverified"]:
-        return "processes of the run's xcodebuild group are left whose identity cannot be shown; nothing was signalled"
+        # How many, and whether they are Xcode's tools (never their places; review v4: Claude C-4).
+        left = [p for p in port.processes() if p.get("pid") in plan["unverified"]]
+        tools = sum(1 for p in left if any(_under(p.get("exe"), t) for t in tool_roots))
+        return (f"{len(plan['unverified'])} process(es) of the run's xcodebuild group ({tools} of them Xcode tools) "
+                "are left whose identity cannot be shown; nothing was signalled to them")
     return None
 
 
@@ -2635,22 +2645,29 @@ def compare_with_baseline(current, baseline_results, in_scope, current_excluded=
     # The expanded runs of parameterized tests (review v3: Codex A-3): fewer runs of a test is lost coverage
     # even when its key and result are the same; without per-test numbers in an older baseline, the totals
     # per target are compared.
-    shrunk = 0
+    shrunk = grown = 0
     if current_runs is not None:
         if baseline_runs:
             for t in sorted(set(current_runs) & set(baseline_runs)):
-                if current_runs[t] < baseline_runs[t]:
-                    shrunk += 1
-                    lost.append(t)
+                if current_runs[t] != baseline_runs[t]:
                     lines.append(f"  RUNS {t}: {baseline_runs[t]} -> {current_runs[t]}")
+                    if current_runs[t] < baseline_runs[t]:
+                        shrunk += 1
+                        lost.append(t)
+                    else:
+                        grown += 1
         for target, total in sorted((baseline_totals or {}).items()):
             now = sum(n for t, n in current_runs.items() if t.split("/", 1)[0] == target)
-            if any(t.split("/", 1)[0] == target for t in current_runs) and now < total:
-                shrunk += 1
-                lost.append(f"{target}#expandedRuns")
+            if any(t.split("/", 1)[0] == target for t in current_runs) and now != total:
                 lines.append(f"  RUNS {target} (all): {total} -> {now}")
+                if now < total:
+                    shrunk += 1
+                    lost.append(f"{target}#expandedRuns")
+                else:
+                    grown += 1
     header = (f"changed={len(changed)}, added={len(added)}, removed={len(removed) - out_of_scope}, "
-              f"outside this run={out_of_scope}, excluded changed={len(excluded_changes)}, fewer runs={shrunk}")
+              f"outside this run={out_of_scope}, excluded changed={len(excluded_changes)}, fewer runs={shrunk}, "
+              f"more runs={grown}")
     return [header] + lines, sorted(set(lost))
 
 
@@ -2765,7 +2782,9 @@ def baseline_refusal(env, plan, failed, dirty_mac, executed=None, lost=None):
     return None
 
 
-def make_baseline(env, plan, results, durations, created, runs=None, runner_files=None):
+def make_baseline(env, plan, results, durations, created, runs=None):
+    """The baseline of a run. Its runner is the plan's `runnerFiles`: the snapshot the run handed over and
+    checked, never the files as they are when it ends (review v4: Codex A-3)."""
     eligible = sorted(key_from_enumeration_id(i) for i in plan["selected"])
     excluded = excluded_map(plan)
     executed = sorted(t.split("/", 1)[1] for t in results if t.startswith(UI_TARGET + "/"))
@@ -2775,7 +2794,8 @@ def make_baseline(env, plan, results, durations, created, runs=None, runner_file
         "language": env.get("language"), "xcode": env.get("xcode"), "signing": env.get("signing"),
         "vm": env.get("vm"), "allowed": list(CATEGORIES) if plan["where"] == "vm" else plan["allow"],
         "source": {"head": plan["head"], "macTree": plan["macTree"], "declarations": plan["declarationsHash"],
-                   "tables": plan["tablesHash"], "audit": plan["auditHash"], "runnerFiles": dict(runner_files or {})},
+                   "tables": plan["tablesHash"], "audit": plan["auditHash"],
+                   "runnerFiles": dict(plan.get("runnerFiles") or {})},
         "eligible": eligible, "executed": executed, "excluded": excluded,
         "counts": baseline_counts(results, runs), "results": dict(sorted(results.items())),
         "runs": dict(sorted((runs or {}).items())),
@@ -3017,6 +3037,8 @@ def cmd_preflight(args):
     changes = trusted_part_changes(args.tests_dir)
     for relative, pinned, actual in changes:
         print(f"Warning: the trusted part changed: {relative}", file=sys.stderr)
+    if args.where == "mac" and args.runner_files and json.loads(_read(args.runner_files)) != runner_file_hashes(args.repo):
+        return _fail("the runner changed after its copy was handed to the VM; run again")
     allowed = [c for c in (args.allow or "").split(",") if c]
     audit = _audit_for(args.repo, args.where)
     if audit:
@@ -3024,7 +3046,8 @@ def cmd_preflight(args):
             print(f"[audit] {problem}")
     plan = make_plan(args.where, identifiers, declarations, allowed, args.feature or None, args.os_major, args.head,
                      args.mac_tree, changes, args.unit == "1", audit, args.name_each_test,
-                     runner_file_hashes(args.repo) if args.where == "mac" else None, args.qualification or None,
+                     runner_file_hashes(args.repo) if args.where == "mac" else
+                     (json.loads(_read(args.runner_files)) if args.runner_files else None), args.qualification or None,
                      declarations_hash=file_sha256(declarations_path),
                      lsregister=json.loads(_read(args.lsregister)) if args.lsregister else None,
                      stale=json.loads(_read(args.stale)) if args.stale else None,
@@ -3357,16 +3380,35 @@ def _processes():
     return processes
 
 
-def own_child(pid, parent, exe_name, processes):
-    """Whether the process of that number is now the parent's own child running `exe_name` (the shell's
-    background perl): only then may the shell signal it (review v3: Codex A-1)."""
+# The real executables of the system perl the shell starts as /usr/bin/perl (review v4: Codex B-1, Claude C-6).
+PERL_EXE = re.compile(r"/usr/bin/perl(5\.[0-9]+)?")
+
+
+def own_child(pid, parent, processes):
+    """Whether the process of that number is now the parent's own child running the system perl (the shell's
+    background perl), by its real executable path: only then may the shell signal it (review v3: Codex A-1)."""
     found = [p for p in processes if p.get("pid") == pid]
     return len(found) == 1 and found[0].get("ppid") == parent and \
-        exe_name in os.path.basename(str(found[0].get("exe") or ""))
+        PERL_EXE.fullmatch(str(found[0].get("exe") or "")) is not None
+
+
+def cmd_approval_stale(args):
+    """The stopped runs an approval lists, for the approved run's plan (review v3: Codex B-5). The approval
+    file is the user's, at a place of theirs: any failure to read it is a fixed message, never its place or
+    a traceback (review v4: Codex A-1)."""
+    try:
+        approval = json.loads(_read(args.approved))
+        stale = approval.get("stale") if isinstance(approval, dict) else None
+    except (OSError, ValueError, UnicodeDecodeError):
+        return _fail("the approval file could not be read as an approval list")
+    if stale is not None and not isinstance(stale, list):
+        return _fail("the approval file could not be read as an approval list")
+    _write_json(args.out, stale)
+    return 0
 
 
 def cmd_own_child(args):
-    return 0 if own_child(args.pid, args.parent, args.exe_name, _processes()) else 1
+    return 0 if own_child(args.pid, args.parent, _processes()) else 1
 
 
 def tmp_new_names(before, after):
@@ -3395,13 +3437,30 @@ def _boottime():
     return int(m.group(1))
 
 
+def record_writer(marker, entry, role):
+    """The marker with this writer recorded: its identity, its group, and no longer `launching` (review v4:
+    Codex A-2)."""
+    marker = dict(marker)
+    marker["writers"] = list(marker.get("writers", [])) + [
+        {"role": role, "pid": entry["pid"], "start": entry["start"], "exe": entry["exe"]}]
+    marker["pgid"] = entry["pgid"]
+    marker.pop("launching", None)
+    return marker
+
+
 def cmd_marker(args):
     """Writes or extends the run folder's marker: the run, this boot, and each writer's PID, start time,
     real executable and group (the stopped run's cleanup, 6.3 the Mac step 4). A writer is recorded only
     once its executable is the Xcode the runner calls (Claude B-4); otherwise this fails (exit 1) and the
     caller stops the run."""
     path = pathlib.Path(args.root) / MARKER_NAME
-    if args.pid is None:
+    if args.launching:
+        # Written before an xcodebuild starts; only recording it clears this. A folder whose marker still
+        # says so may hold an xcodebuild nobody recorded, and is never removed in this boot (review v4:
+        # Codex A-2, Claude C-5).
+        marker = json.loads(_read(path))
+        marker["launching"] = True
+    elif args.pid is None:
         marker = {"schema": 1, "runId": args.run_id, "boottime": _boottime(), "created": time.time(),
                   "root": os.path.realpath(args.root), "writers": [], "pgid": None}
     else:
@@ -3414,8 +3473,7 @@ def cmd_marker(args):
             time.sleep(0.1)
         if entry is None:
             return _fail("the writer could not be recorded (not running, or not the expected Xcode)")
-        marker["writers"].append({"role": args.role, "pid": entry["pid"], "start": entry["start"], "exe": entry["exe"]})
-        marker["pgid"] = entry["pgid"]
+        marker = record_writer(marker, entry, args.role)
     tmp = path.with_suffix(".tmp")
     _write_json(tmp, marker)
     os.replace(tmp, path)
@@ -3442,7 +3500,9 @@ def _read_marker(folder):
 
 
 STALE_HINT = ("look for folders whose names start with `ntk-test-mac.` in your temporary folder ($TMPDIR); "
-              "each holds ntk-run-marker.json")
+              "each holds ntk-run-marker.json. If it stays because processes of its xcodebuild could not be shown "
+              "or stopped, restart the Mac (the next run then removes the folder) or look at the processes "
+              "yourself (Activity Monitor) before planning again")
 
 
 def _mark(text):
@@ -3787,6 +3847,8 @@ def cmd_summary(args):
         refusal = baseline_refusal(env, plan, failed, bool(git_mac_changes(args.repo)), executed, lost)
         if refusal is None and snapshot_changed(args.repo, plan):
             refusal = "mac/ or HEAD changed after the run was planned (review v3: Codex A-4)"
+        if refusal is None and runner_changed(args.repo, plan):
+            refusal = "the runner is not the one the run used (review v4: Codex A-3)"
         if refusal:
             print(f"[baseline] not saved: {refusal}")
             return 1
@@ -3799,8 +3861,7 @@ def cmd_summary(args):
             os.replace(baseline_path, dated)
             print(f"[baseline] the previous baseline is kept as {dated.name}")
         created = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-        _write_json(baseline_path, make_baseline(env, plan, current, durations, created, unit_runs(results),
-                                                 runner_file_hashes(args.repo)))
+        _write_json(baseline_path, make_baseline(env, plan, current, durations, created, unit_runs(results)))
         print(f"[baseline] saved {baseline_path.name}")
     return 1 if failed else 0
 
@@ -3815,6 +3876,43 @@ def runs_to_compare(results, baseline):
     """(this run's runs, the baseline's per-test runs, the baseline's totals per target): the totals only
     for an older baseline without per-test numbers."""
     return unit_runs(results), baseline.get("runs"), ({} if baseline.get("runs") else baseline.get("expandedRuns", {}))
+
+
+def runner_changed(repo, plan):
+    """Whether the runner files are not the ones the run used: the plan's `runnerFiles` (the snapshot handed
+    to the VM and checked there; on this Mac, the committed files the gate checked) must be there and be what
+    the repository holds now, so a baseline names the runner that made it (review v4: Codex A-3)."""
+    return not plan.get("runnerFiles") or runner_file_hashes(repo) != plan["runnerFiles"]
+
+
+def runner_snapshot_hashes(folder):
+    """{runner file: sha256} of a flat copy of the runner files (the snapshot handed to the VM, or the VM's
+    copy of it, which holds only the two scripts)."""
+    out = {}
+    for relative in RUNNER_FILES:
+        path = pathlib.Path(folder) / os.path.basename(relative)
+        if path.is_file():
+            out[relative] = file_sha256(path)
+    return out
+
+
+def runner_copy_matches(vm_hashes, snapshot):
+    """The VM's copy holds exactly the two scripts of the snapshot, unchanged."""
+    scripts = {k: v for k, v in snapshot.items() if k != "scripts/mac_unit_audit.json"}
+    return isinstance(vm_hashes, dict) and len(scripts) == 2 and vm_hashes == scripts
+
+
+def cmd_runner_hashes(args):
+    print(json.dumps(runner_snapshot_hashes(args.dir), sort_keys=True))
+    return 0
+
+
+def cmd_runner_hashes_match(args):
+    try:
+        vm_hashes = json.loads(args.vm)
+    except ValueError:
+        return 1
+    return 0 if runner_copy_matches(vm_hashes, json.loads(_read(args.snapshot))) else 1
 
 
 def snapshot_changed(repo, plan):
@@ -3879,6 +3977,7 @@ def main(argv=None):
     p.add_argument("--unit", choices=("0", "1"), required=True)
     p.add_argument("--plan", required=True)
     p.add_argument("--baseline-dir", required=True)
+    p.add_argument("--runner-files", default="")
     p.add_argument("--name-each-test", action="store_true")
     p.add_argument("--lsregister")
     p.add_argument("--stale")
@@ -3993,6 +4092,7 @@ def main(argv=None):
     p.add_argument("--pid", type=int)
     p.add_argument("--role", default="")
     p.add_argument("--expect-under", default="")
+    p.add_argument("--launching", action="store_true")
     p.set_defaults(func=cmd_marker)
 
     p = sub.add_parser("stale")
@@ -4023,8 +4123,22 @@ def main(argv=None):
     p = sub.add_parser("own-child")
     p.add_argument("--pid", type=int, required=True)
     p.add_argument("--parent", type=int, required=True)
-    p.add_argument("--exe-name", required=True)
+    p.add_argument("--exe-name", required=True, choices=["perl"])
     p.set_defaults(func=cmd_own_child)
+
+    p = sub.add_parser("runner-hashes")
+    p.add_argument("--dir", required=True)
+    p.set_defaults(func=cmd_runner_hashes)
+
+    p = sub.add_parser("runner-hashes-match")
+    p.add_argument("--vm", required=True)
+    p.add_argument("--snapshot", required=True)
+    p.set_defaults(func=cmd_runner_hashes_match)
+
+    p = sub.add_parser("approval-stale")
+    p.add_argument("--approved", required=True)
+    p.add_argument("--out", required=True)
+    p.set_defaults(func=cmd_approval_stale)
 
     p = sub.add_parser("tmp-names")
     p.add_argument("--dir", required=True)

@@ -38,6 +38,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 
@@ -944,13 +945,52 @@ class Stopping(unittest.TestCase):
         self.assertEqual(port.log, [])
 
     def test_the_shells_own_child_only(self):
-        processes = [{"pid": 50, "ppid": 10, "exe": "/System/Library/Perl/5.34/perl5.34"},
+        processes = [{"pid": 50, "ppid": 10, "exe": "/usr/bin/perl"},
+                     {"pid": 54, "ppid": 10, "exe": "/usr/bin/perl5.34"},
                      {"pid": 51, "ppid": 11, "exe": "/usr/bin/perl"},
-                     {"pid": 52, "ppid": 10, "exe": "/System/Applications/Mail.app/Contents/MacOS/Mail"}]
-        self.assertTrue(r.own_child(50, 10, "perl", processes))
-        self.assertFalse(r.own_child(51, 10, "perl", processes))   # another parent: a reused number
-        self.assertFalse(r.own_child(52, 10, "perl", processes))   # our child, but not perl
-        self.assertFalse(r.own_child(53, 10, "perl", processes))   # gone
+                     {"pid": 52, "ppid": 10, "exe": "/System/Applications/Mail.app/Contents/MacOS/Mail"},
+                     {"pid": 55, "ppid": 10, "exe": "/usr/local/bin/notperl"},
+                     {"pid": 56, "ppid": 10, "exe": "/usr/bin/perl-helper"},
+                     {"pid": 57, "ppid": 10, "exe": "/tmp/usr/bin/perl"},
+                     {"pid": 58, "ppid": 10, "exe": None}]
+        self.assertTrue(r.own_child(50, 10, processes))
+        self.assertTrue(r.own_child(54, 10, processes))
+        self.assertFalse(r.own_child(51, 10, processes))   # another parent: a reused number
+        self.assertFalse(r.own_child(52, 10, processes))   # our child, but not perl
+        for pid in (55, 56, 57, 58):                       # a name like perl is not perl (review v4: Codex B-1)
+            self.assertFalse(r.own_child(pid, 10, processes), pid)
+        self.assertFalse(r.own_child(53, 10, processes))   # gone
+
+    def test_an_xcodebuild_never_recorded_keeps_the_folder_in_this_boot(self):
+        launching = dict(self.marker(), launching=True)
+        plan = r.stale_plan(launching, 1000, [], [self.XCODE], self.ROOT_DIR)
+        self.assertIn("never recorded", plan["refuse"])           # review v4: Codex A-2
+        port = FakePort([])
+        self.assertIsNotNone(r.stop_writers(launching, self.ROOT_DIR, port, [self.XCODE]))
+        self.assertEqual(port.log, [])
+        self.assertTrue(r.stale_plan(launching, 2000, [], [self.XCODE], self.ROOT_DIR)["removeOnly"])  # restarted
+
+    def test_the_marker_says_launching_until_the_writer_is_recorded(self):
+        with tempfile.TemporaryDirectory() as scan:
+            root = r.make_run_folder(scan, "20261123T000000Z-abcdef", "a" * 32, 1000, 5000.0)
+            with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                self.assertEqual(r.main(["marker", "--root", root, "--launching"]), 0)
+            marker = json.loads(pathlib.Path(root, r.MARKER_NAME).read_text())
+            self.assertTrue(marker["launching"])
+        entry = {"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}
+        recorded = r.record_writer(marker, entry, "xcodebuild")
+        self.assertNotIn("launching", recorded)
+        self.assertEqual((recorded["pgid"], recorded["writers"][-1]["pid"]), (300, 300))
+        self.assertTrue(marker["launching"])  # the marker read is not changed in place
+
+    def test_the_left_group_is_counted_by_kind(self):
+        tool = {"pid": 302, "pgid": 300, "start": 5002, "exe": self.XCODE + "/Developer/usr/bin/xctest"}
+        other = {"pid": 303, "pgid": 300, "start": 5003, "exe": "/usr/bin/ditto"}
+        port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}, tool, other],
+                        on_group=lambda p, pgid, n: p.drop(300))
+        problem = r.stop_writers(self.marker(), self.ROOT_DIR, port, [self.XCODE], term_wait=2, kill_wait=2)
+        self.assertIn("2 process(es) of the run's xcodebuild group (1 of them Xcode tools)", problem)  # Claude v4 C-4
+        self.assertNotIn("/", problem.split("group", 1)[1])
 
     def test_a_writer_that_never_stops_keeps_the_folder(self):
         port = FakePort([{"pid": 300, "pgid": 300, "start": 5001, "exe": self.XB}], on_kill=lambda p, pid: None)
@@ -1195,6 +1235,19 @@ class Baseline(unittest.TestCase):
         self.assertIn("  RUNS MacLibraryTests (all): 3 -> 2", lines)
         self.assertEqual(lost, ["MacLibraryTests#expandedRuns"])
 
+    def test_more_runs_are_shown_but_not_lost(self):
+        current, baseline = {"MacLibraryTests/S/t(a:)": "passed"}, {"MacLibraryTests/S/t(a:)": "passed"}
+        lines, lost = r.compare_with_baseline(current, baseline, set(baseline), None, None,
+                                              {"MacLibraryTests/S/t(a:)": 4}, {"MacLibraryTests/S/t(a:)": 3})
+        self.assertIn("fewer runs=0, more runs=1", lines[0])        # review v4: Codex B-2
+        self.assertIn("  RUNS MacLibraryTests/S/t(a:): 3 -> 4", lines)
+        self.assertEqual(lost, [])
+        lines, lost = r.compare_with_baseline(current, baseline, set(baseline), None, None,
+                                              {"MacLibraryTests/S/t(a:)": 4}, None, {"MacLibraryTests": 3})
+        self.assertIn("  RUNS MacLibraryTests (all): 3 -> 4", lines)
+        self.assertIn("more runs=1", lines[0])
+        self.assertEqual(lost, [])
+
     def test_the_counts_hold_the_declared_and_the_expanded(self):
         counts = r.baseline_counts({"MacLibraryTests/S/t(a:)": "passed", "MacLibraryTests/S/u()": "passed"},
                                    {"MacLibraryTests/S/t(a:)": 3, "MacLibraryTests/S/u()": 1})
@@ -1285,6 +1338,9 @@ class Baseline(unittest.TestCase):
         baseline = r.make_baseline({"os": "15.8.3"}, plan, results, {D1: 3.0}, "2026-11-23T00:00:00+00:00")
         self.assertEqual(len(baseline["eligible"]), 113)
         self.assertEqual(baseline["executed"], [D1])  # the same form as eligible (Codex v2 B-5)
+        snapshot = {"scripts/test_mac.sh": "1" * 64}
+        named = r.make_baseline({"os": "15.8.3"}, dict(plan, runnerFiles=snapshot), results, {}, "2026-11-23T00:00:00+00:00")
+        self.assertEqual(named["source"]["runnerFiles"], snapshot)  # the run's snapshot (review v4: Codex A-3)
         full = {f"MacLibraryExampleUITests/{k}": "passed" for k in keys_of(plan["selected"])}
         whole = r.make_baseline({"os": "15.8.3"}, plan, full, {}, "2026-11-23T00:00:00+00:00")
         self.assertEqual(whole["eligible"], whole["executed"])
@@ -1672,7 +1728,47 @@ class Gate(unittest.TestCase):
         self.assertTrue(r.snapshot_changed(self.repo, self.plan))
 
 
+    def test_the_baseline_names_the_runner_the_run_used(self):
+        self.assertFalse(r.runner_changed(self.repo, self.plan))
+        self.assertTrue(r.runner_changed(self.repo, dict(self.plan, runnerFiles={})))
+        (self.repo / "scripts" / "test_mac.sh").write_text("edited while the VM ran")  # review v4: Codex A-3
+        self.assertTrue(r.runner_changed(self.repo, self.plan))
+
+    def test_the_vms_copy_of_the_runner_is_the_snapshot(self):
+        snapshot = self.repo.parent / (self.repo.name + ".snapshot")
+        snapshot.mkdir()
+        self.addCleanup(shutil.rmtree, snapshot, True)
+        for relative in r.RUNNER_FILES:
+            shutil.copyfile(self.repo / relative, snapshot / os.path.basename(relative))
+        hashes = r.runner_snapshot_hashes(snapshot)
+        self.assertEqual(hashes, self.plan["runnerFiles"])
+        vm = {k: v for k, v in hashes.items() if k != "scripts/mac_unit_audit.json"}
+        self.assertTrue(r.runner_copy_matches(vm, hashes))
+        self.assertFalse(r.runner_copy_matches(dict(vm, **{"scripts/test_mac.sh": "0" * 64}), hashes))
+        self.assertFalse(r.runner_copy_matches({"scripts/test_mac.sh": vm["scripts/test_mac.sh"]}, hashes))
+        self.assertFalse(r.runner_copy_matches({}, {}))
+
+
 class Commands(unittest.TestCase):
+    def test_the_approval_file_is_read_without_showing_its_place(self):
+        with tempfile.TemporaryDirectory(prefix="Example Person (private) ") as folder:
+            good = pathlib.Path(folder, "approval list.json")
+            good.write_text(json.dumps({"stale": [{"mark": "abc"}]}))
+            broken = pathlib.Path(folder, "broken.json")
+            broken.write_text("{not json")
+            out = pathlib.Path(folder, "stale.json")
+            for path in (pathlib.Path(folder, "missing.json"), broken, pathlib.Path(folder)):
+                err, std = io.StringIO(), io.StringIO()
+                with redirect_stderr(err), redirect_stdout(std):
+                    self.assertEqual(r.main(["approval-stale", "--approved", str(path), "--out", str(out)]), 1)
+                shown = err.getvalue() + std.getvalue()
+                self.assertIn("could not be read as an approval list", shown)  # review v4: Codex A-1
+                for fragment in ("Example", "Person", "private", "missing", "broken", "Traceback", "/"):
+                    self.assertNotIn(fragment, shown)
+            with redirect_stderr(io.StringIO()), redirect_stdout(io.StringIO()):
+                self.assertEqual(r.main(["approval-stale", "--approved", str(good), "--out", str(out)]), 0)
+            self.assertEqual(json.loads(out.read_text()), [{"mark": "abc"}])
+
     def test_an_unexpected_error_shows_no_path(self):
         err = io.StringIO()
         with redirect_stderr(err):
@@ -1693,6 +1789,74 @@ class Commands(unittest.TestCase):
             subprocess.run(["/bin/ps", "-ax"], capture_output=True)
         with self.assertRaises(OsOperationReached):
             r.OsPort().processes()
+
+
+def _real(args, timeout=90, env=None):
+    """A real subprocess, for RealProcessesInTheVM only (it never runs on this Mac)."""
+    process = _REAL_POPEN(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+    out, err = process.communicate(timeout=timeout)
+    return process.returncode, out, err
+
+
+def _in_the_vm():
+    """The same two facts the VM half reads: this is a VM, a VirtualMac (this Mac answers 0 and its model)."""
+    try:
+        return _real(["/usr/sbin/sysctl", "-n", "kern.hv_vmm_present"])[1].strip() == "1" and \
+            _real(["/usr/sbin/sysctl", "-n", "hw.model"])[1].strip().startswith("VirtualMac")
+    except OSError:
+        return False
+
+
+@unittest.skipUnless(_in_the_vm(), "real processes and signals run only in the VM (review v4: Codex B-3)")
+class RealProcessesInTheVM(unittest.TestCase):
+    """The supervisor perl and `own-child` with real processes: only the test's own children (sleep and sh)
+    are started and signalled, and only inside the VM (the harness runs these there; this Mac skips them)."""
+
+    def setUp(self):
+        self.dir = pathlib.Path(tempfile.mkdtemp(prefix="ntk-real."))
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        text = SCRIPT.read_text()
+        self.perl = text[text.index("CAPPED_PERL='") + len("CAPPED_PERL='"):text.index("'\ncapped_group() {")]
+        self.env = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "HOME": str(self.dir), "P": self.perl,
+                    "D": str(self.dir), "RUNNER": str(ROOT / "scripts" / "mac_ui_runner.py"), "PY": sys.executable}
+
+    def bash(self, script, timeout=90):
+        return _real(["/bin/bash", "-c", script], timeout=timeout, env=self.env)
+
+    def group(self, pgid):
+        out = _real(["/bin/ps", "-axo", "pid=,pgid="])[1]
+        return [int(a) for a, b in (line.split() for line in out.splitlines()) if int(b) == pgid]
+
+    def test_a_pid_file_that_cannot_be_made_starts_nothing(self):
+        code, _, _ = self.bash('/usr/bin/perl -e "$P" 30 "$D/no/such/folder/pid" /bin/sh -c \'touch "$D/started"; sleep 30\'')
+        self.assertNotEqual(code, 0)
+        time.sleep(1)
+        self.assertFalse((self.dir / "started").exists())
+
+    def test_term_stops_the_group_while_the_leader_is_its_own(self):
+        code, out, err = self.bash('/usr/bin/perl -e "$P" 60 "$D/pid" /bin/sh -c "sleep 60 & sleep 60" & w=$!\n'
+                                   'for i in $(seq 1 50); do [ -s "$D/pid" ] && break; sleep 0.1; done; sleep 0.5\n'
+                                   'kill -TERM "$w"; wait "$w"; echo "rc=$?"')
+        self.assertIn("rc=143", out, err)
+        self.assertEqual(self.group(int((self.dir / "pid").read_text())), [])
+
+    def test_nothing_is_sent_after_the_leader_was_reaped(self):
+        code, out, err = self.bash('/usr/bin/perl -e "$P" 60 "$D/pid" /bin/sh -c "/bin/sleep 60 > /dev/null 2>&1 & exit 0"; echo "rc=$?"')
+        self.assertIn("rc=0", out, err)
+        pgid = int((self.dir / "pid").read_text())
+        left = self.group(pgid)
+        self.assertEqual(len(left), 1)        # the leader ended and perl sent nothing to the rest of its group
+        _real(["/bin/kill", "-TERM", str(left[0])])
+
+    def test_own_child_is_the_running_perl_only(self):
+        code, out, err = self.bash('/usr/bin/perl -e "$P" 30 - /bin/sleep 30 & w=$!\nsleep 0.5\n'
+                                   '"$PY" "$RUNNER" own-child --pid "$w" --parent "$$" --exe-name perl; echo "A=$?"\n'
+                                   '"$PY" "$RUNNER" own-child --pid "$w" --parent 1 --exe-name perl; echo "B=$?"\n'
+                                   'kill -TERM "$w"; wait "$w"\n'
+                                   '"$PY" "$RUNNER" own-child --pid "$w" --parent "$$" --exe-name perl; echo "C=$?"')
+        self.assertIn("A=0", out, err)
+        self.assertIn("B=1", out, err)
+        self.assertIn("C=1", out, err)   # reaped by bash: its number is not perl's any more
 
 
 class PreludeLauncher(unittest.TestCase):
@@ -1859,6 +2023,49 @@ class ShellOrder(unittest.TestCase):
         kill = stop.index('kill "KILL", -$pid;')
         self.assertEqual(stop[kill - len("return if $gone->();\n    "):kill], "return if $gone->();\n    ")
         self.assertIn("waitpid($pid, 0); $status = $?; $reaped = 1;", perl)
+        self.assertIn("return unless $pid > 0;", stop)
+
+    def test_perl_starts_nothing_it_cannot_record(self):
+        perl = self.text[self.text.index("CAPPED_PERL='"):self.text.index("capped_group() {")]
+        fork = perl.index("$pid = fork;")
+        self.assertLess(perl.index('open($f, ">", $pidfile) or die'), fork)   # review v4: Codex A-2
+        self.assertLess(perl.index("$SIG{ALRM} = sub"), fork)
+        self.assertLess(perl.index("for my $name (keys %number) { $SIG{$name}"), fork)
+        self.assertIn('if ($f) { unless ((print {$f} "$pid\\n") && close($f)) { $stop->(); exit 125; } }', perl)
+        self.assertLess(perl.index("exit 125; } }"), perl.index("alarm $seconds;"))
+
+    def test_a_run_that_cannot_show_its_xcodebuild_stopped_keeps_its_folder(self):
+        gate = function_body(self.text, "mac_xcodebuild")
+        self.assertLess(gate.index('runner marker --root "${MAC_TMP}" --launching || fail'),
+                        gate.index('/usr/bin/perl -e "${CAPPED_PERL}"'))
+        self.assertIn('    MAC_KEEP=1\n    stop_waiter\n    fail "the xcodebuild could not be recorded', gate)
+        stop = function_body(self.text, "stop_waiter")
+        self.assertIn("  else\n    # perl may still run", stop)
+        self.assertLess(stop.index("  else"), stop.index("    MAC_KEEP=1"))
+        cleanup = function_body(self.text, "mac_cleanup")
+        self.assertLess(cleanup.index("stop_waiter"), cleanup.index('if [[ "${MAC_KEEP}" == 1 ]]; then'))
+        self.assertLess(cleanup.index("    return 1\n  fi"), cleanup.index("runner stop-current"))
+
+    def test_the_approval_file_is_read_only_by_the_runner(self):
+        self.assertNotIn('open(sys.argv[1])).get("stale")', self.text)          # review v4: Codex A-1
+        self.assertIn('runner approval-stale --approved "${APPROVED}" --out "${stale}"', self.text)
+        for line in self.text.splitlines():
+            if "${APPROVED}" in line and "python3" in line:
+                self.fail(line)
+        self.assertIn('[[ -f "${APPROVED}" && -r "${APPROVED}" ]] || fail "the approval file does not exist or cannot be read"',
+                      self.text)
+
+    def test_the_vm_runs_the_runner_snapshot_the_plan_names(self):
+        push = function_body(self.text, "vm_push")
+        self.assertLess(push.index('runner runner-hashes --dir "${PRIVATE}/runner-snapshot"'),
+                        push.index('(cd "${PRIVATE}/runner-snapshot" && COPYFILE_DISABLE=1 tar'))  # Codex v4 A-3
+        self.assertNotIn('cd "${ROOT_DIR}/scripts"', push)
+        body = function_body(self.text, "vm_enumeration")
+        self.assertLess(body.index('\n  runner runner-hashes-match --vm "$(vm_op runner-hashes "${RUN_ID}")"'),
+                        body.index("vm_op clean"))
+        self.assertIn('--snapshot "${PRIVATE}/runner-files.json" \\\n    || fail "the VM\'s copy of the runner', body)
+        self.assertIn('runner-hashes) vrunner runner-hashes --dir "${RUN_DIR}/runner" ;;', self.text)
+        self.assertEqual(self.text.count('--runner-files "${PRIVATE}/runner-files.json"'), 2)
 
     def test_the_cleanup_stops_writers_before_anything_goes(self):
         self.assertIn('runner stop-current --root "${MAC_TMP}"', function_body(self.text, "mac_cleanup"))
