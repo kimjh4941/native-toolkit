@@ -121,6 +121,10 @@
     "SupportRuleTests/testLaunchCopyIsTwelveHexDigits": [],
     "SupportRuleTests/testCenterLayoutBeforeTheClickTakesOnlyTheSameGroups": [],
     "SupportRuleTests/testCenterLayoutAfterTheClickTellsWhatItCanAndRefusesTheRest": [],
-    "SupportRuleTests/testCenterLayoutDoesNotSeeWhatItsReadsCannotShow": []
+    "SupportRuleTests/testCenterLayoutDoesNotSeeWhatItsReadsCannotShow": [],
+    "MacQualificationProbeTests/testQ1_windowOwnersAreReadable": [],
+    "MacQualificationProbeTests/testQ2_notificationMenuItemPassesTheCheck": ["notification"],
+    "MacQualificationProbeTests/testQ3_pickerCopyPassesTheCheck": ["sharepicker"],
+    "MacQualificationProbeTests/testQ4_pasteButtonPassesTheCheck": ["clipboard"]
   }
 }

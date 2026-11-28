@@ -81,8 +81,8 @@ PERMISSION_ORDER = ("testNP2_requestPermissionDontAllow", "testNP3_showImmediate
                     "testNP1_requestPermissionAllow")
 PRIVACY_CLASS = "ClipboardPrivacyUITests"
 SEPARATE_CLASSES = ((PERMISSION_CLASS, "Notification"), (PRIVACY_CLASS, "Clipboard"))
-# The U-30 probes (MacQualificationProbeTests) are not written yet; their class goes here when they are.
-QUALIFICATION_CLASSES = ()
+# The U-30 probes (2026-11-28): one call per probe, only in a --qualification plan.
+QUALIFICATION_CLASSES = ("MacQualificationProbeTests",)
 # The watch (U-20): first of the notification tests, only when one is selected.
 WATCH_TEST = "NotificationUITests/testN4_showImmediateBanner"
 # Tests that share the sample's Share picker and may open Mail (S11): Mail is stopped after the class.
@@ -135,11 +135,18 @@ MAC_DEFERRED_TESTS = {
     "ShareUITests/testS4_shareURLCopy": ("ownerUnverified", ("pickerCopy",)),
 }
 PRESS_TARGETS = ("notificationMenuItem", "replyInBanner", "pasteButton", "pickerCopy")
-# The press targets checked on macOS 26 (the results of U-30, now run in the 26 VM, copied here). Empty until U-30.
-MAC_VERIFIED_TARGETS = frozenset()
+# The press targets checked on macOS 26 (the results of U-30, now run in the 26 VM, copied here). 2026-11-28, the
+# mac26 stage in the 26 VM (26.6.2): MacQualificationProbeTests Q2 (the menu item), Q3 (Copy) and Q4 (the
+# PasteButton) passed. replyInBanner is the mac26-reply stage, not run yet.
+MAC_VERIFIED_TARGETS = frozenset({"notificationMenuItem", "pickerCopy", "pasteButton"})
 # Tests of the qualification stages (U-30): never in a normal run or a baseline. mac26 and mac26-reply run in
 # the 26 VM (`--where vm26`), vm-ja in the 15 VM (D-21 revised 2026-11-28).
-QUALIFICATION_ONLY_TESTS = {"mac26": frozenset(), "mac26-reply": frozenset(), "vm-ja": frozenset()}
+QUALIFICATION_ONLY_TESTS = {
+    "mac26": frozenset({"MacQualificationProbeTests/testQ1_windowOwnersAreReadable",
+                        "MacQualificationProbeTests/testQ2_notificationMenuItemPassesTheCheck",
+                        "MacQualificationProbeTests/testQ3_pickerCopyPassesTheCheck",
+                        "MacQualificationProbeTests/testQ4_pasteButtonPassesTheCheck"}),
+    "mac26-reply": frozenset(), "vm-ja": frozenset()}
 QUALIFICATION_WHERE = {"mac26": "vm26", "mac26-reply": "vm26", "vm-ja": "vm"}
 # Exclusions per environment (U-33: if the back button cannot be pressed on 26 either). Empty.
 ENVIRONMENT_EXCLUSIONS = {"vm": {}, "vm26": {}, "mac": {}}
@@ -172,19 +179,21 @@ FROZEN_METHODS = {
 # NotificationCenterUI pinned again on 2026-11-28 (pressInCenter: detection in the VM; Codex presscenter review v1).
 # NotificationCenterUI and NotificationRules pinned again on 2026-11-28 (CenterLayoutRule; runner review v7 Codex B-1),
 # and again the same day (the exceptions from the snapshot's parents; CenterLayoutRule review v1 A-1, A-2).
+# NotificationRules, NotificationCenterUI, SampleApp, SharePicker and Panels pinned again on 2026-11-28 (the 26 VM:
+# the closing root and the moving highlight, the probes' checks without a press, the panel column scrolled in).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/NotificationCenterUI.swift": "fdc9f7ef4fe857e2223c066dbfa95844d268dd6401936fc93b63b836b3bf7bba",
+    "Support/NotificationCenterUI.swift": "1e62ebab5e86820b3d106fdbb11f72e9dda2a24bf6e4cf076c7f58fabc874098",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
-    "Support/NotificationRules.swift": "9e7eb7536cbd43072759fe2da6b31da505c6edc5f3e8db4c5e28fc6e57e7588f",
+    "Support/NotificationRules.swift": "c1f7d156e70687a1bc5ab0144e80f79e935e497e8847ae705365601e60543565",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
     "Support/OtherApps.swift": "165dfc696861f02159cc53a1fddeaacf156124a5929dd492936a524bd7bc56dc",
-    "Support/Panels.swift": "5959023421beb3137940351e0444e396f0ee4847593bc81236af0b29d7aa7324",
+    "Support/Panels.swift": "04a858f6e6aae1ca4b5d4cc61bc09c2a340b7c358b686ae9f7db3d58161917e3",
     "Support/PrivacyPrompt.swift": "e552df65bbe391a0c4e5d6a003ef31c37d1847910168a300b2ea64384e01cf2c",
     "Support/RunnerPasteboard.swift": "7a4f14256a5808ebbcf0300aaa6370a1ac34d1fae8038b39bac20789fb336f27",
-    "Support/SampleApp.swift": "ee528175a23bffbb6b6f3fe111347954fa25c05774d7c0be5a01cfd63cc569aa",
+    "Support/SampleApp.swift": "d21aa03ba51087c3a324793845d60513d354b7b4ff1b4947ceef7498a62301ff",
     "Support/SampleUITestCase.swift": "a1f2e883faf8c27bedace3b7a3163fb0bb5b3c398a5fb056fe868d799cb2fa19",
-    "Support/SharePicker.swift": "0b21705e53c039f1e647654b80a3c9dc8870cbc05c7a32042b9849825e800190",
+    "Support/SharePicker.swift": "7e807f32fc27d0b70a211ecd5c1eba0b728f3b4ff1ac7e5b26d1326d94ada0ff",
     "Support/StepCode.swift": "46f31c5136b38ca2e0fb5e7d38401c67d6de74cceddb2f77ccede70f40fac2f4",
     "Support/SystemLabels.swift": "0af3f74c50f33a7935c4b25c310e3d9f32de0907898ae7a92a3c8d27f719b707",
     "Support/UnexpectedInterruptionGuard.swift": "f1c9b99b3a5de5a420ca09f53b5a563a6c9ed16df2fe9a0d96b06827cd77cfad",
@@ -1360,7 +1369,8 @@ def make_plan(where, identifiers, declarations, allowed, feature, os_major, head
             raise RunnerError("; ".join(leaked))
         if not selected:
             raise RunnerError("no test is selected for this Mac; nothing to approve or run")
-    if any("notification" in declarations[key_from_enumeration_id(i)] for i in selected) and \
+    # A qualification stage (U-30) runs its probes only; a probe that needs banners fails by itself without them.
+    if qualification is None and any("notification" in declarations[key_from_enumeration_id(i)] for i in selected) and \
             enumeration_id_from_key(WATCH_TEST) not in selected:
         raise RunnerError("tests that declare notification are selected without the watch N4 (U-20)")
     invocations = build_invocations(identifiers, selected, where, feature, name_each_test)

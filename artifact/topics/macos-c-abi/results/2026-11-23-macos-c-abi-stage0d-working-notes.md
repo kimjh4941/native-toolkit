@@ -657,3 +657,42 @@ Codex の確かめ v1（scratchpad の `review/centerlayout-codex-v1.md`）は A
 3. 保存のパネル: D15 は結果の `filePath` が `<fixture>/new-file` で、期待と違う（26 では拡張子が足されない見込み）
 4. 識別子の一覧: I1d は Clipboard の画面のボタンでない識別子が 18 でなく 17
 5. 通った主なもの: `SupportRuleTests`（27）、`NavigationUITests`（26 だけの M1b・M2 を含み、26 では戻るボタンで戻れた）、I1a〜I1c、Dialog のパネルを使わないもの
+
+## 25. 26 で落ちた型の直しと U-30 `mac26` の段（2026-11-28。26 の VM だけ。15 の VM は起こしていない。コミットしていない）
+
+原因は、VM の写しだけで失敗の文に読み（通知センターの group、窓の一覧、保存の名前の欄）を出す版を組んで調べた（写しは見たら消した）。
+
+| 型 | 原因 | 直し |
+|---|---|---|
+| 許可の戻し方（NP1・NP3・N4、止まった 58 件） | 26 では各アプリの許可と `dnd_prefs` は `com.apple.ncprefs` でなく usernoted の group container の設定（`group.com.apple.usernoted.plist`）にある。ファイルを直に書き換えても usernoted が元に戻す（消して 2 秒後に `auth 7` の項目が戻った）。`dndMirrored` もそこでは true のままだった | 26 だけ、`defaults export` と `import`（そのファイルのパス。cfprefsd を通る）で項目を消し・`dndMirrored=false` にする（`vm_nc_group`）。消した後に usernoted と通知センターを立て直し、3 秒後に項目が無いことを読む。15 の道（`com.apple.ncprefs` のファイルの書き換え）は変えていない |
+| NP2（`Don’t Allow`） | 26 では押した後、閉じていく問い合わせの group が identifier を失って、同じ枠・同じ親で 1 回読まれる。identifier の無い group が前に無かったので `.cannotTell` | `CenterLayoutRule`: 押した根が消え、その枠と親がちょうど同じ identifier の無い group が 1 つだけあるときだけ、閉じていく根と見る。ずれた・根が残る・2 つ・親が違う・別の根は `.cannotTell` |
+| NP1（`Allow`） | 26 ではポインターの下の通知が 6×4 pt 大きく描かれ、押した後にその強調が問い合わせから下の通知へ移る（問い合わせが 6×4 縮み、下の通知が 6×4 広がる）。通知の広がりなので `.cannotTell` | `CenterLayoutRule`: 確かめ済みの一覧の子の通知が、各方向 8 pt 以内で広がり、同じ一覧の子がちょうど同じ大きさだけ縮んだときだけ、強調の移動と見る。縮みの無い広がり・8 pt を超える・大きさが違う・広がり 2 つに縮み 1 つ・確かめていない入れ物は `.cannotTell` |
+| パネル（D8・D10〜D12、`noWindow`） | 窓の持ち主と枠は 26 でも読めた（画面の収録の許可は要らない。U-30・U-31 の答え）。fixture の列がパネルの見える範囲の右（項目の x 1010、パネルの右端 952）にあり、点を覆う窓が無かった | `Panels.choose`: 項目がパネルの見える範囲の外なら、パネルの中ほどで横に送って入れてから取り直す（`SampleApp.scrollPanelColumnIntoView`。送る前に押す前の確かめを通す）。15 では項目が見えているので送らない |
+| D15（保存の新しい名前） | 26 では名前の欄が拡張子を見せ（`default.txt`）、Cmd+A で全部を選んで `new-file` と打つので拡張子が消え、パネルは足さずに `new-file` で保存した | 期待値を OS で分ける（15 は `new-file.txt`、26 は `new-file`。`DialogUITests.newFileName`） |
+| I1d（ボタンでない識別子） | 足りない 1 つは `clipboard.pasteButton`。26 でもこの入れ物は木に出ない（ほかの 17 はそろっていた）。26 では出る見込みとして数えていた | 期待から外す（15 と同じ）。U-30 の答えとして記録 |
+
+U-30 `mac26` の段: `MacQualificationProbeTests` を書いた（Q1 窓の持ち主と枠が読める、Q2 通知のメニューの項目 `Open`、Q3 共有のピッカーの Copy、Q4 `PasteButton`。どれも押すテストと同じ形で取り、押す前の確かめだけを通し、押さない）。Support に押さない確かめの口を足した（`checkMenuItemWithoutPressing`、`checkCopyWithoutPressing`、`checkPasteButtonWithoutPressing`、`checkWithoutPressing`）。`--where vm26 --qualification mac26` で 4 件すべてが通った（`MacQualificationProbeTests` はランナーの `QUALIFICATION_CLASSES` と `QUALIFICATION_ONLY_TESTS["mac26"]` に入れた。段の計画には見張りを求めない）。結果を `MAC_VERIFIED_TARGETS`（`notificationMenuItem`・`pickerCopy`・`pasteButton`）に写したので、26 の VM で N20・N23・NC2・CB1・S2・S4 を流せるようになった。N24・NC3（`replyInBanner`）は `mac26-reply` の段がまだなので保留のまま。
+
+列挙と `otool` の fixture は、この形の 26 の VM のビルド（Xcode 26.6）から取り直した（列挙の違いは足した 4 件だけ）。15 の VM で取り直すまで、fixture の見出しの「Xcode 26.3」は当たらない。
+
+直した後の全件（1 回目）: 単体テスト 328 件は通った。UI テストは 119 件（保留は N24・NC3 の 2 件と段の確かめ 4 件の計 6 件を除いた）のうち 111 件が通り、8 件が落ちた。
+
+| 型 | 原因 | 扱い |
+|---|---|---|
+| 本文のクリック（N21・N22・NC1） | 26 の畳み込み: 一覧と押した根が消え、残った通知が一覧の枠を取るが、ポインターの下にあるので強調の分だけ左へ 6 pt 広く描かれる（15 は一覧の枠そのまま）。畳み込みと見られず `.cannotTell` | 畳み込みの枠を「一覧の枠そのもの」か「上・高さ・右の辺が一覧と同じで、左へ 8 pt 以内だけ広い」に限って広げた。10 pt 広い・高い・右へずれたものは `.cannotTell`。VM の写しで N21・N22 が通った（NC1 は写しの手順に起動の印が無いため、ランナーで確かめる） |
+| 貼り付けのプライバシーの段（CB2〜CB6） | `NTK-PRECONDITION:pastePrivacyPreview`。26 では、サンプルの `EnablePasteboardPrivacyDeveloperPreview` を入れても、一般の貼り付け板の access behavior が `ask` でなく `default` と読める（26 では貼り付けの確かめがプレビューでなくシステムの設定になった見込み。確かめていない） | **未解決**。26 で `ask` にする設定（システム設定のプライバシーの「ほかのアプリからのペースト」）の置き場所と、`default` のときに確認が出るかを VM で調べてから直す |
+
+直した後の全件（2 回目。本文のクリックの直しを入れた）: 見張りの N4 が「10 秒で根が出ない」で落ちて止まった。その前の NP3 が `Allow` を押した後の比べで `.cannotTell` になり、問い合わせか通知センターがそのまま残ったと見ている（1 回目では NP3 も N4 も通った。26 の許可の問い合わせの形が回ごとに変わる揺れ。読みはまだ取っていない）。
+
+### 25.1 15 の VM で確かめ直すもの（15 の振る舞いを変えない形にしたが、確かめていない）
+
+- `CenterLayoutRule` の 26 の例外（閉じていく根、強調の移動、強調で広い畳み込み）が 15 の読みで働かないこと（`--feature Notification` を 2 回。前の 63 件と同じに通る）
+- `Panels.choose` の横送り（15 では送らない）: D8・D10〜D12・D14
+- `clipboardPasteContainer` を空にした（15 の値は前から空）: I1d
+- D15 の期待値の OS の分け方（15 は `new-file.txt` のまま）
+- VM の半分の 15 の道（`com.apple.ncprefs` の書き換え）は字句を変えていない。26 の分岐だけを足した: 許可の段 NP1〜NP3 と見張り
+- `MacQualificationProbeTests` と Support の押さない確かめの口を Xcode 26.3 で組めること（15 では段の確かめは選ばれない）
+- 列挙と `otool` の fixture を 15 の VM（Xcode 26.3）で取り直す
+- ハーネスの変異の全件（26 の VM の写しでは、足した 6 個をまだ流していない）
+
+直した後の全件（3 回目。今の形）: 単体テスト 328 件は通った。UI テストは 119 件のうち 113 件が通り、6 件が落ちた: CB2〜CB6（貼り付けのプライバシー。上の未解決）と NP2（`Don’t Allow` の後の比べが `.cannotTell`。1 回目と VM の写しでは通った。2 回目の NP3 と同じ、26 の問い合わせの揺れ。読みはまだ取っていない）。本文のクリック（N21・N22・NC1）、保留を解いた 6 件（N20・N23・NC2・CB1・S2・S4）、パネル、D15、I1d は通った。基準は取っていない。結果のバンドルは読んで消した

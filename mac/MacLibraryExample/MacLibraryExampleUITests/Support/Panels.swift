@@ -139,6 +139,9 @@ struct Panels {
         guard location == fixture.name || (adding && PanelFixture.folders.contains(location ?? "")) else {
             throw SampleUITestError(.panelLocation, "the panel is not at the fixture before choosing \(item)")
         }
+        // 26: the fixture's column may lie outside what the panel shows; it is scrolled in and taken again.
+        try sample.scrollPanelColumnIntoView(try fixtureItem(item, in: kind), panel: try panel(kind),
+                                             name: "fixture item \(item)")
         let element = try fixtureItem(item, in: kind)
         try sample.guardedClick(element, .panel, name: "fixture item \(item)", modifiers: adding ? .command : [])
     }

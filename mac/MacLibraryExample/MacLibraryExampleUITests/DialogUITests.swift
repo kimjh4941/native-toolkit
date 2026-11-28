@@ -246,7 +246,11 @@ final class DialogUITests: SampleUITestCase {
         try panels.waitGone(.save)
     }
 
-    /// A new name: no replace confirmation, and the panel adds the extension.
+    /// A new name: no replace confirmation. On 15 the panel adds the extension. On 26 it does not: the name field
+    /// shows the extension (`default.txt`), the name typed over it is `new-file`, and the panel saves `new-file`
+    /// (26.6.2 in the VM, 2026-11-28). The expectation follows the OS; 15's is unchanged.
+    static var newFileName: String { SampleUITestCase.osMajorVersion >= 26 ? "new-file" : "new-file.txt" }
+
     @MainActor
     func testD15_showSaveFileDialogNewName() throws {
         let token = try panelsToken()
@@ -259,7 +263,7 @@ final class DialogUITests: SampleUITestCase {
         try panels.confirm(.save)
         let text = try sample.waitForNextResult(.dialog, after: before, marker: DialogButton.showSaveFileDialog.resultMarker)
         XCTAssertEqual(panels.fixture.normalized(text), ResultLine.expected(success: true,
-            "ShowSaveFileDialog - result: SaveDialogResult(filePath: \"<fixture>/new-file.txt\", fileCount: 1, directoryURL: \"<fixture>\", isCancelled: false, isSuccess: true)"))
+            "ShowSaveFileDialog - result: SaveDialogResult(filePath: \"<fixture>/\(Self.newFileName)\", fileCount: 1, directoryURL: \"<fixture>\", isCancelled: false, isSuccess: true)"))
         // The replace confirmation stays away while no further result arrives (2 seconds).
         try sample.expectNoFurtherResult(.dialog, sequence: before + 1)
         XCTAssertEqual(panels.replaceButtonCount, 0, "a replace confirmation appeared for a new name")

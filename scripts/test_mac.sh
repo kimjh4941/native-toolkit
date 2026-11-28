@@ -292,8 +292,47 @@ vm_check_build() {
     --otool-objc "${LOGS}/otool-ov.txt" --otool-load "${LOGS}/otool-l.txt"
 }
 
+# The notification settings of the VM (each app's permission and dnd_prefs). macOS 15: com.apple.ncprefs, written as
+# a file (as before). macOS 26 (2026-11-28 in the 26 VM): the preferences of usernoted's group container, and a file
+# written directly is undone by usernoted, so they are changed through cfprefsd (`defaults export` and `import` of
+# the file's path).
+NC_GROUP_PREFS="Library/Group Containers/group.com.apple.usernoted/Library/Preferences/group.com.apple.usernoted.plist"
+vm_os_major() {
+  /usr/bin/sw_vers -productVersion | /usr/bin/cut -d. -f1
+}
+# macOS 26: `dnd-off` sets dnd_prefs.dndMirrored to false; `drop <bundle id>` removes that app's entry; `has <bundle
+# id>` exits 0 when the entry is there (reads only).
+vm_nc_group() {  # dnd-off | drop <bundle id> | has <bundle id>
+  local prefs="${HOME}/${NC_GROUP_PREFS}" rc=0 program
+  program='import plistlib, sys
+d = plistlib.loads(sys.stdin.buffer.read())
+mode = sys.argv[1]
+if mode == "has":
+    sys.exit(0 if any(a.get("bundle-id") == sys.argv[2] for a in d.get("apps", [])) else 1)
+if mode == "dnd-off":
+    dp = plistlib.loads(d["dnd_prefs"])
+    dp["dndMirrored"] = False
+    d["dnd_prefs"] = plistlib.dumps(dp, fmt=plistlib.FMT_BINARY)
+elif mode == "drop":
+    d["apps"] = [a for a in d.get("apps", []) if a.get("bundle-id") != sys.argv[2]]
+else:
+    sys.exit(2)
+sys.stdout.buffer.write(plistlib.dumps(d))'
+  if [[ "$1" == has ]]; then
+    /usr/bin/defaults export "${prefs}" - | /usr/bin/python3 -c "${program}" "$@"
+    return
+  fi
+  /usr/bin/defaults export "${prefs}" - | /usr/bin/python3 -c "${program}" "$@" > "${RUN_DIR}/nc-group-prefs.plist" || rc=1
+  [[ "${rc}" == 0 ]] && { /usr/bin/defaults import "${prefs}" "${RUN_DIR}/nc-group-prefs.plist" || rc=1; }
+  rm -f "${RUN_DIR}/nc-group-prefs.plist"
+  return "${rc}"
+}
+
 vm_prepare() {
   # U-20: banners show while XCUITest records the screen.
+  if [[ "$(vm_os_major)" -ge 26 ]]; then
+    vm_nc_group dnd-off || { echo "NTK-VM prepare failed (dnd_prefs)"; exit 1; }
+  else
   /usr/bin/python3 - <<'PY'
 import os, plistlib
 p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")
@@ -304,6 +343,7 @@ d["dnd_prefs"] = plistlib.dumps(dp, fmt=plistlib.FMT_BINARY)
 plistlib.dump(d, open(p, "wb"), fmt=plistlib.FMT_BINARY)
 PY
   killall cfprefsd 2>/dev/null || true
+  fi
   vm_restart_notification_ui
   vm_stop_sample || true
   pkill -x Mail 2>/dev/null || true
@@ -337,10 +377,20 @@ vm_unit() {
     --summary-json "${RES}/unit-${index}-summary.json" --exit-code "${code}" --tests-dir "${TESTS_DIR}"
 }
 
-vm_reset_permission() {  # U-7 (VM): the sample stopped, its entry gone from com.apple.ncprefs, up to 3 tries
+vm_reset_permission() {  # U-7 (VM): the sample stopped, its entry gone from the notification settings, up to 3 tries
   vm_stop_sample || true
   local attempt
   for attempt in 1 2 3; do
+    if [[ "$(vm_os_major)" -ge 26 ]]; then
+      vm_nc_group drop "${SAMPLE_ID}" || continue
+      killall usernoted NotificationCenter 2>/dev/null || true
+      sleep 3
+      if ! vm_nc_group has "${SAMPLE_ID}"; then
+        echo "NTK-VM permission reset attempt=${attempt}"
+        return 0
+      fi
+      continue
+    fi
     /usr/bin/python3 - "${SAMPLE_ID}" <<'PY'
 import os, plistlib, sys
 p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")

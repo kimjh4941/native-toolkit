@@ -188,11 +188,9 @@ enum SampleInventory {
     }
 
     /// `clipboard.pasteButton` (the `NSViewRepresentable` around the `PasteButton`) does not reach the
-    /// accessibility tree on macOS 15 (stage 0b, 15.8.3); design 4.1 counts it. On 26 it is expected
-    /// until U-30 shows otherwise.
-    private static var clipboardPasteContainer: [String] {
-        SampleUITestCase.osMajorVersion >= 26 ? ["clipboard.pasteButton"] : []
-    }
+    /// accessibility tree on macOS 15 (stage 0b, 15.8.3) nor on 26 (26.6.2 in the VM, 2026-11-28: the other 17
+    /// identifiers of the screen were there, this one was not); design 4.1 counts it.
+    private static var clipboardPasteContainer: [String] { [] }
 
     /// `sampleButton("<name>")` of `ClipboardSampleView`, in the order of the screen (36).
     static let clipboardButtonNames = [
@@ -695,6 +693,20 @@ final class SampleApp {
         try guardedClick(paste, .pasteButton, name: "PasteButton")
     }
 
+    /// U-30 `mac26` (`MacQualificationProbeTests`): everything `pressPasteButton` does before its click, and no
+    /// click.
+    func checkPasteButtonWithoutPressing(_ token: ClipboardToken) throws {
+        let section = try exactlyOne(app.descendants(matching: .any).matching(identifier: Self.clipboardPasteSection),
+                                     Self.clipboardPasteSection, step: .pasteButton)
+        let paste = try exactlyOne(section.buttons.matching(NSPredicate(format: "identifier == '' AND label IN %@",
+                                                                         SystemLabels.paste)),
+                                   "PasteButton", step: .pasteButton)
+        guard paste.isEnabled else {
+            throw SampleUITestError(.pasteButton, "the PasteButton is disabled (was the general pasteboard empty when the screen was built?)")
+        }
+        try checkWithoutPressing(paste, .pasteButton, name: "PasteButton")
+    }
+
     /// The paste confirmations open now (dialogs of the sample holding `action-button--999`). Read
     /// only; pressing one needs `PrivacyPrompt`.
     var pasteConfirmations: XCUIElementQuery {
@@ -824,6 +836,20 @@ final class SampleApp {
     }
 
     // MARK: Guarded operations (design 5.0)
+
+    /// U-30 `mac26` (`MacQualificationProbeTests`): what `guardedClick` does before its click (scrolling into view and
+    /// the check before the press), and no click. Passing means the press target's owner is the one allowed.
+    func checkWithoutPressing(_ element: XCUIElement, _ target: PressTarget, name: String) throws {
+        switch target {
+        case .sampleWindow:
+            try scrollIntoViewIfNeeded(element, holder: element.identifier, name: name)
+        case .pasteButton:
+            try scrollIntoViewIfNeeded(element, holder: Self.clipboardPasteSection, name: name)
+        case .panel, .pasteConfirmation:
+            break
+        }
+        try checkBeforePress(element, target, name: name)
+    }
 
     /// Scrolls the element into its scroll view when needed, runs the check before the press, clicks
     /// (with `modifiers` held) and reads the interruption mark.
@@ -955,6 +981,30 @@ final class SampleApp {
             try session.checkInterruption()
         }
         throw SampleUITestError(.scroll, "\(name) could not be scrolled into view")
+    }
+
+    /// Scrolls the column view of a panel sideways until `element` lies wholly inside the part the panel shows.
+    /// On 26.6.2 (2026-11-28, the VM) the fixture's column sat to the right of the panel (an item at x 1010 in a
+    /// panel ending at x 952) and the click would have reached no window; on 15.8.3 the column is in view and
+    /// nothing scrolls. The scroll goes to the panel's middle, which is checked first like a press.
+    func scrollPanelColumnIntoView(_ element: XCUIElement, panel: XCUIElement, name: String) throws {
+        var direction: CGFloat = -1
+        var distances: [CGFloat] = []
+        for _ in 0..<16 {
+            let viewport = panel.frame
+            let frame = element.frame
+            if viewport.minX <= frame.minX && frame.maxX <= viewport.maxX { return }
+            let offset = frame.midX - viewport.midX
+            distances.append(abs(offset))
+            // As `scrollIntoViewIfNeeded`: each attempt is judged by whether it got closer.
+            if distances.count >= 2, distances[distances.count - 1] >= distances[distances.count - 2] {
+                direction = -direction
+            }
+            try checkBeforePress(panel, .panel, name: "panel holding \(name)")
+            panel.scroll(byDeltaX: direction * min(abs(offset), 200), deltaY: 0)
+            try session.checkInterruption()
+        }
+        throw SampleUITestError(.scroll, "\(name) could not be scrolled into the panel")
     }
 
     // MARK: Inventory

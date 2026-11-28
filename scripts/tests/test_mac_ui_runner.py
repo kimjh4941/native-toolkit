@@ -18,8 +18,9 @@ Codex A-1, B-4). The `--in-vm` path cannot be narrowed by PATH (it starts again 
 harness runs these tests in the VM only (scripts/tests/mac_ui_runner_mutations.py).
 
 The fixtures in fixtures/mac_ui_runner/ are real output of Xcode 26.3 in the VM (macOS 15.8.3), stage
-0d (2026-11-23; enumeration.json and the otool files taken again on 2026-11-28 with the three
-CenterLayoutRule tests of SupportRuleTests), with the VM's home folder replaced by <home>:
+0d (2026-11-23), with the VM's home folder replaced by <home>. enumeration.json and the otool files were taken
+again on 2026-11-28 in the 26 VM (macOS 26.6.2, Xcode 26.6) with MacQualificationProbeTests; take them again in the
+15 VM:
   enumeration.json        -enumerate-tests -test-enumeration-style flat -test-enumeration-format json
                           (the UI tests and MacLibraryExampleTests)
   unit-enumeration.json   the same for the MacLibrary scheme (MacLibraryTests)
@@ -169,7 +170,7 @@ class Names(unittest.TestCase):
 class Enumeration(unittest.TestCase):
     def test_the_real_enumeration_matches_the_declarations(self):
         ids = enumeration()
-        self.assertEqual(len(ids), 121)  # 3 more SupportRuleTests (runner review v7: Codex B-1)
+        self.assertEqual(len(ids), 125)  # + 3 SupportRuleTests (runner review v7) and the 4 U-30 mac26 probes
         self.assertEqual(r.check_enumeration(ids, declarations()), [])
 
     def test_unit_tests_and_the_base_class_are_dropped(self):
@@ -243,6 +244,15 @@ class Enumeration(unittest.TestCase):
 
 
 class Selection(unittest.TestCase):
+    # The deferral is checked with no target verified (the table before U-30); the table as it is now is checked
+    # in TwoVMs.
+    def setUp(self):
+        self._verified = r.MAC_VERIFIED_TARGETS
+        r.MAC_VERIFIED_TARGETS = frozenset()
+
+    def tearDown(self):
+        r.MAC_VERIFIED_TARGETS = self._verified
+
     def mac(self, allowed=r.MAC_CATEGORIES, feature=None, verified=None, qualification=None):
         return r.select_tests(enumeration(), declarations(), "mac", "26", allowed, feature, verified, qualification)
 
@@ -284,8 +294,10 @@ class Selection(unittest.TestCase):
             r.select_tests(enumeration(), declarations(), "vm", "15", ["panels"])
         selected, excluded = r.select_tests(enumeration(), declarations(), "vm", "15", [])
         self.assertEqual(len(selected), 116)
-        self.assertEqual(sorted(keys_of(i for i, _, _ in excluded)), sorted(r.OS_ONLY_TESTS))
-        self.assertTrue(all(reason == "osOnly" for _, _, reason in excluded))
+        probes = r.QUALIFICATION_ONLY_TESTS["mac26"]
+        self.assertEqual(sorted(k for k in keys_of(i for i, _, _ in excluded) if k not in probes), sorted(r.OS_ONLY_TESTS))
+        self.assertTrue(all(reason == ("qualificationOnly" if r.key_from_enumeration_id(i) in probes else "osOnly")
+                            for i, _, reason in excluded))
 
     def test_where_is_vm_or_mac_only(self):
         with self.assertRaises(r.RunnerError):
@@ -377,6 +389,25 @@ class Selection(unittest.TestCase):
                 self.mac(qualification="mac26")
         finally:
             r.QUALIFICATION_ONLY_TESTS = old
+
+    def test_the_mac26_probes_run_only_in_their_stage_one_call_each(self):
+        # U-30 mac26 (2026-11-28): MacQualificationProbeTests, never in a normal plan or a baseline.
+        probes = sorted(r.QUALIFICATION_ONLY_TESTS["mac26"])
+        self.assertEqual(len(probes), 4)
+        self.assertTrue(all(p.startswith("MacQualificationProbeTests/") for p in probes))
+        self.assertEqual(r.QUALIFICATION_CLASSES, ("MacQualificationProbeTests",))
+        for where, major in (("vm", "15"), ("vm26", "26")):
+            selected, excluded = r.select_tests(enumeration(), declarations(), where, major, [])
+            self.assertFalse(set(keys_of(selected)) & set(probes))
+            self.assertTrue({p for p in probes} <= {r.key_from_enumeration_id(i) for i, _, reason in excluded
+                                                   if reason == "qualificationOnly"})
+        plan = r.make_plan("vm26", enumeration(), declarations(), (), None, "26", "a", "b", [], True, None,
+                           qualification="mac26")
+        self.assertEqual(sorted(keys_of(plan["selected"])), probes)
+        self.assertEqual([i["stage"] for i in plan["invocations"]], ["qualification"] * 4)
+        self.assertEqual(plan["unitInvocations"], [])
+        self.assertIsNotNone(r.baseline_refusal({"os": "26.6.2", "osBuild": "25G83", "language": "en-US"}, plan, False,
+                                                False, keys_of(plan["selected"]), []))
 
 
 def unit_keys():
@@ -491,8 +522,22 @@ def function_signature_py(text, name):
 class TwoVMs(unittest.TestCase):
     """D-21 revised 2026-11-28: the macOS 15 VM (--where vm) and the macOS 26 VM (--where vm26)."""
 
-    def test_the_26_vm_runs_the_26_tests_and_keeps_the_deferred_ones(self):
+    def test_the_26_vm_runs_the_tests_whose_targets_u30_verified(self):
+        # 2026-11-28, mac26 in the 26 VM: the menu item, Copy and the PasteButton passed; Reply (mac26-reply) not yet.
+        self.assertEqual(r.MAC_VERIFIED_TARGETS, {"notificationMenuItem", "pickerCopy", "pasteButton"})
         selected, excluded = r.select_tests(enumeration(), declarations(), "vm26", "26", [])
+        keys = set(keys_of(selected))
+        reasons = {r.key_from_enumeration_id(i): reason for i, _, reason in excluded}
+        for key, (reason, targets) in r.MAC_DEFERRED_TESTS.items():
+            if "replyInBanner" in targets:
+                self.assertEqual(reasons.get(key), reason, key)
+            else:
+                self.assertIn(key, keys)
+        self.assertEqual(sorted(k for k, (_, t) in r.MAC_DEFERRED_TESTS.items() if "replyInBanner" in t),
+                         ["NotificationColdStartUITests/testNC3_replyLaunches", "NotificationEventUITests/testN24_replyAction"])
+
+    def test_the_26_vm_runs_the_26_tests_and_keeps_the_deferred_ones(self):
+        selected, excluded = r.select_tests(enumeration(), declarations(), "vm26", "26", [], verified_targets=frozenset())
         keys = set(keys_of(selected))
         reasons = {r.key_from_enumeration_id(i): reason for i, _, reason in excluded}
         self.assertIn("NavigationUITests/testM1b_backReturnsToTheMenu", keys)
@@ -581,6 +626,28 @@ class TwoVMs(unittest.TestCase):
         self.assertIn("--where vm26", refusal)    # another 26 than the profile's: no baseline of the 26 VM
         vm15 = {"os": "15.8.3", "osBuild": "24H241", "language": "en-US"}
         self.assertIsNotNone(r.baseline_refusal(vm15, plan, False, False, every, []))
+
+    def test_the_26_vm_changes_its_notification_settings_through_cfprefsd(self):
+        # 2026-11-28: on 26 the settings are usernoted's group container and a direct write is undone; 15 is as before.
+        text = SCRIPT.read_text()
+        helper = function_body(text, "vm_nc_group")
+        self.assertIn('/usr/bin/defaults export "${prefs}" -', helper)
+        self.assertIn('/usr/bin/defaults import "${prefs}" "${RUN_DIR}/nc-group-prefs.plist"', helper)
+        self.assertNotIn("plistlib.dump(", helper)                          # never the file itself
+        reset = function_body(text, "vm_reset_permission")
+        self.assertLess(reset.index('if [[ "$(vm_os_major)" -ge 26 ]]; then'), reset.index('vm_nc_group drop "${SAMPLE_ID}"'))
+        self.assertIn('if ! vm_nc_group has "${SAMPLE_ID}"; then', reset)
+        self.assertIn('p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")', reset)   # 15 unchanged
+        self.assertIn('if ! defaults read com.apple.ncprefs apps 2>/dev/null | grep -qF "${SAMPLE_ID}"; then', reset)
+        prepare = function_body(text, "vm_prepare")
+        self.assertIn('vm_nc_group dnd-off || {', prepare)
+        self.assertIn('p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")', prepare)
+
+    def test_a_qualification_stage_needs_no_watch(self):
+        plan = r.make_plan("vm26", enumeration(), declarations(), (), None, "26", "a", "b", [], True, None,
+                           qualification="mac26")
+        self.assertNotIn(ident(r.WATCH_TEST), plan["selected"])
+        self.assertIn("notification", plan["declarations"]["MacQualificationProbeTests/testQ2_notificationMenuItemPassesTheCheck"])
 
     def test_the_shell_takes_the_vm_by_where(self):
         text = SCRIPT.read_text()

@@ -278,6 +278,12 @@ enum CenterLayoutRule {
     /// Only such a group, holding banners before the click, may grow without being a notification.
     static let listIdentifiers: Set<String> = ["AXNotificationListItems"]
 
+    /// The most a banner's highlight under the pointer adds to its frame each way (26.6.2: 6 and 4 points).
+    static let highlightLimit: CGFloat = 8
+
+    /// One group before and after the click.
+    typealias GroupPair = (before: CenterGroup, after: CenterGroup)
+
     /// Right before the click against the read when the check started: the same groups, each with the same
     /// identifier, exactly the same frame and the same parent (as a multiset: their order does not matter).
     /// Anything else is `changed`.
@@ -287,7 +293,8 @@ enum CenterLayoutRule {
 
     /// Right after the click against the read right before it. A right press may close the pressed banner, open
     /// a menu (not a group), make the pressed root grow with parts of its own (Reply), make the list grow, and
-    /// make the list collapse onto its last banner; it never brings a group. `pressedRoot` is the identifier of
+    /// make the list collapse onto its last banner, and leave the closing root without its identifier (26); it never
+    /// brings a group. `pressedRoot` is the identifier of
     /// the root whose part was pressed. Every exception is taken from the snapshot's parents, never from frames
     /// that happen to contain each other (CenterLayoutRule review v1 A-1, A-2).
     static func afterClick(beforeClick: [CenterGroup], afterClick: [CenterGroup], pressedRoot: String) -> CenterPressVerdict {
@@ -317,23 +324,63 @@ enum CenterLayoutRule {
                 return false
             }
             let held = Set(beforeClick.filter { $0.parent == list && !$0.identifier.isEmpty }.map(\.identifier))
-            return held == [pressedRoot, identifier] && groups[0].frame == listFrame
+            return held == [pressedRoot, identifier] && (groups[0].frame == listFrame || highlighted(listFrame, groups[0].frame))
+        }
+        // 26.6.2 (2026-11-28, NP1 `Allow` in the 26 VM): the banner under the pointer is drawn a few points larger
+        // (6 wider, 4 higher). When a press moves the pointer's banner, one banner of the list loses that much and
+        // another gains exactly as much. Taken only for banners of a checked list, for a gain of at most
+        // `highlightLimit` points each way, and against one loss of exactly the same size per gain.
+        var losses: [String: [CGSize]] = [:]
+        for (identifier, groups) in after where groups.count == 1 && before[identifier]?.count == 1 {
+            guard let old = before[identifier]?.first, let list = old.parent, isList(list), groups[0].parent == list else { continue }
+            let loss = CGSize(width: old.frame.width - groups[0].frame.width, height: old.frame.height - groups[0].frame.height)
+            if loss.width > 0 || loss.height > 0, loss.width >= 0, loss.height >= 0 {
+                losses[list, default: []].append(loss)
+            }
+        }
+        func highlightMoved(_ pair: GroupPair?) -> Bool {
+            guard let pair, let list = pair.before.parent, isList(list), pair.after.parent == list else { return false }
+            let old = pair.before, new = pair.after
+            let gain = CGSize(width: new.frame.width - old.frame.width, height: new.frame.height - old.frame.height)
+            guard gain.width >= 0, gain.height >= 0, gain.width <= Self.highlightLimit, gain.height <= Self.highlightLimit,
+                  let index = losses[list]?.firstIndex(of: gain) else {
+                return false
+            }
+            losses[list]?.remove(at: index)
+            return true
         }
         for (identifier, groups) in after where identifier != pressedRoot && !isList(identifier) {
             let own = groups.filter { !partOfRoot($0) }
             let grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
-            if grown && !collapsedOnto(identifier, own) {
+            let pair: GroupPair? = own.count == 1 && before[identifier]?.count == 1 ? (before[identifier]![0], own[0]) : nil
+            if grown && !collapsedOnto(identifier, own) && !highlightMoved(pair) {
                 return .cannotTell
             }
         }
+        // 26.6.2 (2026-11-28, NP2 `Don’t Allow` in the 26 VM): the pressed root, closing, is read once more at the
+        // same frame and under the same parent but without its identifier. Taken for one such group only, and only
+        // when the root is gone; anything else without an identifier is matched below.
+        var rest = afterClick.filter { $0.identifier.isEmpty && !partOfRoot($0) }
+        if after[pressedRoot] == nil, before[pressedRoot]?.count == 1, let root = before[pressedRoot]?.first,
+           let index = rest.firstIndex(where: { $0.frame == root.frame && $0.parent == root.parent }) {
+            rest.remove(at: index)
+        }
         var unnamedBefore = beforeClick.filter { $0.identifier.isEmpty }.map(\.frame)
-        for group in afterClick where group.identifier.isEmpty && !partOfRoot(group) {
+        for group in rest {
             guard let index = unnamedBefore.firstIndex(of: group.frame) else {
                 return .cannotTell
             }
             unnamedBefore.remove(at: index)
         }
         return .clear
+    }
+
+    /// 26.6.2 (2026-11-28, N22 in the 26 VM): the banner the list collapsed onto is under the pointer and drawn
+    /// wider to the left by its highlight (the list's frame 6 points wider; the same top, height and right edge).
+    private static func highlighted(_ frame: CGRect, _ drawn: CGRect) -> Bool {
+        let gain = drawn.width - frame.width
+        return drawn.minY == frame.minY && drawn.height == frame.height && drawn.maxX == frame.maxX &&
+            gain > 0 && gain <= highlightLimit
     }
 
     private static func area(_ frame: CGRect) -> CGFloat {

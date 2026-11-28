@@ -361,6 +361,15 @@ struct NotificationCenterUI {
     }
 
     /// Closes the open menu with Escape: exactly one menu is open and Notification Center is in front.
+    /// U-30 `mac26` (`MacQualificationProbeTests`): the check before pressing the item `title` of the menu the
+    /// root's `Options` opened, exactly as `choose` runs it, and no press. Throws as `choose` would before pressing.
+    func checkMenuItemWithoutPressing(_ title: String, of root: NotificationRoot, sampleIs expected: SampleStateAtPress) throws {
+        _ = try element(root)
+        let item = try menuItem(title)
+        try checkBeforePress(item, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
+                             sampleIs: expected, name: "menu item \(title)")
+    }
+
     func escapeMenu(of root: NotificationRoot, anyItemTitle title: String) throws {
         _ = try element(root)
         let item = try menuItem(title)

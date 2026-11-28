@@ -71,6 +71,18 @@ struct SharePicker {
         try sample.guardedClick(copy, .sampleWindow, name: "Copy")
     }
 
+    /// U-30 `mac26` (`MacQualificationProbeTests`): finds Copy and runs the check before pressing it, exactly as
+    /// `copy` does, and does not press it.
+    func checkCopyWithoutPressing() throws {
+        let picker = try exactlyOne(popovers, "share picker", step: .picker)
+        let query = picker.buttons.matching(NSPredicate(format: "label IN %@", SystemLabels.copy))
+        guard query.count > 0 else {
+            throw SampleUITestError(.copyMissing, "the share picker has no Copy")
+        }
+        let copy = try exactlyOne(query, "Copy", step: .copyMissing)
+        try sample.checkWithoutPressing(copy, .sampleWindow, name: "Copy")
+    }
+
     /// Watches for `seconds` that no picker appears (U-14 (a): 2 seconds).
     func expectNotShown(for seconds: TimeInterval) throws {
         let deadline = Date().addingTimeInterval(seconds)

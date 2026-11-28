@@ -201,6 +201,18 @@
           "identifier" : "MacLibraryExampleUITests/IdentifierInventoryUITests/testI1d_clipboardIdentifiers()"
         },
         {
+          "identifier" : "MacLibraryExampleUITests/MacQualificationProbeTests/testQ1_windowOwnersAreReadable()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/MacQualificationProbeTests/testQ2_notificationMenuItemPassesTheCheck()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/MacQualificationProbeTests/testQ3_pickerCopyPassesTheCheck()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/MacQualificationProbeTests/testQ4_pasteButtonPassesTheCheck()"
+        },
+        {
           "identifier" : "MacLibraryExampleUITests/NavigationUITests/testM1a_menuOpensEachScreen()"
         },
         {

@@ -449,6 +449,7 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(after([a, a, r], [a, Self.g("A", 600, 300, in: Self.list), r]), .clear)
         XCTAssertEqual(after([a, a, r], [a, a, a, r]), .arrived)
         checkWhatARightPressDoesOn15()
+        checkWhatARightPressDoesOn26()
         checkNoExceptionFromFramesAlone()
     }
 
@@ -481,6 +482,54 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(after([l, t, r], [onto], root: "Q"), .cannotTell)                                 // another root pressed
         XCTAssertEqual(after([Self.g("X", 658, 40, 350, 136), Self.g("T", 664, 40, 344, 57, in: "X"),     // not a checked list
                               Self.g("R", 664, 103, 344, 73, in: "X")], [onto]), .cannotTell)
+    }
+
+    /// The reads of 26.6.2 in the VM (2026-11-28, NP2): no list, three widgets, and the prompt (the pressed root) that
+    /// is read once more without its identifier while it closes.
+    private func checkWhatARightPressDoesOn26() {
+        let screen = Self.g("", 0, 0, 1024, 768), big = Self.g("", 272, 0, 752, 690)
+        let widget = Self.g("", 8, 218, 360, 180), photos = Self.g("widget-local:photos", 16, 226, 344, 164)
+        let others = [screen, big, widget, photos]
+        let prompt = Self.g("P", 658, 42, 350, 77)
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77)], root: "P"), .clear)
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 50, 350, 77)], root: "P"), .cannotTell)  // moved
+        XCTAssertEqual(after(others + [prompt], others + [prompt, Self.g("", 658, 42, 350, 77)], root: "P"),
+                       .cannotTell)                                                                            // root stays
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77), Self.g("", 658, 42, 350, 77)],
+                             root: "P"), .cannotTell)                                                          // two
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77, in: "X")], root: "P"),
+                       .cannotTell)                                                                            // another parent
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77)], root: "Q"), .cannotTell)  // not the root
+        // NP1 (`Allow`): the highlight under the pointer moved from the prompt (6 by 4 points smaller) to the banner
+        // below it (6 by 4 points larger); the list moved with them.
+        let l = Self.g(Self.list, 658, 42, 350, 172), p = Self.g("P", 658, 42, 350, 77, in: Self.list)
+        let b = Self.g("B", 664, 125, 344, 89, in: Self.list)
+        let lAfter = Self.g(Self.list, 658, 46, 350, 168)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, Self.g("P", 664, 46, 344, 73, in: Self.list),
+                                                           Self.g("B", 658, 121, 350, 93, in: Self.list)], root: "P"), .clear)
+        // ... and what it is not: a gain without a loss, a gain over the limit, a gain other than the loss, two gains
+        // for one loss, banners outside a checked list.
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, p, Self.g("B", 658, 121, 350, 93, in: Self.list)],
+                             root: "P"), .cannotTell)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, Self.g("P", 664, 46, 344, 47, in: Self.list),
+                                                           Self.g("B", 658, 95, 350, 119, in: Self.list)], root: "P"), .cannotTell)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, Self.g("P", 664, 46, 344, 72, in: Self.list),
+                                                           Self.g("B", 658, 121, 350, 93, in: Self.list)], root: "P"), .cannotTell)
+        let c = Self.g("C", 664, 220, 344, 89, in: Self.list)
+        XCTAssertEqual(after(others + [l, p, b, c], others + [lAfter, Self.g("P", 664, 46, 344, 73, in: Self.list),
+                                                              Self.g("B", 658, 121, 350, 93, in: Self.list),
+                                                              Self.g("C", 658, 216, 350, 93, in: Self.list)], root: "P"), .cannotTell)
+        // N22 (body): the list went and the last banner took the list's frame, drawn 6 points wider by its highlight.
+        let l22 = Self.g(Self.list, 664, 46, 344, 168), t22 = Self.g("T", 664, 46, 344, 89, in: Self.list)
+        let r22 = Self.g("R", 664, 141, 344, 73, in: Self.list)
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 658, 46, 350, 168)]), .clear)
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 654, 46, 354, 168)]), .cannotTell)  // 10 wider
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 658, 46, 350, 169)]), .cannotTell)  // higher
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 664, 46, 350, 168)]), .cannotTell)  // to the right
+        XCTAssertEqual(after(others + [Self.g("X", 658, 42, 350, 172), Self.g("P", 658, 42, 350, 77, in: "X"),
+                                       Self.g("B", 664, 125, 344, 89, in: "X")],
+                             others + [Self.g("X", 658, 46, 350, 168), Self.g("P", 664, 46, 344, 73, in: "X"),
+                                       Self.g("B", 658, 121, 350, 93, in: "X")], root: "P"), .cannotTell)
     }
 
     func testCenterLayoutDoesNotSeeWhatItsReadsCannotShow() {
