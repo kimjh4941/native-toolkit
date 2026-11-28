@@ -118,6 +118,9 @@
     "SupportRuleTests/testLastEventMatchesEveryField": [],
     "SupportRuleTests/testNotificationListParsesOnlyTheExactShape": [],
     "SupportRuleTests/testSecondsWindowWaitsUntilFiveToThirty": [],
-    "SupportRuleTests/testLaunchCopyIsTwelveHexDigits": []
+    "SupportRuleTests/testLaunchCopyIsTwelveHexDigits": [],
+    "SupportRuleTests/testCenterLayoutBeforeTheClickTakesOnlyTheSameGroups": [],
+    "SupportRuleTests/testCenterLayoutAfterTheClickTellsWhatItCanAndRefusesTheRest": [],
+    "SupportRuleTests/testCenterLayoutDoesNotSeeWhatItsReadsCannotShow": []
   }
 }

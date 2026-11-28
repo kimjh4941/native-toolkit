@@ -170,11 +170,12 @@ FROZEN_METHODS = {
 # NotificationRules and OtherApps pinned again on 2026-11-24 after Codex's FinderFront review v1-v3
 # (reviews/2026-11-23-macos-c-abi-finderfront-review-v1.md; stage 0d working notes 17).
 # NotificationCenterUI pinned again on 2026-11-28 (pressInCenter: detection in the VM; Codex presscenter review v1).
+# NotificationCenterUI and NotificationRules pinned again on 2026-11-28 (CenterLayoutRule; runner review v7 Codex B-1).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/NotificationCenterUI.swift": "0c5bfac8995511ca8ea9fe6af5d50d8f295556f961c9bfdc1cc101144c827717",
+    "Support/NotificationCenterUI.swift": "2339b0e839d02fd3966ba9dd4727c542b073d149f6184aed1f0adcc6bd9c0c22",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
-    "Support/NotificationRules.swift": "5826469d5a8e7f722a52cbd565b945746b89ea2f710a60cb5a476cbfd06908cd",
+    "Support/NotificationRules.swift": "fd02ae7a10644554405daaeb237622135199a658838ef67ed2564107a3c291ad",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
     "Support/OtherApps.swift": "165dfc696861f02159cc53a1fddeaacf156124a5929dd492936a524bd7bc56dc",
     "Support/Panels.swift": "5959023421beb3137940351e0444e396f0ee4847593bc81236af0b29d7aa7324",
@@ -235,12 +236,13 @@ VM_ALLOWED_ACCOUNT_TYPES = {"com.apple.account.HolidayCalendar": True, "com.appl
 MAC_MAJOR = "26"
 # The VMs (6.3 step 0, U-25). D-21 was revised on 2026-11-28: macOS 26 is tested in a tart VM too and no UI test
 # runs on this Mac (a notification of the user's that comes right before a click can take it: Codex presscenter
-# review v1 A-1). Per VM: the tart name used by default, the IOPlatformUUID it must have, the OS and Xcode it must
-# run, its provenance and its major version. A value of None is not set up yet, and such a VM never qualifies.
+# review v1 A-1). Per VM: the tart name used by default, the SHA-256 of the IOPlatformUUID it must have (the raw
+# value never goes into the repository; design 3.4, runner review v7: Claude C-3), the OS and Xcode it must run,
+# its provenance and its major version. A value of None is not set up yet, and such a VM never qualifies.
 VM_PROFILES = {
-    "vm": {"name": "ntk-macos-15-new", "uuid": "50DCC3EF-6AD8-5EAA-AC56-451AD340113C", "os": VM_OS,
+    "vm": {"name": "ntk-macos-15-new", "uuidSha256": "312580403526421032b40fadb9abc1de8ec6989094f6ec1d423240d1c7257d8e", "os": VM_OS,
            "xcode": VM_XCODE, "provenance": VM_PROVENANCE, "major": "15"},
-    "vm26": {"name": "ntk-macos-26", "uuid": None, "os": None, "xcode": None,
+    "vm26": {"name": "ntk-macos-26", "uuidSha256": None, "os": None, "xcode": None,
              "provenance": "cirrus-macos-tahoe-vanilla-26.6.2+26.7.3", "major": "26"},
 }
 WHERE_VALUES = ("vm", "vm26", "mac")
@@ -256,13 +258,16 @@ APPROVAL_ID = re.compile(r"^[0-9a-f]{32}$")
 APPROVAL_HOURS = 12
 # What must be shown in the VM before anything runs on this Mac (design 9.2 last line, U-8, 9.1 and
 # U-30): each value is where the check is recorded, or None while it is not done. An approval is
-# refused while any is None (Claude B-14, Codex B-5).
+# refused while any is None (Claude B-14, Codex B-5). Since D-21 was revised (2026-11-28) no UI test runs on
+# this Mac, but the table stays whole: an approval of this Mac, one of the audited unit suites only too, stays
+# refused until every item is recorded. Whether to drop the table is decided after the 26 VM runs (runner
+# review v7: Claude C-1).
 MAC_RUN_PREREQUISITES = {
     # U-8: the monitor really stops a test, pressing nothing (an unexpected alert in the VM; 2026-11-28).
     "u8MonitorStopsTheTest": "artifact/topics/macos-c-abi/results/2026-11-28-macos-c-abi-prereq-u8-monitor.md",
     # 9.1: the parent KILLed during a real recording; the group stops, the sample left keeps the folder (2026-11-28).
     "killDuringRecording": "artifact/topics/macos-c-abi/results/2026-11-28-macos-c-abi-prereq-kill-during-recording.md",
-    "windowOwnersReadableOn26": None,      # U-30 mac26: CGWindowListCopyWindowInfo on this Mac
+    "windowOwnersReadableOn26": None,      # U-30 mac26 (now in the 26 VM): CGWindowListCopyWindowInfo on 26
     "decoyNotificationRoot": None,         # 6c and 7 "根（動き）": nothing reaches a decoy with the same title
 }
 
@@ -1753,9 +1758,12 @@ def vm_qualification(facts, where="vm"):
         ("xcode", profile["xcode"] is not None and (get("xcodeVersion"), get("xcodeBuild")) == profile["xcode"]),
         ("identity", isinstance(get("platformUUID"), str) and
          re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", get("platformUUID")) is not None
-         and isinstance(get("vmBoottime"), str) and re.fullmatch(r"[1-9][0-9]{8,11}", get("vmBoottime")) is not None),
+         and isinstance(get("vmBoottime"), str) and re.fullmatch(r"[1-9][0-9]{8,11}", get("vmBoottime")) is not None
+         and isinstance(get("bootSession"), str) and
+         re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", get("bootSession")) is not None),
         # The VM of this --where by its IOPlatformUUID (D-21 revised 2026-11-28: two VMs are never mixed up).
-        ("pinnedUUID", profile["uuid"] is not None and get("platformUUID") == profile["uuid"]),
+        ("pinnedUUID", profile["uuidSha256"] is not None and isinstance(get("platformUUID"), str) and
+         sha256_bytes(get("platformUUID").encode()) == profile["uuidSha256"]),
     ]
     return items
 
@@ -2889,6 +2897,21 @@ HAPPENINGS = {
                "move to the test folder under /private/tmp"],
     "coldstart": ["The sample is quit and launched again from its notification"],
 }
+# What a plan of this Mac without a UI test (every plan of this Mac since D-21 was revised on 2026-11-28) does
+# and needs: only the library's audited unit suites are built and run (runner review v7: Claude C-2).
+UNIT_ONLY_HAPPENINGS = [
+    "Only the audited unit suites of MacLibrary are built (Xcode 26.6, the project's automatic signing) and run; "
+    "no UI test runs, no app of the sample is built, launched or registered with LaunchServices (D-21 revised "
+    "2026-11-28)",
+    "The runner keeps its DerivedData and result bundles in a private temporary folder (xcodebuild's TMPDIR too) "
+    "and deletes it at the end when nothing of the run is shown running; the run counts the new names in $TMPDIR "
+    "before and after",
+    "Every run of the runner, this --dry-run too, first removes the runner's own private temporary folders that an "
+    "earlier run killed without its cleanup left behind (their owner is no longer running)",
+    "The runner never stops a process of an earlier run on this Mac: an earlier run's folder goes only when nothing "
+    "of its run is shown running, and the approved run stops before it builds otherwise",
+]
+UNIT_ONLY_PREPARATIONS = ["Keep the Mac awake and connected to power for the build and the unit tests"]
 PREPARATIONS = {
     None: ["Unlock the Mac, keep it awake (no screen lock or screen saver) and connected to power",
            "Close or move private windows to another Space",
@@ -2927,16 +2950,19 @@ def dry_run_text(plan, durations, now_text):
     for name in units:
         lines.append(f"  UNIT    {name}")
     used = set(c for i in plan["selected"] for c in plan["declarations"][key_from_enumeration_id(i)])
+    ui = bool(plan["selected"])
     lines.append("[dry-run] what happens on this Mac:")
-    for category in [None] + [c for c in CATEGORIES if c in used]:
-        for text in HAPPENINGS.get(category, []):
-            lines.append(f"  - {text}")
+    happenings = [t for c in [None] + [c for c in CATEGORIES if c in used] for t in HAPPENINGS.get(c, [])] \
+        if ui else UNIT_ONLY_HAPPENINGS
+    for text in happenings:
+        lines.append(f"  - {text}")
     if "panels" in used:
         lines.append("  - The runner makes and deletes the test folder /private/tmp/ntk-uitest-<run id>")
     lines.append("[dry-run] what to prepare:")
-    for category in [None] + [c for c in CATEGORIES if c in used]:
-        for text in PREPARATIONS.get(category, []):
-            lines.append(f"  - {text}")
+    preparations = [t for c in [None] + [c for c in CATEGORIES if c in used] for t in PREPARATIONS.get(c, [])] \
+        if ui else UNIT_ONLY_PREPARATIONS
+    for text in preparations:
+        lines.append(f"  - {text}")
     if plan["lsregister"]:
         lines.append(f"[dry-run] extra registered copies of the sample or the runner: {len(plan['lsregister'])}")
         for copy in plan["lsregister"]:
@@ -3045,7 +3071,7 @@ def cmd_vm_qualify(args):
         print(f"  {'pass' if ok else 'FAIL'} {name}")
     result = {"provenance": VM_PROFILES[args.where]["provenance"], "items": {name: ok for name, ok in items}}
     _write_json(args.out, result)
-    pathlib.Path(args.uuid_out).write_text(f"{facts.get('platformUUID', '')}\t{facts.get('vmBoottime', '')}\n",
+    pathlib.Path(args.uuid_out).write_text(f"{facts.get('platformUUID', '')}\t{facts.get('vmBoottime', '')}\t{facts.get('bootSession', '')}\n",
                                            encoding="utf-8")
     if failed:
         return _fail(f"the VM is not qualified ({', '.join(failed)}); not running there and not switching to this "

@@ -360,6 +360,15 @@
           "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testBannerAnchorComparesTheWholeLabel()"
         },
         {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testCenterLayoutAfterTheClickTellsWhatItCanAndRefusesTheRest()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testCenterLayoutBeforeTheClickTakesOnlyTheSameGroups()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testCenterLayoutDoesNotSeeWhatItsReadsCannotShow()"
+        },
+        {
           "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testClipboardResultRuleAcceptsOnlyTheNextResultOfTheLabel()"
         },
         {

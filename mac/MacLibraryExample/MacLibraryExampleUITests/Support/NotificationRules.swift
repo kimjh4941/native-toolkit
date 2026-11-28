@@ -232,3 +232,102 @@ enum NotificationOverlayRule {
         }
     }
 }
+
+// MARK: - Notification Center's groups around a press (2026-11-28; runner review v7: Codex B-1)
+
+/// One group Notification Center shows: its identifier (empty when it has none) and its frame. No label.
+struct CenterGroup: Equatable {
+    let identifier: String
+    let frame: CGRect
+}
+
+/// What the reads of Notification Center's groups around one click can tell.
+enum CenterPressVerdict: Equatable {
+    /// Nothing the reads can see came, or grew where it may have come into another notification.
+    case clear
+    /// Right before the click the groups differ from the check's: nothing is pressed.
+    case changed
+    /// After the click a named group is there more times than before: a notification arrived.
+    case arrived
+    /// After the click the reads cannot tell a new group from an old one (a group without an identifier that
+    /// is not where one was, or another notification's group that grew): not taken as safe.
+    case cannotTell
+}
+
+/// The comparison of `pressInCenter`, cut out so that `SupportRuleTests` gives it made-up reads. This is detection
+/// in the VM, not a guard (UI tests never run on this Mac; D-21 revised 2026-11-28).
+///
+/// Not seen, by design of the reads (the limit `SupportRuleTests` lists): a notification that took the click and
+/// went away before the read after it; a new notification that comes with the identifier, the frame and the size
+/// of one that went away; anything in the time between the last read and the event XCTest synthesizes.
+enum CenterLayoutRule {
+
+    /// Right before the click against the read when the check started: the same groups, each with the same
+    /// identifier and exactly the same frame (as a multiset: their order does not matter). Anything else is
+    /// `changed`.
+    static func beforeClick(atCheck: [CenterGroup], beforeClick: [CenterGroup]) -> CenterPressVerdict {
+        sameGroups(atCheck, beforeClick) ? .clear : .changed
+    }
+
+    /// Right after the click against the read right before it. A right press may close the pressed banner, open
+    /// a menu (not a group), make the pressed root grow (Reply), make the list that holds the banners grow and move
+    /// the others; it never brings a group.
+    /// `pressedRoot` is the identifier of the root whose part was pressed; groups inside its frame after the click
+    /// are its own parts.
+    static func afterClick(beforeClick: [CenterGroup], afterClick: [CenterGroup], pressedRoot: String) -> CenterPressVerdict {
+        let rootFrames = afterClick.filter { $0.identifier == pressedRoot && !pressedRoot.isEmpty }.map(\.frame)
+        func insideRoot(_ group: CenterGroup) -> Bool {
+            group.identifier != pressedRoot && rootFrames.contains { $0.contains(group.frame) }
+        }
+        let before = Dictionary(grouping: beforeClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
+        let after = Dictionary(grouping: afterClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
+        for (identifier, groups) in after where groups.count > (before[identifier]?.count ?? 0) {
+            return .arrived
+        }
+        // A named group that holds other named groups is a container (15.8.3: `AXNotificationListItems`, which
+        // grew by 6 points when a banner was pressed; 2026-11-28 in the VM). What comes into it is counted above
+        // or below; only a group that holds none, a notification, is checked for growth.
+        func container(_ group: CenterGroup) -> Bool {
+            afterClick.contains {
+                $0.identifier != group.identifier && !$0.identifier.isEmpty && $0.frame != group.frame && group.frame.contains($0.frame)
+            }
+        }
+        // 15.8.3: when the pressed banner goes and one banner is left, the list goes and that banner takes the
+        // list's frame (2026-11-28, N23 `Open` in the VM, 3 of 3). A group that grew exactly to the frame of a named
+        // group that went away is that collapse, not a notification that came into it.
+        let gone = beforeClick.filter { !$0.identifier.isEmpty && after[$0.identifier] == nil }.map(\.frame)
+        for (identifier, groups) in after where identifier != pressedRoot {
+            let outside = groups.filter { !insideRoot($0) && !container($0) && !gone.contains($0.frame) }
+            let grown = outside.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
+            if grown {
+                return .cannotTell
+            }
+        }
+        var unnamedBefore = beforeClick.filter { $0.identifier.isEmpty }.map(\.frame)
+        for group in afterClick where group.identifier.isEmpty && !insideRoot(group) {
+            guard let index = unnamedBefore.firstIndex(of: group.frame) else {
+                return .cannotTell
+            }
+            unnamedBefore.remove(at: index)
+        }
+        return .clear
+    }
+
+    private static func area(_ frame: CGRect) -> CGFloat {
+        frame.width * frame.height
+    }
+
+    private static func sameGroups(_ a: [CenterGroup], _ b: [CenterGroup]) -> Bool {
+        guard a.count == b.count else {
+            return false
+        }
+        var rest = b
+        for group in a {
+            guard let index = rest.firstIndex(of: group) else {
+                return false
+            }
+            rest.remove(at: index)
+        }
+        return true
+    }
+}

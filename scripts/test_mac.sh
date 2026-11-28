@@ -479,21 +479,26 @@ vm_ssh_raw() {
 
 # Every command after the qualification first checks, on this Mac, that tart still runs the VM with
 # --no-clipboard and no shared folder (Claude B-2), and in the VM that it is the one that was qualified:
-# the same IOPlatformUUID and the same boot (6.3 "同一性の束ね").
+# the same IOPlatformUUID and the same boot (6.3 "同一性の束ね"): the same kern.bootsessionuuid, which a boot
+# makes anew, and kern.boottime within seconds (runner review v7: Codex B-2).
 vm_ssh() {
   ps -axo args= | runner tart-check --ps - --vm "${VM_NAME}" || exit 96
   vm_ssh_raw "u=\$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'\"' '/IOPlatformUUID/{print \$4}'); \
 b=\$(/usr/sbin/sysctl -n kern.boottime | /usr/bin/sed -E 's/^\\{ sec = ([0-9]+),.*/\\1/'); \
+s=\$(/usr/sbin/sysctl -n kern.bootsessionuuid); \
 $(vm_identity_check) || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }; $*"
 }
 
-# The check the VM runs on `u` (its IOPlatformUUID) and `b` (the seconds of its kern.boottime): the UUID exactly,
-# and the same boot within VM_BOOT_SLACK seconds. The guest's clock is adjusted while it runs, and that moves
-# kern.boottime across a second's edge (2026-11-28: …503.017 → …502.948); a restart moves it by minutes and
-# stays another VM. A `b` that is not a number is another VM too.
+# The check the VM runs on `u` (its IOPlatformUUID), `s` (its kern.bootsessionuuid) and `b` (the seconds of its
+# kern.boottime): the UUID and the boot session exactly, and kern.boottime within VM_BOOT_SLACK seconds. The UUID
+# is what tells the VMs apart; the boot session tells boots apart (a new one at every boot). The guest's clock is
+# adjusted while it runs, and that moves kern.boottime across a second's edge (2026-11-28: …503.017 → …502.948),
+# so the seconds alone never prove the same boot (runner review v7: Codex B-2). A `b` that is not a number is
+# another VM too.
 VM_BOOT_SLACK="5"
 vm_identity_check() {
-  printf '%s' "case \"\$b\" in ''|*[!0-9]*) b=-1 ;; esac; [ \"\$u\" = '${VM_UUID}' ] && [ \"\$b\" -ge 0 ] && \
+  printf '%s' "case \"\$b\" in ''|*[!0-9]*) b=-1 ;; esac; [ \"\$u\" = '${VM_UUID}' ] && [ \"\$s\" = '${VM_SESSION}' ] && \
+[ -n \"\$s\" ] && [ \"\$b\" -ge 0 ] && \
 [ \$((b - ${VM_BOOT})) -ge -${VM_BOOT_SLACK} ] && [ \$((b - ${VM_BOOT})) -le ${VM_BOOT_SLACK} ]"
 }
 
@@ -514,6 +519,7 @@ vm_qualify() {
 echo "hvVmmPresent=$(/usr/sbin/sysctl -n kern.hv_vmm_present 2>/dev/null)"
 echo "hwModel=$(/usr/sbin/sysctl -n hw.model 2>/dev/null)"
 echo "vmBoottime=$(/usr/sbin/sysctl -n kern.boottime | /usr/bin/sed -E 's/^\{ sec = ([0-9]+),.*/\1/')"
+echo "bootSession=$(/usr/sbin/sysctl -n kern.bootsessionuuid 2>/dev/null)"
 echo "osVersion=$(sw_vers -productVersion)"
 echo "osBuild=$(sw_vers -buildVersion)"
 if defaults read MobileMeAccounts Accounts >/dev/null 2>&1; then echo "mobileMeAccounts=present"; else echo "mobileMeAccounts=absent"; fi
@@ -553,7 +559,7 @@ PY
   ps -axo args= | runner vm-qualify --facts "${PRIVATE}/vm-facts.json" --ps - --vm "${VM_NAME}" \
     --out "${OUT}/vm-qualification.json" --uuid-out "${PRIVATE}/vm-id" --qualification "${QUALIFICATION}" \
     --where "${VM_WHERE}"
-  IFS=$'\t' read -r VM_UUID VM_BOOT < "${PRIVATE}/vm-id"
+  IFS=$'\t' read -r VM_UUID VM_BOOT VM_SESSION < "${PRIVATE}/vm-id"
   VM_OS="$(python3 -c 'import json,sys; f=json.load(open(sys.argv[1])); print(f["osVersion"], f["osBuild"], f["arch"], f["language"], f["xcodeVersion"], sep="\t")' "${PRIVATE}/vm-facts.json")"
   rm -f "${facts}" "${PRIVATE}/vm-facts.json" "${PRIVATE}/vm-id"
 }
@@ -789,13 +795,9 @@ run_mac() {
     # one only where nothing of its run runs, and otherwise the run stops before it builds (review v5).
     runner approval-stale --approved "${APPROVED}" --out "${stale}"
   fi
+  # No UI test runs on this Mac (D-21 revised 2026-11-28): the sample is never built or registered here, so
+  # there are no registered copies to count (U-21).
   echo '[]' > "${lsreg}"
-  if [[ ",${ALLOW}," == *,coldstart,* ]]; then
-    "${LSREGISTER}" -dump > "${PRIVATE}/lsregister.txt" 2>/dev/null || true
-    runner lsregister --dump "${PRIVATE}/lsregister.txt" --repo-root "${ROOT_DIR}" \
-      --derived-root "${ACCOUNT_HOME}/Library/Developer/Xcode/DerivedData" --out "${lsreg}"
-    rm -f "${PRIVATE}/lsregister.txt"
-  fi
   local preflight=(preflight --where mac --enumeration "${OUT}/enumeration.json"
     --unit-enumeration "${OUT}/unit-enumeration.json" --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}"
     --allow "${ALLOW}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" --os-major "${os_version%%.*}"
@@ -805,15 +807,15 @@ run_mac() {
   [[ "${BASELINE}" == 1 ]] && preflight+=(--baseline)
   if [[ "${DRY_RUN}" == 1 ]]; then
     runner "${preflight[@]}" --dry-run --approval-out "${approval_out}"
-    if [[ "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "${lsreg}")" != 0 ]]; then
-      echo "[dry-run] coldstart: extra copies are registered; the run will stop until you remove them yourself (--allow-lsregister is not implemented)"
-    fi
     echo "[dry-run] the approval list: mac/MacLibraryExample/build/test_mac/${RUN_ID}-mac/approval.json"
     return 0
   fi
   [[ -f "${APPROVED}" ]] || fail "the approval file does not exist or cannot be read"
   runner "${preflight[@]}" > /dev/null
   runner approve --plan "${plan}" --approved "${APPROVED}" --repo "${ROOT_DIR}"
+  # The plan of this Mac names no UI test (make_plan); a plan that does stops here, before anything is made.
+  python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); sys.exit(0 if not p["invocations"] and not p["selected"] else 1)' "${plan}" \
+    || fail "the plan of this Mac names UI tests; no UI test runs on this Mac (D-21 revised 2026-11-28)"
   # Step 4: the private run folder and its marker before the first xcodebuild (the EXIT trap is set
   # above and reaches mac_cleanup once MAC_TMP is set).
   # The folder, its marker (naming the consumed approval) and the read-only copies of the plan and the
@@ -836,35 +838,11 @@ run_mac() {
   # The names in $TMPDIR before the run (names only, kept private), to count what Xcode leaves there
   # (review v3: Claude B-1). xcodebuild itself gets a TMPDIR inside the run folder.
   runner tmp-names --dir "${SCAN_ROOT}" --out "${MAC_TMP}/tmp-before.json"
-  # Step 5: the build of this Mac (Xcode 26.6, the project's automatic signing; U-23, U-31).
-  echo "[mac] building (Xcode 26.6)"
-  mac_xcodebuild 2400 "${MAC_TMP}/build-ui.log" build 0 build-for-testing \
-    -workspace "${MAC_TMP}/src/mac/MacWorkspace.xcworkspace" -scheme MacLibraryExample -destination "${DESTINATION}" \
-    -derivedDataPath "${MAC_TMP}/dd-ui" || fail "the build failed (the log stays private)"
-  local products="${MAC_TMP}/dd-ui/Build/Products/Debug" binary
-  binary="${products}/${UI_XCTEST_BINARY}"
-  DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun otool -arch arm64 -ov "${binary}" > "${MAC_TMP}/otool-ov.txt"
-  DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun otool -arch arm64 -l "${binary}" > "${MAC_TMP}/otool-l.txt"
-  runner check-build --products "${products}" --tests-dir "${TESTS_DIR}" --enumeration "${OUT}/enumeration.json" \
-    --otool-objc "${MAC_TMP}/otool-ov.txt" --otool-load "${MAC_TMP}/otool-l.txt"
-  # Step 6: coldstart counts the registered copies again; any is a stop (U-21).
-  if [[ ",${ALLOW}," == *,coldstart,* ]]; then
-    "${LSREGISTER}" -dump > "${MAC_TMP}/lsregister.txt" 2>/dev/null || true
-    runner lsregister --dump "${MAC_TMP}/lsregister.txt" --run-root "${MAC_TMP}" --repo-root "${ROOT_DIR}" \
-      --derived-root "${ACCOUNT_HOME}/Library/Developer/Xcode/DerivedData" --out "${MAC_TMP}/lsregister.json"
-    [[ "$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "${MAC_TMP}/lsregister.json")" == 0 ]] \
-      || fail "extra registered copies of the sample; not running coldstart (U-21)"
-  fi
-  # Step 7: the fixture (panels), made anew without following links (U-11).
-  local fx="/private/tmp/ntk-uitest-${RUN_ID}"
-  if [[ ",${ALLOW}," == *,panels,* ]]; then
-    runner fixture-create --dir "${fx}"
-    runner fixture-manifest --dir "${fx}" > "${MAC_TMP}/fixture-before.json"
-  fi
-  local expected_copy xctestrun
-  expected_copy="$(runner copy-mark --app "${products}/MacLibraryExample.app")"
-  xctestrun="$(ls "${MAC_TMP}"/dd-ui/Build/Products/*.xctestrun)"
-  # Step 8: the audited unit tests only (U-29).
+  # Steps 5-7 (the sample's build, its check, coldstart and the fixture) are gone with the UI tests of this
+  # Mac (D-21 revised 2026-11-28; runner review v7: Claude B-1): only the library's scheme is built here, and
+  # nothing is registered with LaunchServices.
+  # Step 8: the audited unit tests only (U-29), with the library's scheme only.
+  echo "[mac] building the library (Xcode 26.6)"
   local count index code
   count="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["unitInvocations"]))' "${plan}")"
   if [[ "${count}" != 0 ]]; then
@@ -887,51 +865,8 @@ run_mac() {
         | runner accept --results "${RESULTS}"
     done
   fi
-  # Step 9: the UI tests one by one; the watch first; a notification test that fails stops the rest.
-  local stage name timeout prepare after class stop_kind="" timed_out rcode
-  while IFS=$'\t' read -r index stage name timeout prepare after class; do
-    [[ -z "${stop_kind}" ]] || continue
-    echo "[ui ${index}] ${name}"
-    code=0; timed_out=0
-    read_only_testing --index "${index}"
-    TEST_RUNNER_NTK_HOST=mac TEST_RUNNER_NTK_ALLOW="${ALLOW}" TEST_RUNNER_NTK_FIXTURE_DIR="${fx}" \
-    TEST_RUNNER_NTK_EXPECTED_COPY="${expected_copy}" \
-      mac_xcodebuild "${timeout}" "${MAC_TMP}/ui-${index}.log" ui "${index}" test-without-building -xctestrun "${xctestrun}" \
-      -destination "${DESTINATION}" "${ONLY_TESTING[@]}" -derivedDataPath "${MAC_TMP}/dd-test" \
-      -resultBundlePath "${MAC_TMP}/ui-${index}.xcresult" "${TIME_FLAGS[@]}" -collect-test-diagnostics never || code=$?
-    [[ "${code}" == 142 ]] && timed_out=1
-    DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results tests --path "${MAC_TMP}/ui-${index}.xcresult" \
-      > "${MAC_TMP}/ui-${index}-tests.json" 2>/dev/null || rm -f "${MAC_TMP}/ui-${index}-tests.json"
-    DEVELOPER_DIR="${MAC_XCODE_DIR}" xcrun xcresulttool get test-results summary --path "${MAC_TMP}/ui-${index}.xcresult" \
-      > "${MAC_TMP}/ui-${index}-summary.json" 2>/dev/null || rm -f "${MAC_TMP}/ui-${index}-summary.json"
-    rcode=0
-    runner record --plan "${plan}" --index "${index}" --tests-json "${MAC_TMP}/ui-${index}-tests.json" \
-      --summary-json "${MAC_TMP}/ui-${index}-summary.json" --exit-code "${code}" --timed-out "${timed_out}" \
-      --tests-dir "${TESTS_DIR}" > "${MAC_TMP}/ui-${index}.records" || rcode=$?
-    runner accept --results "${RESULTS}" < "${MAC_TMP}/ui-${index}.records"
-    rm -rf "${MAC_TMP}/ui-${index}.xcresult" "${MAC_TMP}/ui-${index}-tests.json" "${MAC_TMP}/ui-${index}-summary.json"
-    [[ "${rcode}" == 0 ]] || fail "the results are not exactly the named tests; stopping (design 6.3 step 9)"
-    if grep -q '"result": "failed"' "${MAC_TMP}/ui-${index}.records" || \
-       { [[ "${stage}" == watch ]] && [[ "$(grep -c '"result": "passed"' "${MAC_TMP}/ui-${index}.records" || true)" != 1 ]]; }; then
-      if [[ "${stage}" == watch ]]; then stop_kind=watchStopped
-      elif [[ "${class}" == Notification* ]]; then stop_kind=notificationStopped; fi
-      if [[ -n "${stop_kind}" ]]; then
-        echo "[stop] ${stop_kind}: Notification Center may still be open; close it, then plan and ask again for the rest"
-        runner not-run --plan "${plan}" --from-index "$((index + 1))" --kind "${stop_kind}" | runner accept --results "${RESULTS}"
-      fi
-    fi
-  done < <(runner invocations --plan "${plan}")
-  # Step 10: the fixture, what is left on this Mac, the summary.
+  # Step 9 (the UI tests) is gone with them (D-21 revised 2026-11-28).
   runner tmp-names --dir "${SCAN_ROOT}" --compare "${MAC_TMP}/tmp-before.json"
-  if [[ -f "${MAC_TMP}/fixture-before.json" ]]; then
-    runner fixture-manifest --dir "${fx}" > "${MAC_TMP}/fixture-after.json"
-    runner fixture-compare --before "${MAC_TMP}/fixture-before.json" --after "${MAC_TMP}/fixture-after.json" \
-      | runner accept --results "${RESULTS}"
-  fi
-  echo "[mac] left on this Mac: the test strings on the pasteboard (clipboard), the category sample-category and badge 0"
-  echo "      (notification, badge), System Settings or Finder brought to the front. The run's own registrations, fixture"
-  echo "      and private folder are removed at the end when nothing of the run is shown running; otherwise they stay"
-  echo "      and the run says what still runs (NTK-STALE:alive)"
   python3 - "${OUT}/environment.json" "${os_version}" "${os_build}" "$(uname -m)" \
     "$(defaults read -g AppleLanguages 2>/dev/null | sed -n 2p | tr -d ' ",')" "${xcode}" <<'PY'
 import json, sys
@@ -1038,7 +973,7 @@ main() {
   # exit (Codex A-9, Claude A-2, B-7). One EXIT trap for everything the run may leave.
   SCAN_ROOT="${TMPDIR:-/tmp}"; SCAN_ROOT="${SCAN_ROOT%/}"
   PRIVATE="$(umask 077; mktemp -d "${SCAN_ROOT}/ntk-test-mac-private.XXXXXX")"
-  MAC_TMP=""; MAC_WAITER=""; VM_UUID=""; VM_BOOT=""; VM_IP=""; VM_FINISHED=0
+  MAC_TMP=""; MAC_WAITER=""; VM_UUID=""; VM_BOOT=""; VM_SESSION=""; VM_IP=""; VM_FINISHED=0
   trap on_exit EXIT
   trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
   # A run killed without its trap leaves its private folder; the next run removes the ones whose owner (the

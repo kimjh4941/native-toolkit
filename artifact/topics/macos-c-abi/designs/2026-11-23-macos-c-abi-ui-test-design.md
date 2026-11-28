@@ -125,7 +125,7 @@ macOS で違うのは、許可の要らない場所が「シミュレーター�
 | U-13 | 実在のサービスへ送らない | ピッカーで押してよいのは、**Escape と、26 の `Copy` だけ**。`Copy` はピッカーの中で `.element` で取る。サービスを名指しする 3 つ（ShareViaMail・CanPerformMail・ShareUnknownService）は **VM だけ**（`realservice`。CanPerformMail と ShareUnknownService は今は画面を開かないが、壊れると Mail の作成を開きうる道を通るため）。流した後に VM の Mail を止める。**この Mac ではピッカーのサービスの名前を読まず書かず、階層を出さない** | 同じ（Mail を足した） | 決まりの「実のサービスへ送らない」。0a 4.2 |
 | U-14 | 待ち時間 | **固定の待ちは使わない**（期限つきで読み直す）。例外は (a)「出ない」「来ない」ことの確かめ（取り消した予約が出ない: 予約の時刻 + 5 秒、問い合わせが出ない: 5 秒、ピッカーが出ない: 2 秒、余分な完了やイベントが来ない: 2 秒、確認が出ない: 2 秒、category の無い通知に `Options` が無い: 根が出てから 2 秒）、(b) **バナーが出てから 1 秒待って押す**（0a 4.3 の相関による暫定の策で、原因は分かっていない）、(c) **+1 分の予約を押す前に、時計の秒が 5〜30 秒の間になるまで待つ**（今の時刻から次の窓の始まりまでを計算して待つ。最大は秒 30.x から次の分の 5 秒までの約 35 秒なので、期限は 40 秒。サンプルは秒を 0 に切るので、発火は押してから 30〜55 秒後になり、予約を読む余裕ができる。窓の計算は純粋な関数にし、秒 30.0・30.5・31・59・4.9 の入力で自己テストする。U-14c）。(a) の「余分な完了が 2 秒来ない」は、反映を待つ押し直し（U-6）の途中の結果には当てず、**期待の値を読んだ最後の 1 回の後だけ**に当てる | 同じ（(b)(c) を足した） | `NotificationSampleView.swift:329-334`（`components.second = 0`。iOS のサンプルは秒を残す）。レビュー v1 Claude A-4、Codex B-04 |
 | U-15 | テストの独立と順 | テストごとにアプリを `launch` し直す。起動の引数に `-ApplePersistenceIgnoreState YES` を付ける（窓の位置と大きさを固定するものではない。窓は起動の後に、画面の中に収まることだけを確かめる）。**通知のクラスの setUp** で、アプリの中の片付け（`RemoveAllDelivered`・`CancelAllScheduled`。どちらも問い合わせを出さない）をし、サンプルのバナーの根が 0 件になるまで最大 15 秒待つ。0 件にならなければ押さずに失敗する。**片付けは、そのテストが `NotificationToken` を受け取ったときだけ**、同じ 2 つのボタンで行う。`SetBadgeCount(0)` は `badge` を宣言したテストが、AuthorizationStatus が `authorized` と読めたときだけ押す。category を外すテスト（N20）は最後に登録し直す。後ろにするときは Finder を前に出す（0a で確かめた手段。サンプルを Cmd+H で隠す案は、隠した後の前面のアプリが決まらないので採らない）。終わりに、テストが前に出したアプリを、流す前に動いていなかったものだけ止める。直列で流す | 同じ（片付けを許可の中に収めた） | レビュー v1 Claude A-1・B-16、Codex A-01。VM で、前の回の広がったサンプルの通知が一覧に残り、`RemoveAllDelivered` の後 15 秒たっても消えなかった（9.0 の 5） |
-| U-16 | 試験の環境 | **VM（15.8.3、Xcode 26.3、en-US）と、この Mac（26.7.3）の 2 つで流し、それぞれ基準を取る**（D-21）。**2026-11-28 の見直し: 15 の VM（`--where vm`）と 26 の VM（`ntk-macos-26`、26.7.3、この Mac の Xcode 26.6 を写す、en-US。`--where vm26`）の 2 つで流し、VM ごとに基準を取る（`test_mac.baseline.vm-<版>.json`・`test_mac.baseline.vm26-<版>.json`）。この Mac では UI テストを流さず、基準も取らない**。版で振る舞いが違う所だけ `OS_ONLY_TESTS` で分ける。分かっているのは「15 のピッカーに `Copy` が無い」（M-3）と「15.8.3 のサンプルで戻るボタンを押せない」（9.0 の 2）。26 の振る舞いは U-30 で確かめてから表に入れる | 同じ | D-21 |
+| U-16 | 試験の環境 | **今の形（2026-11-28 の D-21 の見直し）: 15 の VM（`--where vm`）と 26 の VM（`ntk-macos-26`、26.7.3、この Mac の Xcode 26.6 を写す、en-US。`--where vm26`）の 2 つで流し、VM ごとに基準を取る（`test_mac.baseline.vm-<版>.json`・`test_mac.baseline.vm26-<版>.json`）。この Mac では UI テストを流さず、基準も取らない**（見直しの前の形は「VM（15.8.3）とこの Mac（26.7.3）の 2 つで流し、それぞれ基準を取る」で、今は当てない）。版で振る舞いが違う所だけ `OS_ONLY_TESTS` で分ける。分かっているのは「15 のピッカーに `Copy` が無い」（M-3）と「15.8.3 のサンプルで戻るボタンを押せない」（9.0 の 2）。26 の振る舞いは U-30 で確かめてから表に入れる | 同じ | D-21 |
 | U-17 | 識別子の名前 | Clipboard に合わせる: `menu.<画面>`、`<画面>.result`、`<画面>.button.<名前>`、`<画面>.section.<名前>`。ボタンの `<名前>` はボタンの文字から括弧の中を除いたもの（大文字で始まるまま）。`SetBadgeCount1` / `SetBadgeCount0` だけ数字を残す。名前は画面ごとの enum を唯一の出どころにし、テストの側の写しが enum と同じであることを I1 と 5.7 の照合で確かめる | **決め直す** | 今の Clipboard は `clipboard.button.CopyText` の形 |
 | U-18 | 実行の選び方 | テストプランは作らない。`build-for-testing` の後、`test-without-building -xctestrun` を呼ぶ。**VM でもこの Mac でも、計画から導いたメソッドの集合を名指しする**（`--feature`、VM だけ・OS だけの除外を当てた後の集合。VM の既定はクラスごとの呼び出しに分けるが、名指しはメソッド）。権限の段（`NotificationPermissionUITests`）は `--feature` が無いときと `Notification` のときだけ、貼り付けの確認の段（`ClipboardPrivacyUITests`）は無いときと `Clipboard` のときだけ行う | 同じ | レビュー v1 Codex B-10 |
 | U-19 | 人の確認 | 2.2 のとおり、computer use で **VM のウインドウ**を見る（この Mac の画面が写るので毎回許可） | **決め直す**（見る画面） | 企画 7.2、決まりの区分 3 |
@@ -522,31 +522,31 @@ D-14 のとおり、UI テストのターゲットは Swift 5・strict concurren
 
 ### 6.3 `scripts/test_mac.sh`（0d）
 
-シェルは薄くし、判定は `scripts/mac_ui_runner.py` の純粋な関数に置く。**流す道は 2 つ**で、`--where` で選ぶ。
+シェルは薄くし、判定は `scripts/mac_ui_runner.py` の純粋な関数に置く。**流す道は 2 つ**で、`--where` で選ぶ。**2026-11-28 の D-21 の見直しから、VM の道は 15 の VM（`--where vm`）と 26 の VM（`--where vm26`）の 2 つの VM に当て、VM ごとの profile（既定の名前、IOPlatformUUID の SHA-256、OS と Xcode の版、出どころ）で資格を確かめる。この Mac の道は U-29 の監査した単体テストだけで、UI テストを選ばず、サンプルも組まない**（ランナーのレビュー v7）。下の表と手順の「15.8.3」「Xcode 26.3」は 15 の VM の profile の値で、26 の VM ではその profile の値（26.7.3、Xcode 26.6）を当てる
 
 | オプション | 内容 |
 |---|---|
-| `--where vm\|mac` | 必須。`vm` と `mac` のほかの値と省略は拒む。VM の資格が成り立たないとき、この Mac の道に切り替えずに止まる |
-| `--vm <名前>` | `vm` のとき。既定は `ntk-macos-15-new` |
+| `--where vm\|vm26\|mac` | 必須。ほかの値と省略は拒む。VM の資格が成り立たないとき、別の VM にもこの Mac の道にも切り替えずに止まる。`mac` は `--allow`・`--feature`・`--qualification`・`--baseline`・`--skip-unit` で止まる（2026-11-28） |
+| `--vm <名前>` | tart の VM の名前。既定は `vm` と `mac`（列挙）で `ntk-macos-15-new`、`vm26` で `ntk-macos-26`。名前を変えても、資格は `--where` の profile で確かめる |
 | `--feature <Dialog\|Notification\|Share\|Clipboard>` | UI テストをその機能に絞る（共通の 2 クラスはいつも入れる）。権限の段・貼り付けの確認の段・見張りにも当てる（U-18、U-20）。単体テストは流さない |
 | `--skip-unit` | 単体テストを飛ばす |
-| `--allow <区分,...>` | `mac` のときだけ。この Mac で許す区分。既定は空。VM だけの区分を渡すと止まる |
-| `--allow-lsregister` | `mac` のときだけ。`--dry-run` の一覧に固定した余分なコピーを外すことを許す（U-21） |
+| `--allow <区分,...>` | **2026-11-28 から拒む**（この Mac では UI テストを選ばない）。~~`mac` のときだけ。この Mac で許す区分~~ |
+| `--allow-lsregister` | 作っていない（渡すと止まる）。この Mac ではサンプルを組まず登録もしないので、外すコピーも無い |
 | `--dry-run` | `mac` のとき。この Mac で何も起動しない（ビルドもしない）。VM で列挙と照合を行い、流すテストと除くテスト（理由は 3.4 の `ExclusionReason` の値）、単体テストの名指しの一覧（U-29）、この Mac に起きること、準備、時間の見込み、外すコピーの印を表示し、**許可を求める一覧のファイル**（流すテストの配列、`--allow`、`HEAD`、`mac/` の木のハッシュ、ランナーと共通のモジュール（U-24）のハッシュ、信頼する部分のハッシュ、許可の ID）を書いて止まる。一覧にはこの Mac の名前・ホームのパスを入れない |
 | `--approved <file>` | `mac` で流すときは必須。今の選び方・コミット・木・ランナーと共通のモジュールと完全に同じでなければ流さない。触れる前に許可の ID を台帳（`~/Library/Application Support/native-toolkit/test_mac-approvals.log`）に記録し、台帳にある ID は拒む。**許可を使った後は、読むだけの計画の写しだけを使い、この Mac のどの xcodebuild の前にも、計画の digest・台帳・木・ランナーのファイルを照らす**（iOS の 0d の R-19） |
 | `--baseline` | 基準として保存する（下の「基準」の条件を満たすときだけ） |
 | `--name-each-test` | VM でも 1 回の呼び出しで 1 件ずつ名指しする |
-| `--qualification <mac26\|mac26-reply\|vm-ja>` | U-30 の適格性の段だけを流す計画を作る。**2026-11-28 の見直しから、`mac26` と `mac26-reply` は 26 の VM（`--where vm26`）で許可なしに流し、`vm-ja` は 15 の VM（`--where vm`）で流す。ほかの `--where` では止まる**。以下は見直しの前の形: `mac26` と `mac26-reply` はこの Mac で、それぞれ別の `--dry-run` と `--approved` が要る（同じ許可で両方を流さない）。`mac26-reply` の一覧には「通知センターの一覧が開き、私物の通知が画面と収録に出うる」と書く。`vm-ja` は VM の言語を ja にして流し、終わりに en-US に戻したことを確かめる。どれも普段の実行と基準には入らない。この Mac の段にも `NTK-STOP:notificationUI` を当てる |
+| `--qualification <mac26\|mac26-reply\|vm-ja>` | U-30 の適格性の段だけを流す計画を作る。**今の形（2026-11-28 の見直し）**: `mac26` と `mac26-reply` は 26 の VM（`--where vm26`）で許可なしに、別々の回で流す。`vm-ja` は 15 の VM（`--where vm`）で、VM の言語を ja にして流し、終わりに en-US に戻したことを確かめる。ほかの `--where`（`mac` を含む）では止まる。どれも普段の実行と基準には入らない。~~見直しの前の形: `mac26` と `mac26-reply` はこの Mac で、それぞれ別の `--dry-run` と `--approved` が要り、`mac26-reply` の一覧に私物の通知が出うると書き、この Mac の段にも `NTK-STOP:notificationUI` を当てる~~ |
 
 **VM の道**（許可なし。資格を満たすときだけ）:
 
 0. **資格の確かめ**（事実で確かめ、読めない・分からないものは不合格。レビュー v1 Codex A-10）:
    - この Mac の側: その VM の `tart run` の引数に `--no-clipboard` があり、`--dir`・`--net-bridged` が無い（今は `--no-graphics --no-clipboard`。事実）
-   - VM の中（VM 専用の鍵と、固定した known_hosts で入る）: `sysctl -n kern.hv_vmm_present` が `1`、`hw.model` が `VirtualMac` で始まる（事実: `VirtualMac2,1`。この Mac は `0`）、`sw_vers` が 15.8.3（24H241）、`defaults read MobileMeAccounts Accounts` が無い、`~/Library/Accounts/Accounts4.sqlite` に認証済みのアカウントが許す種類（`HolidayCalendar` など、システムのもの）のほかに無い（事実: 今は `HolidayCalendar`・`OnMyDevice`・認証していない `iTunesStore` の 3 つ）、Mail のアカウントが無い（暫定の照らし方: `Accounts4.sqlite` に Mail の種類（IMAP・POP・Exchange・Google・iCloud など）のアカウントが無いこと。`Accounts4.sqlite` が Mail だけで作ったアカウントまで覆うかは確かめていないので、確かな方法は 9.3。決まるまでこの暫定の照らし方を資格に入れる）、共有のフォルダーが付いていない（`virtiofs` の mount が無い。事実）、`xcode-select -p` が Xcode 26.3。**言語は資格でなく測りの環境**として別に見る: 普段の実行と基準は en-US を求め、U-30 の ja の段だけ ja を許す（隔離の項目は省かない）。ja の段の後は en-US に戻ったことを確かめてから普段の実行に戻す
-   - **同一性の束ね**: 資格を確かめたときの VM の `IOPlatformUUID` を記録し、以後のどの `ssh` の命令の前にも同じであることを照らす（違えば止まって確かめ直す）。`tart` の VM の名前・ip・known_hosts の鍵も記録する
+   - VM の中（VM 専用の鍵と、固定した known_hosts で入る）: `sysctl -n kern.hv_vmm_present` が `1`、`hw.model` が `VirtualMac` で始まる（事実: `VirtualMac2,1`。この Mac は `0`）、`sw_vers` がその VM の profile の版（15 の VM は 15.8.3（24H241））、`defaults read MobileMeAccounts Accounts` が無い、`~/Library/Accounts/Accounts4.sqlite` に認証済みのアカウントが許す種類（`HolidayCalendar` など、システムのもの）のほかに無い（事実: 今は `HolidayCalendar`・`OnMyDevice`・認証していない `iTunesStore` の 3 つ）、Mail のアカウントが無い（暫定の照らし方: `Accounts4.sqlite` に Mail の種類（IMAP・POP・Exchange・Google・iCloud など）のアカウントが無いこと。`Accounts4.sqlite` が Mail だけで作ったアカウントまで覆うかは確かめていないので、確かな方法は 9.3。決まるまでこの暫定の照らし方を資格に入れる）、共有のフォルダーが付いていない（`virtiofs` の mount が無い。事実）、`xcode-select -p` がその VM の profile の Xcode（15 の VM は Xcode 26.3）、IOPlatformUUID の SHA-256 がその VM の profile の値（`pinnedUUID`。2 つの VM を取り違えない。生の値はリポジトリに置かない）。**言語は資格でなく測りの環境**として別に見る: 普段の実行と基準は en-US を求め、U-30 の ja の段だけ ja を許す（隔離の項目は省かない）。ja の段の後は en-US に戻ったことを確かめてから普段の実行に戻す
+   - **同一性の束ね**: 資格を確かめたときの VM の `IOPlatformUUID` を記録し、以後のどの `ssh` の命令の前にも同じであることを照らす（違えば止まって確かめ直す）。**2026-11-28 から、VM を分けるのは UUID の照らし（主）で、同じ起動かは `kern.bootsessionuuid`（起動ごとに新しくなる）の一致と `kern.boottime` の秒の 5 秒の幅で見る。秒の幅だけでは同じ起動を示さない**（ゲストの時計の調整で秒の境をまたぐため幅を持たせた。ランナーのレビュー v7 の Codex B-2）。`tart` の VM の名前・ip・known_hosts の鍵も記録する
    - **出どころ**: VM は Cirrus Labs の `macos-sequoia-vanilla` の 15.7.7 から作り、15.8.3 に上げた（0a 1 章）。入れたのはリポジトリのソース、0a の試作、fixture の合成のデータだけ。この出どころの記録（`results/` の VM の記録）を資格の一部にする
 1. **ソースを渡す**: `git ls-files -co --exclude-standard mac`（`build/` を除く）を `tar` で `ssh` に流し、VM の `~/ntk/runs/<実行の ID>/src` に置く。`HEAD` と作業ツリーのハッシュを記録する。`--baseline` のときは `mac/` にコミットしていない変更があれば拒む
-2. **VM の中で組む**: Xcode 26.3 で `build-for-testing`（ad-hoc の署名。U-25）。`.xctestrun` の名前は決め打ちせず、1 つだけあることを確かめる
+2. **VM の中で組む**: その VM の Xcode（15 の VM は 26.3）で `build-for-testing`（ad-hoc の署名。U-25）。`.xctestrun` の名前は決め打ちせず、1 つだけあることを確かめる
 3. **列挙と照合**（柱 2）: `-enumerate-tests`（9.0 の 6 の形）。列挙と宣言の表、クラスの下限、固定したファイル、閉じた形の規則、表のハッシュ、信頼する部分のハッシュを照らす
 4. **VM の準備**: `dndMirrored=false`（U-20）、余分なコピーを外す（U-21）、fixture を作る（U-11）、Finder 以外の前面のアプリを止める
 5. **単体テスト**: `MacLibraryTests` 全部と `MacLibraryExampleTests`（決まりの区分 2 も VM では許可なし）
@@ -557,7 +557,7 @@ D-14 のとおり、UI テストのターゲットは Swift 5・strict concurren
 8. **貼り付けの確認の段**（`--feature` が無いか `Clipboard`）: プレビューを入れる → `ClipboardPrivacyUITests` → 元の値に戻す
 9. **結果**: VM の中で `xcresulttool get test-results tests` / `summary` を読み、3.4 の一覧の値と押したボタンの記録の添付だけを持ち帰る。fixture の中身を照らす。`.xcresult` は VM に残し、次の実行の前に消す
 
-**この Mac の道**（毎回の許可。柱 1〜3）:
+**この Mac の道**（毎回の許可。柱 1〜3）: **2026-11-28 の見直しから、U-29 の監査した単体テスト（`MacLibrary` のスキームだけ）を組んで流す道で、下の 2 の UI の選び方と、UI テストのビルド・照合・coldstart・fixture・UI の呼び出しの段は無い**（ランナーのレビュー v7 の Claude B-1）。計画は UI テストを 0 件にし、承認の後に UI の呼び出しがあれば止まる。前提の 4 項目がそろうまで承認は閉じたまま（9.1）。以下の手順のうち UI に当たる所は見直しの前の形として残す
 
 0. 読むだけの確かめ: `sw_vers`、Xcode の版、`mac/` にコミットしていない変更が無いこと、閉じた形の規則、ランナーと共通のモジュールがコミット済み
 1. **列挙は VM で行う**（同じコミットで VM の道の 0〜3）。VM の資格が成り立たなければ `--dry-run` は止まる
@@ -711,7 +711,7 @@ macOS の自己テストの fixture は、VM で取った実物（列挙の JSON
 
 ### 9.1 0b・0c の最初に VM で確かめること
 
-**2026-11-28 の見直し**: この表の「この Mac では UI テストを流さない」「この Mac の道」に当たる行は、この Mac で UI テストを流さなくなったので、この Mac の前提としては要らない。26 で窓の持ち主を読めるか・押す相手の持ち主・`classify_reply_state` の 26 の形は、26 の VM で確かめる（U-30 の `mac26` の段）。本物の収録の途中の `KILL`（15 の VM で確かめ済み。前提の記録）とおとりの通知（同じ。致命的と判定され、この見直しの理由になった）は、VM での検出の強化として残す
+**2026-11-28 の見直し**: この表の「この Mac では UI テストを流さない」「この Mac の道」に当たる行は、この Mac で UI テストを流さなくなったので、UI テストの前提としては要らない。**ただしランナーの前提の表（`MAC_RUN_PREREQUISITES` の 4 項目）はそのまま残し、単体テストだけの回も、4 項目がそろうまでこの Mac の承認は閉じたまま**にする（表を消すかは 26 の VM が動いた後に決める。ランナーのレビュー v7 の Claude C-1）。26 で窓の持ち主を読めるか・押す相手の持ち主・`classify_reply_state` の 26 の形は、26 の VM で確かめる（U-30 の `mac26` の段）。本物の収録の途中の `KILL`（15 の VM で確かめ済み。前提の記録）とおとりの通知（同じ。致命的と判定され、この見直しの理由になった）は、VM での検出の強化として残す
 
 | 項目 | 関わるケース |
 |---|---|

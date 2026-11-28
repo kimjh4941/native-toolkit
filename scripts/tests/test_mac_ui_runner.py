@@ -18,7 +18,8 @@ Codex A-1, B-4). The `--in-vm` path cannot be narrowed by PATH (it starts again 
 harness runs these tests in the VM only (scripts/tests/mac_ui_runner_mutations.py).
 
 The fixtures in fixtures/mac_ui_runner/ are real output of Xcode 26.3 in the VM (macOS 15.8.3), stage
-0d (2026-11-23), with the VM's home folder replaced by <home>:
+0d (2026-11-23; enumeration.json and the otool files taken again on 2026-11-28 with the three
+CenterLayoutRule tests of SupportRuleTests), with the VM's home folder replaced by <home>:
   enumeration.json        -enumerate-tests -test-enumeration-style flat -test-enumeration-format json
                           (the UI tests and MacLibraryExampleTests)
   unit-enumeration.json   the same for the MacLibrary scheme (MacLibraryTests)
@@ -168,7 +169,7 @@ class Names(unittest.TestCase):
 class Enumeration(unittest.TestCase):
     def test_the_real_enumeration_matches_the_declarations(self):
         ids = enumeration()
-        self.assertEqual(len(ids), 118)
+        self.assertEqual(len(ids), 121)  # 3 more SupportRuleTests (runner review v7: Codex B-1)
         self.assertEqual(r.check_enumeration(ids, declarations()), [])
 
     def test_unit_tests_and_the_base_class_are_dropped(self):
@@ -251,7 +252,7 @@ class Selection(unittest.TestCase):
         table = declarations()
         self.assertFalse([k for k in keys if set(table[k]) & set(r.VM_ONLY_CATEGORIES)])
         self.assertFalse(keys & set(r.MAC_DEFERRED_TESTS))
-        self.assertEqual(len(selected), 99)
+        self.assertEqual(len(selected), 102)
         reasons = {r.key_from_enumeration_id(i): reason for i, _, reason in excluded}
         self.assertEqual(reasons["NotificationPermissionUITests/testNP1_requestPermissionAllow"], "vmOnly")
         self.assertEqual(reasons["ShareUITests/testS2_shareTextCopy"], "ownerUnverified")
@@ -282,7 +283,7 @@ class Selection(unittest.TestCase):
         with self.assertRaises(r.RunnerError):
             r.select_tests(enumeration(), declarations(), "vm", "15", ["panels"])
         selected, excluded = r.select_tests(enumeration(), declarations(), "vm", "15", [])
-        self.assertEqual(len(selected), 113)
+        self.assertEqual(len(selected), 116)
         self.assertEqual(sorted(keys_of(i for i, _, _ in excluded)), sorted(r.OS_ONLY_TESTS))
         self.assertTrue(all(reason == "osOnly" for _, _, reason in excluded))
 
@@ -438,6 +439,25 @@ class NoUIOnThisMac(unittest.TestCase):
         # The approval path itself stays, and stays closed while a precondition is unchecked.
         self.assertTrue(any("not checked yet" in p for p in r.approval_problems(r.make_approval(plan), plan)))
 
+    def test_the_dry_run_of_this_mac_tells_only_what_happens(self):
+        # A plan without a UI test shows no UI line (runner review v7: Claude C-2).
+        text = "\n".join(r.dry_run_text(unit_only_mac_plan(), {}, "2026-11-28T00:00+00:00"))
+        for line in r.UNIT_ONLY_HAPPENINGS + r.UNIT_ONLY_PREPARATIONS:
+            self.assertIn(line, text)
+        for lines in list(r.HAPPENINGS.values()) + list(r.PREPARATIONS.values()):
+            for line in lines:
+                if line not in r.UNIT_ONLY_HAPPENINGS:      # the lines about the runner's own folders are shared
+                    self.assertNotIn(line, text)
+        old = dict(r.MAC_RUN_PREREQUISITES)
+        try:
+            r.MAC_RUN_PREREQUISITES.update(READY)
+            ui = "\n".join(r.dry_run_text(mac_plan(), {}, "2026-11-28T00:00+00:00"))
+        finally:
+            r.MAC_RUN_PREREQUISITES.clear()
+            r.MAC_RUN_PREREQUISITES.update(old)
+        self.assertIn(r.HAPPENINGS[None][0], ui)
+        self.assertNotIn(r.UNIT_ONLY_HAPPENINGS[0], ui)
+
     def test_no_command_of_the_runner_keeps_ui_on_this_mac(self):
         text = (ROOT / "scripts" / "mac_ui_runner.py").read_text()
         uses = [l for l in text.splitlines() if "ui_on_this_mac" in l and not l.lstrip().startswith("#")]
@@ -505,11 +525,11 @@ class TwoVMs(unittest.TestCase):
         self.assertEqual([n for n, ok in r.vm_qualification(facts, "vm") if not ok], [])
         failing = [n for n, ok in r.vm_qualification(facts, "vm26") if not ok]
         self.assertTrue({"osVersion", "xcode", "pinnedUUID"} <= set(failing))
-        other = dict(facts, platformUUID="B8805D5E-AF5A-4C28-B721-5D49A04BCCE4")
+        other = dict(facts, platformUUID="00000000-0000-4000-8000-0000000000F2")
         self.assertEqual([n for n, ok in r.vm_qualification(other, "vm") if not ok], ["pinnedUUID"])
         old = dict(r.VM_PROFILES["vm26"])
         try:   # once set up, the 26 VM passes by its own values and the 15 VM's facts fail there
-            r.VM_PROFILES["vm26"].update(uuid="0F0E0D0C-0B0A-4908-8706-050403020100", os=("26.7.3", "25H1"),
+            r.VM_PROFILES["vm26"].update(uuidSha256=r.sha256_bytes(b"0F0E0D0C-0B0A-4908-8706-050403020100"), os=("26.7.3", "25H1"),
                                          xcode=("26.6", "17F113"))
             vm26 = dict(facts, platformUUID="0F0E0D0C-0B0A-4908-8706-050403020100", osVersion="26.7.3",
                         osBuild="25H1", xcodeVersion="26.6", xcodeBuild="17F113")
@@ -523,6 +543,21 @@ class TwoVMs(unittest.TestCase):
             r.VM_PROFILES["vm26"].update(old)
         self.assertEqual(r.VM_PROFILES["vm"]["name"], "ntk-macos-15-new")
         self.assertEqual(r.VM_PROFILES["vm26"]["name"], "ntk-macos-26")
+
+    def test_the_repository_holds_only_the_hash_of_a_vm_uuid(self):
+        # Design 3.4: the raw IOPlatformUUID never leaves the run (runner review v7: Claude C-3).
+        self.assertRegex(_REAL_VM_UUID_SHA256, r"^[0-9a-f]{64}$")
+        uuid = re.compile(r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}")
+        for path in (ROOT / "scripts" / "mac_ui_runner.py", SCRIPT):
+            self.assertEqual(uuid.findall(path.read_text()), [], path.name)
+        facts = good_facts()
+        old = r.VM_PROFILES["vm"]["uuidSha256"]
+        try:
+            r.VM_PROFILES["vm"]["uuidSha256"] = FAKE_VM_UUID           # the raw value itself does not match
+            self.assertIn("pinnedUUID", [n for n, ok in r.vm_qualification(facts, "vm") if not ok])
+        finally:
+            r.VM_PROFILES["vm"]["uuidSha256"] = old
+        self.assertIn("pinnedUUID", [n for n, ok in r.vm_qualification(dict(facts, platformUUID=None), "vm") if not ok])
 
     def test_baselines_are_per_vm(self):
         self.assertEqual(r.baseline_name("vm26", "26.7.3"), "test_mac.baseline.vm26-26.7.3.json")
@@ -636,11 +671,25 @@ class Ledger(unittest.TestCase):
         self.assertTrue(str(r.DEFAULT_LEDGER).endswith("Library/Application Support/native-toolkit/test_mac-approvals.log"))
 
 
+# A made-up IOPlatformUUID: the 15 VM's own value stays out of the repository (only its SHA-256 is pinned;
+# runner review v7: Claude C-3). The VM's profile is pointed at it for the module and restored after.
+FAKE_VM_UUID = "00000000-0000-4000-8000-0000000000F1"
+_REAL_VM_UUID_SHA256 = r.VM_PROFILES["vm"]["uuidSha256"]
+
+
+def setUpModule():
+    r.VM_PROFILES["vm"]["uuidSha256"] = r.sha256_bytes(FAKE_VM_UUID.encode())
+
+
+def tearDownModule():
+    r.VM_PROFILES["vm"]["uuidSha256"] = _REAL_VM_UUID_SHA256
+
+
 def good_facts():
     return {"hvVmmPresent": "1", "hwModel": "VirtualMac2,1", "osVersion": "15.8.3", "osBuild": "24H241",
             "mobileMeAccounts": "absent", "virtiofsMounts": "0", "xcodeVersion": "26.3", "xcodeBuild": "17C529",
-            "language": "en-US", "platformUUID": "50DCC3EF-6AD8-5EAA-AC56-451AD340113C", "arch": "arm64",
-            "vmBoottime": "1795358134", "macAddress": "86:44:0f:12:49:26", "tartMacAddress": "86:44:0f:12:49:26",
+            "language": "en-US", "platformUUID": FAKE_VM_UUID, "arch": "arm64",
+            "vmBoottime": "1795358134", "bootSession": "00000000-0000-4000-8000-0000000000B1", "macAddress": "86:44:0f:12:49:26", "tartMacAddress": "86:44:0f:12:49:26",
             "accounts": [{"type": "com.apple.account.iTunesStore", "authenticated": "0"},
                          {"type": "com.apple.account.HolidayCalendar", "authenticated": "1"},
                          {"type": "com.apple.account.OnMyDevice", "authenticated": "0"}],
@@ -665,7 +714,7 @@ class VMQualification(unittest.TestCase):
             "osVersion": ("osVersion", "15.8.2"), "noAppleAccount": ("mobileMeAccounts", "present"),
             "noSharedFolder": ("virtiofsMounts", "1"), "xcode": ("xcodeBuild", "17F113"),
             "identity": ("platformUUID", "not-a-uuid"), "tartRunArgs": ("tartProblems", ["x"]),
-            "identity ": ("vmBoottime", "soon"), "tartIsThePeer": ("macAddress", "86:44:0f:12:49:27"),
+            "identity ": ("vmBoottime", "soon"), "identity  ": ("bootSession", "x; reboot"), "tartIsThePeer": ("macAddress", "86:44:0f:12:49:27"),
             "tartIsThePeer ": ("tartMacAddress", "86:44:0f:12:49:27"),
         }
         for item, (key, value) in cases.items():
@@ -1535,7 +1584,7 @@ class Baseline(unittest.TestCase):
         plan = r.make_plan("vm", enumeration(), declarations(), (), None, "15", "a", "b", [], True, None)
         results = {"MacLibraryExampleUITests/" + D1: "passed"}
         baseline = r.make_baseline({"os": "15.8.3"}, plan, results, {D1: 3.0}, "2026-11-23T00:00:00+00:00")
-        self.assertEqual(len(baseline["eligible"]), 113)
+        self.assertEqual(len(baseline["eligible"]), 116)
         self.assertEqual(baseline["executed"], [D1])  # the same form as eligible (Codex v2 B-5)
         snapshot = {"scripts/test_mac.sh": "1" * 64}
         named = r.make_baseline({"os": "15.8.3"}, dict(plan, runnerFiles=snapshot), results, {}, "2026-11-23T00:00:00+00:00")
@@ -1963,18 +2012,33 @@ class NotificationCenterPress(unittest.TestCase):
 
     def test_the_press_compares_the_layout_before_and_after(self):
         helper = self.text[self.text.index("private func pressInCenter("):self.text.index("private func checkBeforePress(")]
-        order = [helper.index(x) for x in ("let atCheck = try NotificationCenterRead.groupLayout()",
+        order = [helper.index(x) for x in ("let atCheck = try NotificationCenterRead.groups()",
                                            "try checkBeforePress(element",
-                                           "let beforePress = try NotificationCenterRead.groupLayout()",
-                                           "guard beforePress == atCheck else {",
+                                           "let beforePress = try NotificationCenterRead.groups()",
+                                           "guard CenterLayoutRule.beforeClick(atCheck: atCheck, beforeClick: beforePress) == .clear else {",
                                            "element.click()",
-                                           "let afterPress = try NotificationCenterRead.groupLayout()",
-                                           "guard arrived.isEmpty else {")]
+                                           "let afterPress = try NotificationCenterRead.groups()",
+                                           "switch CenterLayoutRule.afterClick(beforeClick: beforePress, afterClick: afterPress, "
+                                           "pressedRoot: root.groupIdentifier) {")]
         self.assertEqual(order, sorted(order))
-        layout = self.text[self.text.index("static func groupLayout()"):self.text.index("static func groupIdentifiers(")]
-        self.assertIn('out.append("\\(node.identifier)@\\(Int(f.minX)),\\(Int(f.minY)),\\(Int(f.width))x\\(Int(f.height))")',
-                      layout)                       # identifiers and frames, never labels
-        self.assertNotIn(".label", layout)
+        after = helper[helper.index("switch CenterLayoutRule.afterClick("):]
+        self.assertEqual(after.count("        case .clear:\n            break\n"), 1)   # only .clear goes on
+        self.assertEqual(after.count("throw SampleUITestError"), 2)
+        groups = self.text[self.text.index("static func groups()"):self.text.index("/// Frames of the menus")]
+        self.assertIn("out.append(CenterGroup(identifier: node.identifier, frame: node.frame))", groups)
+        self.assertNotIn(".label", groups)              # identifiers and frames, never labels
+        self.assertNotIn("identifier.isEmpty", groups)  # groups without an identifier are compared too (Codex v7 B-1)
+
+    def test_the_comparison_is_the_pure_rule_with_its_cases(self):
+        # The cases live in SupportRuleTests and run in the VM (runner review v7: Codex B-1).
+        rules = (TESTS_DIR / "SupportRuleTests.swift").read_text()
+        for name in ("testCenterLayoutBeforeTheClickTakesOnlyTheSameGroups",
+                     "testCenterLayoutAfterTheClickTellsWhatItCanAndRefusesTheRest",
+                     "testCenterLayoutDoesNotSeeWhatItsReadsCannotShow"):
+            self.assertIn(f"func {name}()", rules)
+            self.assertEqual(r.parse_declarations((TESTS_DIR / r.DECLARATIONS_FILE).read_text())[f"SupportRuleTests/{name}"], [])
+        for verdict in (".clear", ".changed", ".arrived", ".cannotTell"):
+            self.assertIn(verdict, rules)
 
 
 class Commands(unittest.TestCase):
@@ -2414,9 +2478,10 @@ class ShellOrder(unittest.TestCase):
         self.assertIn('VM_BOOT_SLACK="5"', self.text)
         self.assertIn("$(vm_identity_check) || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }",
                       function_body(self.text, "vm_ssh"))
-        def same(u, b):
-            script = ('VM_UUID=U-1; VM_BOOT=1000; VM_BOOT_SLACK=5\nvm_identity_check() {\n' + check + '\n}\n'
-                      f'u={u}; b={b}; eval "$(vm_identity_check)" && echo same || echo other')
+        self.assertIn("s=\\$(/usr/sbin/sysctl -n kern.bootsessionuuid); \\", function_body(self.text, "vm_ssh"))
+        def same(u, b, s="S-1"):
+            script = ('VM_UUID=U-1; VM_BOOT=1000; VM_SESSION=S-1; VM_BOOT_SLACK=5\nvm_identity_check() {\n' + check +
+                      '\n}\n' f'u={u}; b={b}; s={s}; eval "$(vm_identity_check)" && echo same || echo other')
             done = subprocess.run(["/bin/bash", "-c", script], capture_output=True, text=True,
                                   env={"PATH": str(ROOT), "HOME": str(ROOT)})
             return done.stdout.strip()
@@ -2426,6 +2491,9 @@ class ShellOrder(unittest.TestCase):
             self.assertEqual(same("U-1", b), "other", b)
         self.assertEqual(same("U-2", 1000), "other")      # the UUID stays exact
         self.assertEqual(same("''", 1000), "other")
+        # Another boot is another session, whatever its seconds (runner review v7: Codex B-2).
+        self.assertEqual(same("U-1", 1000, "S-2"), "other")
+        self.assertEqual(same("U-1", 1000, "''"), "other")
 
     def test_the_vm_writes_down_what_each_xcodebuild_left(self):
         capped = function_body(self.text, "capped_group")
@@ -2551,7 +2619,20 @@ class ShellOrder(unittest.TestCase):
         body = function_body(self.text, "vm_qualify")
         self.assertIn("ps -axo args= | runner vm-qualify", body)
         self.assertNotIn("${OUT}/.", body)
-        self.assertIn('"${PRIVATE}/lsregister.txt"', function_body(self.text, "run_mac"))
+        self.assertNotIn("lsregister.txt", function_body(self.text, "run_mac"))
+
+    def test_this_mac_builds_only_the_library_and_registers_nothing(self):
+        # No UI test runs on this Mac (D-21 revised 2026-11-28; runner review v7: Claude B-1).
+        body = function_body(self.text, "run_mac")
+        code = "\n".join(l for l in body.splitlines() if not l.lstrip().startswith("#"))
+        self.assertEqual(re.findall(r"-scheme (\S+)", code), ["MacLibrary"])
+        for word in ("LSREGISTER", "lsregister --dump", "otool", "check-build", "fixture-create", "TEST_RUNNER_NTK",
+                     "runner invocations", "dd-ui", "copy-mark"):
+            self.assertNotIn(word, code, word)
+        approve = code.index("runner approve")
+        check = code.index('fail "the plan of this Mac names UI tests')
+        self.assertLess(approve, check)
+        self.assertLess(check, code.index("make-run-folder"))
 
     def test_a_call_without_results_stops_the_vm_run(self):
         body = function_body(self.text, "run_vm")
