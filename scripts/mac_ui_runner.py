@@ -170,12 +170,13 @@ FROZEN_METHODS = {
 # NotificationRules and OtherApps pinned again on 2026-11-24 after Codex's FinderFront review v1-v3
 # (reviews/2026-11-23-macos-c-abi-finderfront-review-v1.md; stage 0d working notes 17).
 # NotificationCenterUI pinned again on 2026-11-28 (pressInCenter: detection in the VM; Codex presscenter review v1).
-# NotificationCenterUI and NotificationRules pinned again on 2026-11-28 (CenterLayoutRule; runner review v7 Codex B-1).
+# NotificationCenterUI and NotificationRules pinned again on 2026-11-28 (CenterLayoutRule; runner review v7 Codex B-1),
+# and again the same day (the exceptions from the snapshot's parents; CenterLayoutRule review v1 A-1, A-2).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/NotificationCenterUI.swift": "2339b0e839d02fd3966ba9dd4727c542b073d149f6184aed1f0adcc6bd9c0c22",
+    "Support/NotificationCenterUI.swift": "fdc9f7ef4fe857e2223c066dbfa95844d268dd6401936fc93b63b836b3bf7bba",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
-    "Support/NotificationRules.swift": "fd02ae7a10644554405daaeb237622135199a658838ef67ed2564107a3c291ad",
+    "Support/NotificationRules.swift": "9e7eb7536cbd43072759fe2da6b31da505c6edc5f3e8db4c5e28fc6e57e7588f",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
     "Support/OtherApps.swift": "165dfc696861f02159cc53a1fddeaacf156124a5929dd492936a524bd7bc56dc",
     "Support/Panels.swift": "5959023421beb3137940351e0444e396f0ee4847593bc81236af0b29d7aa7324",
@@ -242,8 +243,12 @@ MAC_MAJOR = "26"
 VM_PROFILES = {
     "vm": {"name": "ntk-macos-15-new", "uuidSha256": "312580403526421032b40fadb9abc1de8ec6989094f6ec1d423240d1c7257d8e", "os": VM_OS,
            "xcode": VM_XCODE, "provenance": VM_PROVENANCE, "major": "15"},
-    "vm26": {"name": "ntk-macos-26", "uuidSha256": None, "os": None, "xcode": None,
-             "provenance": "cirrus-macos-tahoe-vanilla-26.6.2+26.7.3", "major": "26"},
+    # 2026-11-28: made from Cirrus Labs' macos-tahoe-vanilla 26.6.2 and kept at 26.6.2 (25G83): the update to 26.7.3
+    # needs 21.71 GB free and the VM has 18 GB (a recovery partition after the main one cannot be removed with SIP
+    # on). Made again when Cirrus Labs publishes a 26.7 image. Xcode 26.6 copied from this Mac.
+    "vm26": {"name": "ntk-macos-26", "uuidSha256": "98f721491be2debd258564157fd5ae2b386d5919969164f17af755e508a3a7f9",
+             "os": ("26.6.2", "25G83"), "xcode": ("26.6", "17F113"),
+             "provenance": "cirrus-macos-tahoe-vanilla-26.6.2", "major": "26"},
 }
 WHERE_VALUES = ("vm", "vm26", "mac")
 

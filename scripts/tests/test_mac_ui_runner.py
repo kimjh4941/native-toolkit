@@ -528,6 +528,19 @@ class TwoVMs(unittest.TestCase):
         other = dict(facts, platformUUID="00000000-0000-4000-8000-0000000000F2")
         self.assertEqual([n for n, ok in r.vm_qualification(other, "vm") if not ok], ["pinnedUUID"])
         old = dict(r.VM_PROFILES["vm26"])
+        try:   # a profile not set up (None) never qualifies, whatever the facts
+            r.VM_PROFILES["vm26"].update(uuidSha256=None, os=None, xcode=None)
+            vm26 = dict(facts, osVersion="26.6.2", osBuild="25G83", xcodeVersion="26.6", xcodeBuild="17F113")
+            self.assertEqual(sorted(n for n, ok in r.vm_qualification(vm26, "vm26") if not ok),
+                             ["osVersion", "pinnedUUID", "xcode"])
+            plan = r.make_plan("vm26", enumeration(), declarations(), (), None, "26", "a", "b", [], True, None)
+            self.assertIn("--where vm26", r.baseline_refusal({"os": "26.6.2", "osBuild": "25G83", "language": "en-US"},
+                                                             plan, False, False, keys_of(plan["selected"]), []))
+        finally:
+            r.VM_PROFILES["vm26"].clear()
+            r.VM_PROFILES["vm26"].update(old)
+        self.assertRegex(r.VM_PROFILES["vm26"]["uuidSha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual((r.VM_PROFILES["vm26"]["os"], r.VM_PROFILES["vm26"]["xcode"]), (("26.6.2", "25G83"), ("26.6", "17F113")))
         try:   # once set up, the 26 VM passes by its own values and the 15 VM's facts fail there
             r.VM_PROFILES["vm26"].update(uuidSha256=r.sha256_bytes(b"0F0E0D0C-0B0A-4908-8706-050403020100"), os=("26.7.3", "25H1"),
                                          xcode=("26.6", "17F113"))
@@ -565,7 +578,7 @@ class TwoVMs(unittest.TestCase):
         every = keys_of(plan["selected"])
         refusal = r.baseline_refusal({"os": "26.7.3", "osBuild": "25H1", "language": "en-US"}, plan, False, False,
                                      every, [])
-        self.assertIn("--where vm26", refusal)    # not set up yet: no baseline of the 26 VM
+        self.assertIn("--where vm26", refusal)    # another 26 than the profile's: no baseline of the 26 VM
         vm15 = {"os": "15.8.3", "osBuild": "24H241", "language": "en-US"}
         self.assertIsNotNone(r.baseline_refusal(vm15, plan, False, False, every, []))
 
@@ -2025,9 +2038,16 @@ class NotificationCenterPress(unittest.TestCase):
         self.assertEqual(after.count("        case .clear:\n            break\n"), 1)   # only .clear goes on
         self.assertEqual(after.count("throw SampleUITestError"), 2)
         groups = self.text[self.text.index("static func groups()"):self.text.index("/// Frames of the menus")]
-        self.assertIn("out.append(CenterGroup(identifier: node.identifier, frame: node.frame))", groups)
+        self.assertIn("out.append(CenterGroup(identifier: node.identifier, frame: node.frame, parent: parent))", groups)
+        self.assertIn("visit(child, parent: below)", groups)            # the snapshot's parents (CenterLayoutRule review v1)
         self.assertNotIn(".label", groups)              # identifiers and frames, never labels
-        self.assertNotIn("identifier.isEmpty", groups)  # groups without an identifier are compared too (Codex v7 B-1)
+        # Groups without an identifier are compared too (Codex v7 B-1): the only test of the identifier is the one
+        # that passes it down as the parent.
+        self.assertIn("            if node.elementType == .group, node.frame.width > 0, node.frame.height > 0 {\n"
+                      "                out.append(", groups)
+        self.assertEqual(groups.count("identifier.isEmpty"), 1)
+        self.assertIn("            if node.elementType == .group, !node.identifier.isEmpty {\n                below = node.identifier",
+                      groups)
 
     def test_the_comparison_is_the_pure_rule_with_its_cases(self):
         # The cases live in SupportRuleTests and run in the VM (runner review v7: Codex B-1).
@@ -2039,6 +2059,11 @@ class NotificationCenterPress(unittest.TestCase):
             self.assertEqual(r.parse_declarations((TESTS_DIR / r.DECLARATIONS_FILE).read_text())[f"SupportRuleTests/{name}"], [])
         for verdict in (".clear", ".changed", ".arrived", ".cannotTell"):
             self.assertIn(verdict, rules)
+        # The counterexamples of the CenterLayoutRule review v1 and the 15.8.3 reads are checked from the test.
+        after = rules[rules.index("func testCenterLayoutAfterTheClickTellsWhatItCanAndRefusesTheRest()"):]
+        after = after[:after.index("\n    }\n")]
+        self.assertIn("checkWhatARightPressDoesOn15()", after)
+        self.assertIn("checkNoExceptionFromFramesAlone()", after)
 
 
 class Commands(unittest.TestCase):

@@ -32,7 +32,7 @@
 
 ### 直したこと（Support。Codex の確かめと、ハッシュの固定はこの後）
 
-- `NotificationCenterUI.pressInCenter`: 通知センターへのクリック 5 か所（本文、`Options`、メニューの項目、許可の問い合わせの `Options` とその項目）をこの 1 つにまとめた。通知センターが見せているグループを、確かめの始め・押す直前・押した直後に読み（`groupLayout`。identifier と枠だけで、label は読まない）、確かめの始めと押す直前で違えば押さずに止め（`Notification Center changed between the check and …; nothing was pressed`）、押した直後に新しいグループが出ていれば「押下が別の通知に届いた疑い」で落とす（`… arrived while pressing …; the press may have reached another notification`）
+- `NotificationCenterUI.pressInCenter`: 通知センターへのクリック 5 か所（本文、`Options`、メニューの項目、許可の問い合わせの `Options` とその項目）をこの 1 つにまとめた。通知センターが見せているグループを、確かめの始め・押す直前・押した直後に読み（`groupLayout`。比べるのは identifier と枠だけで、label は比べに使わない。押す根を探すのには label の全文の一致を使う。CenterLayoutRule のレビュー v1 の確認事項で直した）、確かめの始めと押す直前で違えば押さずに止め（`Notification Center changed between the check and …; nothing was pressed`）、押した直後に新しいグループが出ていれば「押下が別の通知に届いた疑い」で落とす（`… arrived while pressing …; the press may have reached another notification`）
 - 窓の一覧（`CGWindowList`）では比べられなかった: VM で確かめると、通知センターはバナーをすべて 1 つの全画面の窓（番号・層・枠が変わらない）に描くので、バナーが来ても窓の一覧は変わらない。そのため通知センターの要素の木で比べる
 - 要素に向けた操作（位置でなく要素を指す押下）: XCUITest の macOS の公開の API には無い（`click()` は要素の hit point に合成のイベントを送る。`typeKey` は入力の焦点に送る）。ランナーから `AXUIElementPerformAction` を使うと、UI テストのランナーにアクセシビリティの許可を新しく与える必要があるので、この Mac の設定の変更になり採らなかった
 - 残る窓: 最後に読んでから XCTest が実際のイベントを合成するまでの間に、長さを保証できない競合が残る（数 ms とは言えない。Codex のレビュー C-1）。押下を受けた通知がその後に消えれば、押した直後の照らしでも気づけない（同 A-1）。この Mac では UI テストを流さないことにした（D-21 の見直し、2026-11-28）ので、この照らしは VM の合成のおとりでの検出の強化として残す

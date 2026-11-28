@@ -48,11 +48,11 @@ enum NotificationCenterRead {
         })
     }
 
-    /// The groups Notification Center shows now: identifier (empty when it has none) and exact frame only; no
-    /// label is read. Notification Center draws every banner in one window, so a banner that arrives is seen
+    /// The groups Notification Center shows now: identifier (empty when it has none), exact frame and parent only;
+    /// no label is read here (the comparison uses none; the root is found by its whole label in `waitForRoot`). Notification Center draws every banner in one window, so a banner that arrives is seen
     /// here, not in the window list (2026-11-28: one window, the same number and frame, while banners came).
-    /// Groups without an area are left out (nothing on the screen to take a click). `CenterLayoutRule` compares
-    /// them (runner review v7: Codex B-1).
+    /// Groups without an area are left out (nothing on the screen to take a click); a group without an area still
+    /// passes its identifier down as the parent. `CenterLayoutRule` compares them (runner review v7: Codex B-1).
     static func groups() throws -> [CenterGroup] {
         let root: XCUIElementSnapshot
         do {
@@ -61,15 +61,20 @@ enum NotificationCenterRead {
             throw SampleUITestError(.overlay, "Notification Center's tree could not be read")
         }
         var out: [CenterGroup] = []
-        func visit(_ node: XCUIElementSnapshot) {
+        // `parent`: the nearest group above with an identifier (CenterLayoutRule review v1 A-1).
+        func visit(_ node: XCUIElementSnapshot, parent: String?) {
+            var below = parent
             if node.elementType == .group, node.frame.width > 0, node.frame.height > 0 {
-                out.append(CenterGroup(identifier: node.identifier, frame: node.frame))
+                out.append(CenterGroup(identifier: node.identifier, frame: node.frame, parent: parent))
+            }
+            if node.elementType == .group, !node.identifier.isEmpty {
+                below = node.identifier
             }
             for child in node.children {
-                visit(child)
+                visit(child, parent: below)
             }
         }
-        visit(root)
+        visit(root, parent: nil)
         return out
     }
 

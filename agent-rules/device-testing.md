@@ -71,7 +71,7 @@ macOS にはシミュレーターが無く、macOS のテストは利用者が�
 
 - この Mac: macOS 26 の最新（2026-11-22 は 26.7.3）、Xcode 26.6（ビルドと dist）と 26.3（`xcode-select` の既定）。UI テストは流さない
 - 15 の VM: tart の `ntk-macos-15-new`（15 の最新、Xcode 26.3。`test_mac.sh --where vm`）
-- 26 の VM: tart の `ntk-macos-26`（26 の最新、この Mac の Xcode 26.6 を写す。`test_mac.sh --where vm26`。2026-11-28 に作り始めた）
+- 26 の VM: tart の `ntk-macos-26`（この Mac の Xcode 26.6 を写した。`test_mac.sh --where vm26`。2026-11-28 に作った。26.7.3 へは空きが足りず上げられず、今は 26.6.2（25G83）。26.7 のイメージで作り直す）
 - ランナー: `scripts/test_mac.sh`（段階 0d で作る。それまでは、流すたびに下の 4 つを示して許可を得る）
 - この Mac では、ランナーは自分の子にしか signal を送らず、前の回の残骸は止めずに知らせる（止めるのは利用者で、再起動でも消える。2026-11-23 のランナーのレビュー v5）
 

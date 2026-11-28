@@ -233,12 +233,21 @@ enum NotificationOverlayRule {
     }
 }
 
-// MARK: - Notification Center's groups around a press (2026-11-28; runner review v7: Codex B-1)
+// MARK: - Notification Center's groups around a press (2026-11-28; runner review v7: Codex B-1; CenterLayoutRule review v1)
 
-/// One group Notification Center shows: its identifier (empty when it has none) and its frame. No label.
+/// One group Notification Center shows: its identifier (empty when it has none), its frame, and the identifier of
+/// the nearest group above it in the snapshot that has one (`parent`; nil at the top). No label: the comparison never uses one (the root
+/// itself is found by its whole label, `BannerAnchor`).
 struct CenterGroup: Equatable {
     let identifier: String
     let frame: CGRect
+    let parent: String?
+
+    init(identifier: String, frame: CGRect, parent: String? = nil) {
+        self.identifier = identifier
+        self.frame = frame
+        self.parent = parent
+    }
 }
 
 /// What the reads of Notification Center's groups around one click can tell.
@@ -250,7 +259,8 @@ enum CenterPressVerdict: Equatable {
     /// After the click a named group is there more times than before: a notification arrived.
     case arrived
     /// After the click the reads cannot tell a new group from an old one (a group without an identifier that
-    /// is not where one was, or another notification's group that grew): not taken as safe.
+    /// is not where one was, or another notification's group that grew without a checked reason): not taken as
+    /// safe.
     case cannotTell
 }
 
@@ -259,52 +269,65 @@ enum CenterPressVerdict: Equatable {
 ///
 /// Not seen, by design of the reads (the limit `SupportRuleTests` lists): a notification that took the click and
 /// went away before the read after it; a new notification that comes with the identifier, the frame and the size
-/// of one that went away; anything in the time between the last read and the event XCTest synthesizes.
+/// of one that went away; a notification that merged into the last banner of the list exactly when the list
+/// collapsed onto it (the same reads as the collapse); anything in the time between the last read and the event
+/// XCTest synthesizes.
 enum CenterLayoutRule {
 
+    /// The identifiers of the list that holds the banners, as checked in the VM (15.8.3, 2026-11-28; 26 in U-30).
+    /// Only such a group, holding banners before the click, may grow without being a notification.
+    static let listIdentifiers: Set<String> = ["AXNotificationListItems"]
+
     /// Right before the click against the read when the check started: the same groups, each with the same
-    /// identifier and exactly the same frame (as a multiset: their order does not matter). Anything else is
-    /// `changed`.
+    /// identifier, exactly the same frame and the same parent (as a multiset: their order does not matter).
+    /// Anything else is `changed`.
     static func beforeClick(atCheck: [CenterGroup], beforeClick: [CenterGroup]) -> CenterPressVerdict {
         sameGroups(atCheck, beforeClick) ? .clear : .changed
     }
 
     /// Right after the click against the read right before it. A right press may close the pressed banner, open
-    /// a menu (not a group), make the pressed root grow (Reply), make the list that holds the banners grow and move
-    /// the others; it never brings a group.
-    /// `pressedRoot` is the identifier of the root whose part was pressed; groups inside its frame after the click
-    /// are its own parts.
+    /// a menu (not a group), make the pressed root grow with parts of its own (Reply), make the list grow, and
+    /// make the list collapse onto its last banner; it never brings a group. `pressedRoot` is the identifier of
+    /// the root whose part was pressed. Every exception is taken from the snapshot's parents, never from frames
+    /// that happen to contain each other (CenterLayoutRule review v1 A-1, A-2).
     static func afterClick(beforeClick: [CenterGroup], afterClick: [CenterGroup], pressedRoot: String) -> CenterPressVerdict {
-        let rootFrames = afterClick.filter { $0.identifier == pressedRoot && !pressedRoot.isEmpty }.map(\.frame)
-        func insideRoot(_ group: CenterGroup) -> Bool {
-            group.identifier != pressedRoot && rootFrames.contains { $0.contains(group.frame) }
-        }
         let before = Dictionary(grouping: beforeClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
         let after = Dictionary(grouping: afterClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
         for (identifier, groups) in after where groups.count > (before[identifier]?.count ?? 0) {
             return .arrived
         }
-        // A named group that holds other named groups is a container (15.8.3: `AXNotificationListItems`, which
-        // grew by 6 points when a banner was pressed; 2026-11-28 in the VM). What comes into it is counted above
-        // or below; only a group that holds none, a notification, is checked for growth.
-        func container(_ group: CenterGroup) -> Bool {
-            afterClick.contains {
-                $0.identifier != group.identifier && !$0.identifier.isEmpty && $0.frame != group.frame && group.frame.contains($0.frame)
-            }
+        // The pressed root's own parts: below it in the snapshot.
+        func partOfRoot(_ group: CenterGroup) -> Bool {
+            !pressedRoot.isEmpty && group.identifier != pressedRoot && group.parent == pressedRoot
         }
-        // 15.8.3: when the pressed banner goes and one banner is left, the list goes and that banner takes the
-        // list's frame (2026-11-28, N23 `Open` in the VM, 3 of 3). A group that grew exactly to the frame of a named
-        // group that went away is that collapse, not a notification that came into it.
-        let gone = beforeClick.filter { !$0.identifier.isEmpty && after[$0.identifier] == nil }.map(\.frame)
-        for (identifier, groups) in after where identifier != pressedRoot {
-            let outside = groups.filter { !insideRoot($0) && !container($0) && !gone.contains($0.frame) }
-            let grown = outside.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
-            if grown {
+        // The list: a checked list identifier, once and holding banners before the click.
+        func isList(_ identifier: String) -> Bool {
+            listIdentifiers.contains(identifier) && before[identifier]?.count == 1 &&
+                beforeClick.contains { $0.parent == identifier && !$0.identifier.isEmpty }
+        }
+        // 15.8.3 (2026-11-28, N23 `Open` in the VM, 3 of 3): when the pressed banner goes and one banner is left,
+        // the list goes and that banner takes the list's frame. Taken only when all of it holds: the list was there
+        // and is gone, the pressed root was in the list and is gone, the list held exactly the root and this banner,
+        // and the banner now has exactly the list's frame.
+        func collapsedOnto(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
+            guard groups.count == 1, before[identifier]?.count == 1, let banner = before[identifier]?.first,
+                  let list = banner.parent, isList(list), after[list] == nil,
+                  let listFrame = before[list]?.first?.frame,
+                  before[pressedRoot]?.count == 1, before[pressedRoot]?.first?.parent == list, after[pressedRoot] == nil else {
+                return false
+            }
+            let held = Set(beforeClick.filter { $0.parent == list && !$0.identifier.isEmpty }.map(\.identifier))
+            return held == [pressedRoot, identifier] && groups[0].frame == listFrame
+        }
+        for (identifier, groups) in after where identifier != pressedRoot && !isList(identifier) {
+            let own = groups.filter { !partOfRoot($0) }
+            let grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
+            if grown && !collapsedOnto(identifier, own) {
                 return .cannotTell
             }
         }
         var unnamedBefore = beforeClick.filter { $0.identifier.isEmpty }.map(\.frame)
-        for group in afterClick where group.identifier.isEmpty && !insideRoot(group) {
+        for group in afterClick where group.identifier.isEmpty && !partOfRoot(group) {
             guard let index = unnamedBefore.firstIndex(of: group.frame) else {
                 return .cannotTell
             }

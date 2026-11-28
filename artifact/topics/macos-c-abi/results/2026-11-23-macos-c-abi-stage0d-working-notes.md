@@ -610,3 +610,50 @@ Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で�
 - 変異（15 の VM の写しだけ。`CenterLayoutRule` を壊して組み、`SupportRuleTests` を流す一時の手順。写しごと消した）: 変えない回は 27 件とも通り、14 個の変異はすべて落ちた（押す前の比べ方 2、数の数え方 2、広がりの照らし、identifier の無い group、根の部品の除き方 3、入れ物 3、畳み込み 2、空の根）
 - 15 の VM の UI テスト（`--feature Notification`、63 件）: 最初の比べ方では 7 件、入れ物を除いた形では 1 件（N23）が落ち、どちらも本物の読みで理由を確かめて直した（作業の記録の 22.2）。今の形で 63 件すべてが通った。列挙と `otool` の fixture は、この形の VM のビルドから取り直した
 - 信頼する部分のハッシュ（`NotificationCenterUI.swift`・`NotificationRules.swift`）は、この形で取り直した。この直しを別のモデルが読んだのは、v7 で閉じたので行っていない
+
+## 23. CenterLayoutRule の Codex の確かめ v1 の直し（2026-11-28。コミットしていない。VM でまだ確かめていない）
+
+Codex の確かめ v1（scratchpad の `review/centerlayout-codex-v1.md`）は A 2（Codex は致命的と判定）・B 1。UI テストは VM でだけ流し、普段の回におとりは無いので、私物も基準も壊さない。親は「致命的でない」と判定した。ただし除外が広すぎて、VM の検出が働かない入力があるのは確かなので直した。
+
+- 読み方: `NotificationCenterRead.groups()` は、各 group に snapshot の親（上にある identifier を持つ一番近い group）を持たせる（`CenterGroup.parent`）。押す前の比べも親を含めて比べる
+- A-1: 入れ物の除外は、確かめ済みの一覧の identifier（`CenterLayoutRule.listIdentifiers` = `AXNotificationListItems`。15.8.3 の VM）で、押す前に 1 つあり、押す前から名のある group を子に持っていたものに限った。枠が別の group を包むだけでは入れ物にしない。押した根の部品も、枠でなく親（根の下にある）で決める
+- A-2: 畳み込みの除外は、次がすべてそろうときだけにした。一覧が押す前にあって押した後に消えた、押した根が一覧の子で押した後に消えた、一覧の子が押した根とその通知のちょうど 2 つ、その通知の押した後の枠が一覧の枠とちょうど同じ。ほかの消失と枠の一致、説明できない広がりは `.cannotTell`
+- B-1: `SupportRuleTests` の押した後の確かめに、15.8.3 の本物の読み（N22 の一覧の 6 pt の広がり、N23 の畳み込み、本文で根が閉じる形。どれも `.clear`）、A-1 の反例 3（広がった通知が別の group を枠で包む、一覧の identifier で押す前に子が無い、確かめていない入れ物）、A-2 の反例（レビューの例と、畳み込みの条件を 1 つずつ欠く 8 例）、空の根の 2 例を足した。畳み込みと、その瞬間の最後の通知への合流は同じ読みになり区別できないので、限界として `.clear` を期待する例に書いた。テストのメソッドの数は変えていない（列挙・`otool` の fixture・宣言はそのまま）
+- 記述: 「label はどこにも使わない」を「比べには使わない。押す根を探すのには label の全文の一致を使う」に直した（Support のコメントとおとりの記録）
+- 信頼する部分のハッシュ（`NotificationCenterUI.swift`・`NotificationRules.swift`）は取り直した。この Mac の自己テスト（偽の口だけ）は 209 件のうち 201 件が通り、VM の中だけの 8 件を飛ばした。ハーネスの表には「snapshot の親を渡さない」を足した（257 項目）
+
+### 23.1 VM で確かめる段取り（15 の VM が空いたら。親が頼む）
+
+1. 本物の読みに親が入るか: VM の写しだけで、`cannotTell` と `arrived` の失敗の文に読み（identifier・枠・親）を出す版を組み、N22（本文）・N23（`Open`）・N24（`Reply`）を 1 回ずつ流して、バナーの group の親が `AXNotificationListItems`、`Reply` で増える部品の親が押した根であることを見る（写しと結果は見たら消す）。違えば、親の取り方か一覧の条件を直してから次に進む
+2. `SupportRuleTests` の 27 件を流し、すべて通ることを見る
+3. `CenterLayoutRule` の変異（一時の手順。VM の写しだけ）: 19 個（押す前の比べ 2、数 2、広がり、identifier の無い group、根の部品 3、一覧 3、畳み込み 7）。変えない回の 27 件が通り、19 個すべてで `SupportRuleTests` が落ちること
+4. `--feature Notification` を 2 回流し、2 回とも 63 件すべてが通ること（前に普段の回で誤って落ちた 7 件、N21〜N24 と NC1〜NC3 を含む）
+5. ハーネスの変異: 変えない回と「NC press」の 7 個（足した「snapshot の親を渡さない」を含む）
+6. 終わったら VM の写し・結果のバンドル・`~/ntk/failed` を消す
+
+## 24. 26 の VM の準備（2026-11-28。21.4 の段取り。コミットしていない）
+
+親が `ntk-macos-26` を Cirrus Labs の `macos-tahoe-vanilla:26.6.2` から作り（CPU 4、メモリー 8 GB、ディスク 90 GB）、`--no-graphics --no-clipboard` で起動し、VM 専用の鍵と known_hosts を入れた。15 の VM は止めたまま（メモリーの都合で 1 台ずつ）。設定は VM の中だけで行い、この Mac の設定は変えていない。
+
+| 段 | 結果 |
+|---|---|
+| 2 26.7.3 への更新 | **飛ばした**。「Not enough free disk space: a total of 21.71 GB is required」。中の空きは 18 GB で、本体の領域の後ろの復旧用の領域（disk0s3）は SIP で消せない。親の判断で 26.6.2（25G83）のまま使う。止まった更新の残りは `/Library/Updates` の `ProductMetadata.plist`（108 KB）だけで、片付けるものは無かった |
+| 3 鍵だけで入る | pass。`/etc/ssh/sshd_config.d/100-ntk-keys-only.conf`（`PasswordAuthentication no`、`KbdInteractiveAuthentication no`、`PermitRootLogin no`）。`sshd -t` が通り、パスワードで入ろうとすると `Permission denied (publickey)` |
+| 4 アカウント | pass。`MobileMeAccounts` は無い。`Accounts4.sqlite` は `iTunesStore`（認証していない）と `HolidayCalendar` だけ |
+| 5 共有なし | pass。`virtiofs` の mount は 0。Handoff（`com.apple.coreservices.useractivityd` の送る・受ける）を切った。眠りと画面の眠りを止めた |
+| 6 言語 | pass。`AppleLanguages` は `en-US`、`AppleLocale` は `en_US`（初めから） |
+| 7 通知 | pass（書いて読み直した）。26.6.2 には `com.apple.ncprefs` がまだ無かったので、`dnd_prefs` に `dndMirrored=false` だけを持つ値を書き、daemon を立て直した。効くかは通知の UI テストで見る |
+| 8 自動化 | pass。`automationmodetool enable-automationmode-without-authentication`、`DevToolsSecurity -enable`、`admin` を `_developer` に |
+| 9 Xcode | pass。この Mac の `/Applications/Xcode26.6.app` を `tar` で ssh に流して写し（VM の中で 3.6 GB、空きは 14 GB に）、`xcode-select -s`、`-license accept`、`-runFirstLaunch`、`-checkFirstLaunchStatus` が 0、`xcodebuild -version` は 26.6（17F113）、`codesign -v` が通った |
+| 10 ランナー | pass。`VM_PROFILES["vm26"]` に IOPlatformUUID の SHA-256、`(26.6.2, 25G83)`、`(26.6, 17F113)`、出どころ `cirrus-macos-tahoe-vanilla-26.6.2` を入れた。自己テストは、未設定の profile が資格を通らないことを None にして確かめる形にした。この Mac の自己テスト（偽の口だけ）は 209 件のうち 201 件が通り 8 件を飛ばした。26 の VM の写しでは 208 件が通り 1 件を飛ばした。変異は 26 の VM の写しで、変えない回と「VM:」「in-VM:」「two VMs:」の 21 個を流し、すべて CAUGHT |
+| 11 資格 | pass。`--where vm26` の資格の 11 項目（`pinnedUUID` を含む）がすべて pass。サンプルと `MacLibrary` を Xcode 26.6 で組み、警告は 0 |
+| 11 U-30 `mac26` の段 | 段の確かめのテスト（`QUALIFICATION_ONLY_TESTS["mac26"]`）はまだ書いていないので、選ばれたのは 0 件（資格と組み立てだけが通った） |
+| 11 全件を 1 回 | 基準は取っていない。単体テストは 328 件がすべて通った。UI テストは 113 件を選び（8 件を除いた。どれも 26 で押す先を確かめていない `MAC_DEFERRED_TESTS`: `ownerUnverified` 6、`macDeferred` 2）、45 件が通り、10 件が落ち、見張りの N4 が落ちたので残りの 58 件は流していない（`NTK-STOP:watch`）。前に 15 の VM で直した CenterLayoutRule の版（23 章、VM では未確認）で流した |
+
+落ちた型（失敗の文は VM の結果のバンドルで読み、書き写した後に消した。直すのは次の回）:
+
+1. 通知の許可の段: NP2 は「Don’t Allow」を押した後の比べが `cannotTell`（26 の通知センターの木が 15 と違う。23 章の形のまま）。NP1・NP3 は `NTK-PRECONDITION:notNotDetermined`（26 では、許可を戻す手順（`com.apple.ncprefs` の `apps` の項目を消す）で戻らない）。そのため N4 が `notAuthorized` で落ち、見張りとして残りを止めた
+2. パネル: D8・D10・D11・D12 は、fixture の項目を押す前の確かめが `noWindow`（26 では、パネルの点を覆う窓が窓の一覧から読めない。U-30 の窓の持ち主の候補）
+3. 保存のパネル: D15 は結果の `filePath` が `<fixture>/new-file` で、期待と違う（26 では拡張子が足されない見込み）
+4. 識別子の一覧: I1d は Clipboard の画面のボタンでない識別子が 18 でなく 17
+5. 通った主なもの: `SupportRuleTests`（27）、`NavigationUITests`（26 だけの M1b・M2 を含み、26 では戻るボタンで戻れた）、I1a〜I1c、Dialog のパネルを使わないもの

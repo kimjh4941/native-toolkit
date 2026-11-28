@@ -368,10 +368,17 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertFalse(LaunchCopy.isWellFormed(""))
     }
 
-    // MARK: - Notification Center's groups around a press (runner review v7: Codex B-1)
+    // MARK: - Notification Center's groups around a press (runner review v7: Codex B-1; CenterLayoutRule review v1)
 
-    private static func g(_ identifier: String, _ x: CGFloat, _ y: CGFloat, _ w: CGFloat = 360, _ h: CGFloat = 80) -> CenterGroup {
-        CenterGroup(identifier: identifier, frame: CGRect(x: x, y: y, width: w, height: h))
+    private static let list = "AXNotificationListItems"
+
+    private static func g(_ identifier: String, _ x: CGFloat, _ y: CGFloat, _ w: CGFloat = 360, _ h: CGFloat = 80,
+                          in parent: String? = nil) -> CenterGroup {
+        CenterGroup(identifier: identifier, frame: CGRect(x: x, y: y, width: w, height: h), parent: parent)
+    }
+
+    private func after(_ before: [CenterGroup], _ after: [CenterGroup], root: String = "R") -> CenterPressVerdict {
+        CenterLayoutRule.afterClick(beforeClick: before, afterClick: after, pressedRoot: root)
     }
 
     func testCenterLayoutBeforeTheClickTakesOnlyTheSameGroups() {
@@ -383,65 +390,110 @@ final class SupportRuleTests: SampleUITestCase {
             ("a group went", [r], .changed),
             ("another identifier at the same frame", [Self.g("B", 600, 40), r], .changed),
             ("a group without an identifier came", [a, r, Self.g("", 600, 220)], .changed),
-            ("the same identifier twice", [a, r, a], .changed)
+            ("the same identifier twice", [a, r, a], .changed),
+            ("another parent", [a, Self.g("R", 600, 130, in: "A")], .changed)
         ]
         for (name, beforeClick, expected) in cases {
             XCTAssertEqual(CenterLayoutRule.beforeClick(atCheck: [a, r], beforeClick: beforeClick), expected, name)
         }
     }
 
+    /// The reads of 15.8.3 in the VM (2026-11-28): the whole screen and a large group without identifiers, the list,
+    /// and in it another notification (T) and the pressed root (R).
+    private func checkWhatARightPressDoesOn15() {
+        let screen = Self.g("", 0, 0, 1024, 768), big = Self.g("", 272, 0, 752, 691)
+        let t = Self.g("T", 664, 40, 344, 57, in: Self.list), r = Self.g("R", 664, 103, 344, 73, in: Self.list)
+        // N22 (body): the list grew by 6 points; nothing else changed.
+        XCTAssertEqual(after([screen, big, Self.g(Self.list, 664, 40, 344, 136), t, r],
+                             [screen, big, Self.g(Self.list, 658, 40, 350, 136), t, r]), .clear)
+        // N23 (Open): the root and the list went; T, the last banner, took the list's frame.
+        XCTAssertEqual(after([screen, big, Self.g(Self.list, 658, 40, 350, 136), t, r],
+                             [screen, big, Self.g("T", 658, 40, 350, 136)]), .clear)
+        // The body closed the root and nothing else moved.
+        XCTAssertEqual(after([screen, big, Self.g(Self.list, 664, 40, 344, 136), t, r],
+                             [screen, big, Self.g(Self.list, 664, 40, 344, 136), t]), .clear)
+    }
+
     func testCenterLayoutAfterTheClickTellsWhatItCanAndRefusesTheRest() {
-        let a = Self.g("A", 600, 40), r = Self.g("R", 600, 130), u = Self.g("", 600, 220)
-        let before = [Self.g("L", 600, 30, 360, 190), a, r, u]
-        // (what happened, the read after the click, the verdict). Seen: a group that came or grew elsewhere, a
-        // group without an identifier that is not where one was. Allowed: what a right press does.
+        let l = Self.g(Self.list, 600, 30, 360, 190)
+        let a = Self.g("A", 600, 40, in: Self.list), r = Self.g("R", 600, 130, in: Self.list), u = Self.g("", 600, 220)
+        let before = [l, a, r, u]
+        // (what happened, the read after the click, the verdict).
         let cases: [(String, [CenterGroup], CenterPressVerdict)] = [
             ("nothing changed", before, .clear),
-            ("the pressed root closed (body)", [a, u], .clear),
-            ("the pressed root closed and the others moved up", [Self.g("A", 600, 40), Self.g("", 600, 130)], .cannotTell),
-            ("a named group moved, same size", [Self.g("A", 600, 300), r, u], .clear),
-            ("the pressed root grew with a new named part (counted: stricter than needed)", [a, Self.g("R", 600, 130, 360, 200), Self.g("", 610, 200, 100, 30),
-                                                                 Self.g("R.part", 610, 150, 100, 30), u], .arrived),
-            ("the pressed root grew with an unnamed part inside", [a, Self.g("R", 600, 130, 360, 200),
-                                                                    Self.g("", 610, 200, 100, 30), u], .clear),
+            ("the pressed root closed (body)", [l, a, u], .clear),
+            ("the pressed root closed and a group without an identifier moved up", [l, a, Self.g("", 600, 130)], .cannotTell),
+            ("a banner moved, same size", [l, Self.g("A", 600, 300, in: Self.list), r, u], .clear),
+            ("the pressed root grew with a part of its own", [l, a, Self.g("R", 600, 130, 360, 200, in: Self.list),
+                                                              Self.g("", 610, 200, 100, 30, in: "R"), u], .clear),
+            ("a group without an identifier inside the root's frame but not below it",
+             [l, a, Self.g("R", 600, 130, 360, 200, in: Self.list), Self.g("", 610, 200, 100, 30), u], .cannotTell),
+            ("the pressed root grew with a new named part (counted)", [l, a, Self.g("R", 600, 130, 360, 200, in: Self.list),
+                                                                    Self.g("R.part", 610, 150, 100, 30, in: "R"), u], .arrived),
             ("a named group came", before + [Self.g("B", 600, 310)], .arrived),
-            ("the same identifier once more", before + [Self.g("A", 600, 310)], .arrived),
-            ("a group of another notification grew (one merged into it)", [Self.g("A", 600, 40, 360, 160), r, u], .cannotTell),
-            ("the list holding the banners grew (15.8.3: by 6 points)", [Self.g("L", 594, 30, 372, 190), a, r, u], .clear),
-            ("a notification in the list grew", [Self.g("L", 594, 30, 372, 190), Self.g("A", 600, 40, 360, 85), r, u],
-             .cannotTell),
-            ("the list went and its last banner took the list's frame (15.8.3)", [Self.g("A", 600, 30, 360, 190), u], .clear),
-            ("the last banner grew to a frame no group had", [Self.g("A", 600, 30, 360, 191), u], .cannotTell),
-            ("a banner grew to the frame of a group that stays", [Self.g("L", 600, 30, 360, 190), Self.g("A", 600, 30, 360, 190), u],
-             .cannotTell),
+            ("the same identifier once more", before + [Self.g("A", 600, 310, in: Self.list)], .arrived),
             ("two groups merged into a new one", [Self.g("M", 600, 40, 360, 160), u], .arrived),
+            ("a banner grew (one merged into it)", [l, Self.g("A", 600, 40, 360, 85, in: Self.list), r, u], .cannotTell),
+            ("the list grew", [Self.g(Self.list, 594, 30, 372, 190), a, r, u], .clear),
             ("a group without an identifier came", before + [Self.g("", 600, 310)], .cannotTell),
-            ("a group without an identifier moved", [a, r, Self.g("", 600, 400)], .cannotTell),
-            ("a group without an identifier went", [a, r], .clear)
+            ("a group without an identifier moved", [l, a, r, Self.g("", 600, 400)], .cannotTell),
+            ("a group without an identifier went", [l, a, r], .clear)
         ]
         for (name, afterClick, expected) in cases {
-            XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: before, afterClick: afterClick, pressedRoot: "R"),
-                           expected, name)
+            XCTAssertEqual(after(before, afterClick), expected, name)
         }
-        // No pressed root (an empty identifier) exempts nothing, not even what lies in a group without one.
-        let screen = Self.g("", 0, 0, 1024, 768)
-        XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: [screen, a], afterClick: [screen, Self.g("A", 600, 40, 360, 120)],
-                                                   pressedRoot: ""), .cannotTell)
-        XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: [a, u], afterClick: [a, u, Self.g("", 610, 230, 10, 10)],
-                                                   pressedRoot: ""), .cannotTell)
-        // Duplicates before: counted, never matched one to one by guess.
-        XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: [a, a, r], afterClick: [a, Self.g("A", 600, 300), r],
-                                                   pressedRoot: "R"), .clear)
-        XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: [a, a, r], afterClick: [a, a, a, r], pressedRoot: "R"), .arrived)
+        // No pressed root (an empty identifier) exempts nothing.
+        XCTAssertEqual(after([u, a], [u, a, Self.g("", 610, 230, 10, 10, in: "")], root: ""), .cannotTell)
+        XCTAssertEqual(after([u, Self.g("A", 600, 40, in: "")], [u, Self.g("A", 600, 40, 360, 120, in: "")], root: ""), .cannotTell)
+        // Duplicates: counted, never matched one to one by guess.
+        XCTAssertEqual(after([a, a, r], [a, Self.g("A", 600, 300, in: Self.list), r]), .clear)
+        XCTAssertEqual(after([a, a, r], [a, a, a, r]), .arrived)
+        checkWhatARightPressDoesOn15()
+        checkNoExceptionFromFramesAlone()
+    }
+
+    /// CenterLayoutRule review v1: a group is not a container because its frame holds another (A-1), and a group
+    /// that grew to a frame that went away is not a collapse unless the list, the root and the parents say so (A-2).
+    private func checkNoExceptionFromFramesAlone() {
+        // A-1: A grew over R; it holds R by frame, not by the snapshot.
+        XCTAssertEqual(after([Self.g("A", 600, 40), Self.g("R", 600, 130)],
+                             [Self.g("A", 600, 40, 360, 180), Self.g("R", 600, 130)]), .cannotTell)
+        // A-1: the list's identifier on a group that held no banner before the click.
+        XCTAssertEqual(after([Self.g(Self.list, 600, 30, 360, 190), Self.g("A", 600, 40), Self.g("R", 600, 130)],
+                             [Self.g(Self.list, 594, 30, 372, 190), Self.g("A", 600, 40), Self.g("R", 600, 130)]), .cannotTell)
+        // A-1: a group that held banners but is not a checked list.
+        XCTAssertEqual(after([Self.g("X", 600, 30, 360, 190), Self.g("A", 600, 40, in: "X"), Self.g("R", 600, 130, in: "X")],
+                             [Self.g("X", 594, 30, 372, 190), Self.g("A", 600, 40, in: "X"), Self.g("R", 600, 130, in: "X")]),
+                       .cannotTell)
+        // A-2 (the review's example): X went, A took X's frame, and the pressed root stays.
+        XCTAssertEqual(after([Self.g("A", 600, 40), Self.g("R", 600, 250), Self.g("X", 600, 30, 360, 160)],
+                             [Self.g("A", 600, 30, 360, 160), Self.g("R", 600, 250)]), .cannotTell)
+        // A-2: each condition of the collapse missing in turn, from the N23 reads.
+        let l = Self.g(Self.list, 658, 40, 350, 136), t = Self.g("T", 664, 40, 344, 57, in: Self.list)
+        let r = Self.g("R", 664, 103, 344, 73, in: Self.list), s = Self.g("S", 664, 180, 344, 57, in: Self.list)
+        let onto = Self.g("T", 658, 40, 350, 136)
+        XCTAssertEqual(after([l, t, r], [onto, Self.g("R", 664, 103, 344, 73)]), .cannotTell)            // the root stays
+        XCTAssertEqual(after([l, t, r], [l, Self.g("T", 658, 40, 350, 136, in: Self.list)]), .cannotTell) // the list stays
+        XCTAssertEqual(after([l, t, r, s], [onto, Self.g("S", 664, 180, 344, 57)]), .cannotTell)       // two were left
+        XCTAssertEqual(after([l, Self.g("T", 664, 40, 344, 57), r], [onto]), .cannotTell)                // T was not in the list
+        XCTAssertEqual(after([l, t, Self.g("R", 664, 103, 344, 73)], [onto]), .cannotTell)               // R was not in the list
+        XCTAssertEqual(after([l, t, r], [Self.g("T", 658, 40, 350, 137)]), .cannotTell)                  // not the list's frame
+        XCTAssertEqual(after([l, t, r], [onto], root: "Q"), .cannotTell)                                 // another root pressed
+        XCTAssertEqual(after([Self.g("X", 658, 40, 350, 136), Self.g("T", 664, 40, 344, 57, in: "X"),     // not a checked list
+                              Self.g("R", 664, 103, 344, 73, in: "X")], [onto]), .cannotTell)
     }
 
     func testCenterLayoutDoesNotSeeWhatItsReadsCannotShow() {
-        // The limit, written down (design 9.1; presscenter review v1 A-1): these pass although a notification
-        // may have taken the click.
+        // The limit, written down (design 9.1; presscenter review v1 A-1; CenterLayoutRule review v1 B-1): these pass
+        // although a notification may have taken the click.
         let a = Self.g("A", 600, 40), r = Self.g("R", 600, 130)
         // A notification that took the click and went away before the read after it.
-        XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: [a, r], afterClick: [r], pressedRoot: "R"), .clear)
+        XCTAssertEqual(after([a, r], [r]), .clear)
         // A new notification with the identifier, frame and size of one that went away.
-        XCTAssertEqual(CenterLayoutRule.afterClick(beforeClick: [a, r], afterClick: [a, r], pressedRoot: "R"), .clear)
+        XCTAssertEqual(after([a, r], [a, r]), .clear)
+        // A notification that merged into the last banner exactly as the list collapsed onto it: the same reads as
+        // the collapse (N23), so it cannot be told from it.
+        let l = Self.g(Self.list, 658, 40, 350, 136), t = Self.g("T", 664, 40, 344, 57, in: Self.list)
+        XCTAssertEqual(after([l, t, Self.g("R", 664, 103, 344, 73, in: Self.list)], [Self.g("T", 658, 40, 350, 136)]), .clear)
     }
 }
