@@ -319,15 +319,15 @@ class Selection(unittest.TestCase):
     def test_a_plan_with_notification_tests_needs_the_watch(self):
         without_watch = [i for i in enumeration() if i != ident(r.WATCH_TEST)]
         with self.assertRaises(r.RunnerError):
-            r.make_plan("mac", without_watch, declarations(), r.MAC_CATEGORIES, None, "26", "h", "t", [], False, None)
+            r.make_plan("mac", without_watch, declarations(), r.MAC_CATEGORIES, None, "26", "h", "t", [], False, None, ui_on_this_mac=True)
         # Without notification allowed, N1 and N17 (declaring nothing) run without the watch.
-        plan = r.make_plan("mac", without_watch, declarations(), (), None, "26", "h", "t", [], False, None)
+        plan = r.make_plan("mac", without_watch, declarations(), (), None, "26", "h", "t", [], False, None, ui_on_this_mac=True)
         self.assertIn(ident("NotificationUITests/testN1_permissionIsAuthorized"), plan["selected"])
 
     def test_make_plan_refuses_an_empty_selection_on_this_mac(self):
         table = {k: (["notification"] if not v else v) for k, v in declarations().items()}
         with self.assertRaises(r.RunnerError):
-            r.make_plan("mac", enumeration(), table, (), None, "26", "h", "t", [], False, None)
+            r.make_plan("mac", enumeration(), table, (), None, "26", "h", "t", [], False, None, ui_on_this_mac=True)
 
     def test_vm_invocations_follow_6_3(self):
         selected, _ = r.select_tests(enumeration(), declarations(), "vm", "15", [])
@@ -370,8 +370,10 @@ class Selection(unittest.TestCase):
                                           "vm-ja": frozenset()}
             selected, excluded = self.mac()
             self.assertNotIn(ident("DialogUITests/testD1_showDialogOK"), selected)
-            selected, _ = self.mac(qualification="mac26")
+            selected, _ = r.select_tests(enumeration(), declarations(), "vm26", "26", [], qualification="mac26")
             self.assertEqual(selected, [ident("DialogUITests/testD1_showDialogOK")])
+            with self.assertRaises(r.RunnerError):        # mac26 runs in the 26 VM (D-21 revised 2026-11-28)
+                self.mac(qualification="mac26")
         finally:
             r.QUALIFICATION_ONLY_TESTS = old
 
@@ -389,10 +391,156 @@ def mac_plan(allowed=r.MAC_CATEGORIES, audit=None, ready=True):
         return r.make_plan("mac", enumeration(), declarations(), allowed, None, "26", "a" * 40, "b" * 64, [], True,
                            audit or {"suites": ["DetectionUseCaseTests"], "expired": False, "hash": "c" * 64},
                            runner_files={"scripts/mac_ui_runner.py": "d" * 64}, declarations_hash="e" * 64,
-                           unit_keys=unit_keys(), environment={"osBuild": "25G342", "xcode": "26.6"})
+                           unit_keys=unit_keys(), environment={"osBuild": "25G342", "xcode": "26.6"}, ui_on_this_mac=True)
     finally:
         r.MAC_RUN_PREREQUISITES.clear()
         r.MAC_RUN_PREREQUISITES.update(old)
+
+
+def unit_only_mac_plan(**extra):
+    """A plan of this Mac as the runner's commands make it (no ui_on_this_mac)."""
+    args = dict(feature=None, qualification=None, unit=True,
+                audit={"suites": ["DetectionUseCaseTests"], "expired": False, "hash": "c" * 64})
+    args.update(extra)
+    return r.make_plan("mac", enumeration(), declarations(), args.get("allowed", ()), args["feature"], "26", "a" * 40,
+                       "b" * 64, [], args["unit"], args["audit"], qualification=args["qualification"],
+                       unit_keys=unit_keys())
+
+
+class NoUIOnThisMac(unittest.TestCase):
+    """D-21 revised 2026-11-28: no UI test runs on this Mac; where each way to one stops."""
+
+    def test_a_plan_of_this_mac_selects_no_ui_test(self):
+        plan = unit_only_mac_plan()
+        self.assertEqual(plan["selected"], [])
+        self.assertEqual(plan["invocations"], [])
+        self.assertEqual(len(plan["excluded"]), len(enumeration()))
+        self.assertEqual({e["reason"] for e in plan["excluded"]}, {"noUIOnThisMac"})
+        self.assertIn("noUIOnThisMac", r.EXCLUSION_REASONS)
+        self.assertTrue(plan["unitInvocations"])          # the audited unit suites stay as they were (U-29)
+
+    def test_allow_feature_and_qualification_stop_the_plan(self):
+        for extra in ({"allowed": ("panels",)}, {"allowed": r.MAC_CATEGORIES}, {"feature": "Dialog"},
+                      {"qualification": "mac26"}, {"qualification": "mac26-reply"}):
+            with self.assertRaises(r.RunnerError, msg=extra) as raised:
+                unit_only_mac_plan(**extra)
+            self.assertIn("do not run on this Mac", str(raised.exception))
+
+    def test_a_plan_with_nothing_to_run_stops(self):
+        for extra in ({"unit": False}, {"audit": {"suites": [], "expired": True, "hash": None}}):
+            with self.assertRaises(r.RunnerError, msg=extra):
+                unit_only_mac_plan(**extra)
+
+    def test_no_baseline_and_no_approval_of_ui_tests_here(self):
+        plan = unit_only_mac_plan()
+        self.assertIsNotNone(r.baseline_refusal({"os": "26.7.3"}, plan, False, False, [], []))
+        self.assertEqual(r.make_approval(plan)["tests"], [])
+        # The approval path itself stays, and stays closed while a precondition is unchecked.
+        self.assertTrue(any("not checked yet" in p for p in r.approval_problems(r.make_approval(plan), plan)))
+
+    def test_no_command_of_the_runner_keeps_ui_on_this_mac(self):
+        text = (ROOT / "scripts" / "mac_ui_runner.py").read_text()
+        uses = [l for l in text.splitlines() if "ui_on_this_mac" in l and not l.lstrip().startswith("#")]
+        self.assertTrue(uses)
+        self.assertFalse([l for l in uses if "ui_on_this_mac=True" in l or "ui_on_this_mac = True" in l])
+        self.assertNotIn("ui_on_this_mac", function_body_py(text, "cmd_preflight"))
+        self.assertIn("ui_on_this_mac=False", function_signature_py(text, "make_plan"))
+
+    def test_the_shell_refuses_every_way_to_a_ui_test_here(self):
+        text = SCRIPT.read_text()
+        main = function_body(text, "main")
+        self.assertIn('[[ -z "${ALLOW}" && -z "${FEATURE}" && -z "${QUALIFICATION}" && "${BASELINE}" == 0 ]] || \\\n'
+                      '      fail "UI tests do not run on this Mac', main)
+        self.assertIn('fail "--skip-unit leaves nothing to run on this Mac', main)
+        preflight = [l for l in function_body(text, "run_mac").splitlines() if "preflight --where" in l]
+        self.assertEqual(len(preflight), 1)
+        self.assertIn("--where mac", preflight[0])
+
+
+def function_body_py(text, name):
+    start = text.index(f"\ndef {name}(")
+    end = text.find("\ndef ", start + 1)
+    return text[start:end]
+
+
+def function_signature_py(text, name):
+    body = function_body_py(text, name)
+    return body[:body.index('"""')]
+
+
+class TwoVMs(unittest.TestCase):
+    """D-21 revised 2026-11-28: the macOS 15 VM (--where vm) and the macOS 26 VM (--where vm26)."""
+
+    def test_the_26_vm_runs_the_26_tests_and_keeps_the_deferred_ones(self):
+        selected, excluded = r.select_tests(enumeration(), declarations(), "vm26", "26", [])
+        keys = set(keys_of(selected))
+        reasons = {r.key_from_enumeration_id(i): reason for i, _, reason in excluded}
+        self.assertIn("NavigationUITests/testM1b_backReturnsToTheMenu", keys)
+        self.assertIn("NotificationPermissionUITests/testNP1_requestPermissionAllow", keys)   # VM only: runs here
+        for key, (reason, _) in r.MAC_DEFERRED_TESTS.items():
+            self.assertEqual(reasons.get(key), reason, key)
+        self.assertFalse(keys & set(r.MAC_DEFERRED_TESTS))
+        with self.assertRaises(r.RunnerError):
+            r.select_tests(enumeration(), declarations(), "vm26", "26", ["panels"])
+        selected, _ = r.select_tests(enumeration(), declarations(), "vm26", "26", [],
+                                     verified_targets=set(r.PRESS_TARGETS))
+        self.assertTrue(set(keys_of(selected)) >= set(r.MAC_DEFERRED_TESTS))
+
+    def test_the_15_vm_never_runs_a_test_of_26(self):
+        selected, _ = r.select_tests(enumeration(), declarations(), "vm", "15", [])
+        self.assertFalse(set(keys_of(selected)) & {k for k, v in r.OS_ONLY_TESTS.items() if v == "26"})
+
+    def test_qualification_stages_run_in_their_vm(self):
+        for stage, where in r.QUALIFICATION_WHERE.items():
+            self.assertIn(where, ("vm", "vm26"))
+            for other in ("vm", "vm26", "mac"):
+                if other != where:
+                    with self.assertRaises(r.RunnerError, msg=(stage, other)):
+                        r.select_tests(enumeration(), declarations(), other, "26", [], qualification=stage)
+        self.assertEqual(r.QUALIFICATION_WHERE["mac26"], "vm26")
+        self.assertEqual(r.QUALIFICATION_WHERE["mac26-reply"], "vm26")
+
+    def test_a_vm_qualifies_only_by_its_own_profile(self):
+        facts = good_facts()
+        self.assertEqual([n for n, ok in r.vm_qualification(facts, "vm") if not ok], [])
+        failing = [n for n, ok in r.vm_qualification(facts, "vm26") if not ok]
+        self.assertTrue({"osVersion", "xcode", "pinnedUUID"} <= set(failing))
+        other = dict(facts, platformUUID="B8805D5E-AF5A-4C28-B721-5D49A04BCCE4")
+        self.assertEqual([n for n, ok in r.vm_qualification(other, "vm") if not ok], ["pinnedUUID"])
+        old = dict(r.VM_PROFILES["vm26"])
+        try:   # once set up, the 26 VM passes by its own values and the 15 VM's facts fail there
+            r.VM_PROFILES["vm26"].update(uuid="0F0E0D0C-0B0A-4908-8706-050403020100", os=("26.7.3", "25H1"),
+                                         xcode=("26.6", "17F113"))
+            vm26 = dict(facts, platformUUID="0F0E0D0C-0B0A-4908-8706-050403020100", osVersion="26.7.3",
+                        osBuild="25H1", xcodeVersion="26.6", xcodeBuild="17F113")
+            self.assertEqual([n for n, ok in r.vm_qualification(vm26, "vm26") if not ok], [])
+            self.assertEqual(sorted(n for n, ok in r.vm_qualification(vm26, "vm") if not ok),
+                             ["osVersion", "pinnedUUID", "xcode"])
+            self.assertEqual(sorted(n for n, ok in r.vm_qualification(facts, "vm26") if not ok),
+                             ["osVersion", "pinnedUUID", "xcode"])
+        finally:
+            r.VM_PROFILES["vm26"].clear()
+            r.VM_PROFILES["vm26"].update(old)
+        self.assertEqual(r.VM_PROFILES["vm"]["name"], "ntk-macos-15-new")
+        self.assertEqual(r.VM_PROFILES["vm26"]["name"], "ntk-macos-26")
+
+    def test_baselines_are_per_vm(self):
+        self.assertEqual(r.baseline_name("vm26", "26.7.3"), "test_mac.baseline.vm26-26.7.3.json")
+        plan = r.make_plan("vm26", enumeration(), declarations(), (), None, "26", "a", "b", [], True, None)
+        every = keys_of(plan["selected"])
+        refusal = r.baseline_refusal({"os": "26.7.3", "osBuild": "25H1", "language": "en-US"}, plan, False, False,
+                                     every, [])
+        self.assertIn("--where vm26", refusal)    # not set up yet: no baseline of the 26 VM
+        vm15 = {"os": "15.8.3", "osBuild": "24H241", "language": "en-US"}
+        self.assertIsNotNone(r.baseline_refusal(vm15, plan, False, False, every, []))
+
+    def test_the_shell_takes_the_vm_by_where(self):
+        text = SCRIPT.read_text()
+        main = function_body(text, "main")
+        self.assertIn('VM_WHERE=vm; [[ "${WHERE}" == vm26 ]] && VM_WHERE=vm26', main)
+        self.assertIn('VM_NAME="ntk-macos-15-new"; [[ "${VM_WHERE}" == vm26 ]] && VM_NAME="ntk-macos-26"', main)
+        self.assertIn('--where "${VM_WHERE}"', function_body(text, "vm_qualify"))
+        self.assertIn('runner preflight --where "${WHERE}"', function_body(text, "run_vm"))
 
 
 class Approval(unittest.TestCase):
@@ -454,7 +602,7 @@ class Approval(unittest.TestCase):
 
     def test_a_changed_trusted_part_is_refused(self):
         plan = r.make_plan("mac", enumeration(), declarations(), r.MAC_CATEGORIES, None, "26", "a", "b",
-                           [("Support/SampleApp.swift", "x", "y")], False, None)
+                           [("Support/SampleApp.swift", "x", "y")], False, None, ui_on_this_mac=True)
         self.assertTrue(any("trusted part" in p for p in r.approval_problems(r.make_approval(plan), plan)))
 
     def test_the_vm_has_no_approval(self):
@@ -491,7 +639,7 @@ class Ledger(unittest.TestCase):
 def good_facts():
     return {"hvVmmPresent": "1", "hwModel": "VirtualMac2,1", "osVersion": "15.8.3", "osBuild": "24H241",
             "mobileMeAccounts": "absent", "virtiofsMounts": "0", "xcodeVersion": "26.3", "xcodeBuild": "17C529",
-            "language": "en-US", "platformUUID": "B8805D5E-AF5A-4C28-B721-5D49A04BCCE4", "arch": "arm64",
+            "language": "en-US", "platformUUID": "50DCC3EF-6AD8-5EAA-AC56-451AD340113C", "arch": "arm64",
             "vmBoottime": "1795358134", "macAddress": "86:44:0f:12:49:26", "tartMacAddress": "86:44:0f:12:49:26",
             "accounts": [{"type": "com.apple.account.iTunesStore", "authenticated": "0"},
                          {"type": "com.apple.account.HolidayCalendar", "authenticated": "1"},
@@ -1800,6 +1948,35 @@ class Gate(unittest.TestCase):
         self.assertFalse(r.runner_copy_matches({}, {}))
 
 
+class NotificationCenterPress(unittest.TestCase):
+    """Every click into Notification Center reads the groups it shows at the check, right before the click
+    and right after it (2026-11-28: a banner of another app came 0.2 s before the click and took it)."""
+
+    def setUp(self):
+        self.text = (TESTS_DIR / "Support" / "NotificationCenterUI.swift").read_text()
+
+    def test_every_click_goes_through_the_guarded_press(self):
+        self.assertEqual(self.text.count(".click()"), 1)
+        helper = self.text[self.text.index("private func pressInCenter("):self.text.index("private func checkBeforePress(")]
+        self.assertIn("element.click()", helper)
+        self.assertEqual(self.text.count("try pressInCenter("), 5)
+
+    def test_the_press_compares_the_layout_before_and_after(self):
+        helper = self.text[self.text.index("private func pressInCenter("):self.text.index("private func checkBeforePress(")]
+        order = [helper.index(x) for x in ("let atCheck = try NotificationCenterRead.groupLayout()",
+                                           "try checkBeforePress(element",
+                                           "let beforePress = try NotificationCenterRead.groupLayout()",
+                                           "guard beforePress == atCheck else {",
+                                           "element.click()",
+                                           "let afterPress = try NotificationCenterRead.groupLayout()",
+                                           "guard arrived.isEmpty else {")]
+        self.assertEqual(order, sorted(order))
+        layout = self.text[self.text.index("static func groupLayout()"):self.text.index("static func groupIdentifiers(")]
+        self.assertIn('out.append("\\(node.identifier)@\\(Int(f.minX)),\\(Int(f.minY)),\\(Int(f.width))x\\(Int(f.height))")',
+                      layout)                       # identifiers and frames, never labels
+        self.assertNotIn(".label", layout)
+
+
 class Commands(unittest.TestCase):
     def test_the_approval_file_is_read_without_showing_its_place(self):
         with tempfile.TemporaryDirectory(prefix="Example Person (private) ") as folder:
@@ -2400,8 +2577,14 @@ class ShellOrder(unittest.TestCase):
 
             finished = run()
             self.assertNotEqual(finished.returncode, 0)
-            self.assertIn("--where vm|mac is required", finished.stderr)
+            self.assertIn("--where vm|vm26|mac is required", finished.stderr)
             self.assertIn("--approved", run("--where", "mac").stderr)
+            for args in (("--allow", "panels"), ("--feature", "Dialog"), ("--qualification", "mac26"), ("--baseline",)):
+                self.assertIn("UI tests do not run on this Mac", run("--where", "mac", "--dry-run", *args).stderr, args)
+            self.assertIn("leaves nothing to run", run("--where", "mac", "--dry-run", "--skip-unit").stderr)
+            self.assertIn("runs with --where vm26", run("--where", "vm", "--qualification", "mac26").stderr)
+            self.assertIn("runs with --where vm", run("--where", "vm26", "--qualification", "vm-ja").stderr)
+            self.assertIn("for --where mac", run("--where", "vm26", "--dry-run").stderr)
             self.assertIn("for --where mac", run("--where", "vm", "--allow", "panels").stderr)
             self.assertIn("separate runs", run("--where", "mac", "--dry-run", "--approved", "x").stderr)
             self.assertIn("not implemented", run("--where", "mac", "--dry-run", "--allow-lsregister").stderr)

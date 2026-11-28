@@ -1,30 +1,32 @@
 #!/usr/bin/env bash
-# Runs the macOS unit tests and the sample's UI tests in the qualified tart VM, or, after the user
-# approved the list, on this Mac.
+# Runs the macOS unit tests and the sample's UI tests in a qualified tart VM (macOS 15 or macOS 26). On this
+# Mac no UI test ever runs (D-21 revised 2026-11-28); `--where mac` runs only the audited unit suites, after
+# the user approved the list.
 #
 # Follows section 6.3 of artifact/topics/macos-c-abi/designs/2026-11-23-macos-c-abi-ui-test-design.md.
 # What runs and every check of what ran is decided in scripts/mac_ui_runner.py; this script runs
 # xcodebuild, tart, ssh and tar. Bash 3.2 (the one macOS ships, here and in the VM).
 #
-# Usage: scripts/test_mac.sh --where vm [--vm <name>] [--feature Dialog|Notification|Share|Clipboard]
-#          [--skip-unit] [--baseline] [--name-each-test] [--keep-vm-run]
-#        scripts/test_mac.sh --where mac [--allow <c,...>] [--allow-lsregister] [--feature ...] [--skip-unit]
-#          (--dry-run | --approved <file>) [--baseline] [--vm <name>]
-#   --where             vm or mac; required. The VM must pass the qualification (6.3 step 0) every time;
-#                       when it does not, the runner stops and never falls back to this Mac
-#   --vm                the tart VM (default ntk-macos-15-new); this Mac's runs enumerate there too
+# Usage: scripts/test_mac.sh --where vm|vm26 [--vm <name>] [--feature Dialog|Notification|Share|Clipboard]
+#          [--skip-unit] [--baseline] [--name-each-test] [--keep-vm-run] [--qualification <stage>]
+#        scripts/test_mac.sh --where mac (--dry-run | --approved <file>) [--vm <name>]
+#   --where             vm (the macOS 15 VM), vm26 (the macOS 26 VM) or mac; required. The VM must pass the
+#                       qualification of its own profile (6.3 step 0) every time; when it does not, the
+#                       runner stops and never falls back to another VM or to this Mac. mac: no UI test, no
+#                       --allow, --feature or --qualification (D-21 revised 2026-11-28)
+#   --vm                the tart VM (default ntk-macos-15-new for vm and mac, ntk-macos-26 for vm26); this
+#                       Mac's runs enumerate in the macOS 15 VM
 #   --feature           only that feature's UI classes and the common ones; no unit tests
 #   --skip-unit         no unit tests
-#   --allow             mac only: the categories allowed on this Mac (none by default):
-#                       notification,settings,badge,clipboard,sharepicker,panels,coldstart
-#   --allow-lsregister  mac only: NOT IMPLEMENTED; the run stops. Remove the extra registered copies
-#                       yourself, then plan and ask again (U-21)
+#   --allow             refused: no UI test runs on this Mac (D-21 revised 2026-11-28)
+#   --allow-lsregister  mac only: NOT IMPLEMENTED; the run stops (U-21)
 #   --dry-run           mac only: enumerates in the VM, starts nothing on this Mac (no build), prints
 #                       the list, what happens, what to prepare and the time, and writes the approval list
 #   --approved          mac only: the approval list the user approved; an approval runs once
 #   --baseline          saves the results as the baseline of that environment (6.3 "基準の条件")
 #   --name-each-test    vm only: one xcodebuild per test (this Mac always does)
-#   --qualification     mac26|mac26-reply|vm-ja: only the U-30 probes of that stage (none are written yet)
+#   --qualification     mac26|mac26-reply (vm26) or vm-ja (vm): only the U-30 probes of that stage (none are
+#                       written yet)
 #   --keep-vm-run       vm only: leave the VM's run folder (sources, DerivedData, result bundles) for a look
 set -euo pipefail
 
@@ -549,7 +551,8 @@ except (OSError, ValueError):
 json.dump(facts, open(sys.argv[1], "w"))
 PY
   ps -axo args= | runner vm-qualify --facts "${PRIVATE}/vm-facts.json" --ps - --vm "${VM_NAME}" \
-    --out "${OUT}/vm-qualification.json" --uuid-out "${PRIVATE}/vm-id" --qualification "${QUALIFICATION}"
+    --out "${OUT}/vm-qualification.json" --uuid-out "${PRIVATE}/vm-id" --qualification "${QUALIFICATION}" \
+    --where "${VM_WHERE}"
   IFS=$'\t' read -r VM_UUID VM_BOOT < "${PRIVATE}/vm-id"
   VM_OS="$(python3 -c 'import json,sys; f=json.load(open(sys.argv[1])); print(f["osVersion"], f["osBuild"], f["arch"], f["language"], f["xcodeVersion"], sep="\t")' "${PRIVATE}/vm-facts.json")"
   rm -f "${facts}" "${PRIVATE}/vm-facts.json" "${PRIVATE}/vm-id"
@@ -588,7 +591,7 @@ vm_enumeration() {  # <HEAD> <mac tree>: 6.3 steps 0-3 in the VM: qualification,
   runner runner-hashes-match --vm "$(vm_op runner-hashes "${RUN_ID}")" --snapshot "${PRIVATE}/runner-files.json" \
     || fail "the VM's copy of the runner is not the snapshot handed over; run again"
   vm_op clean "${RUN_ID}" | grep '^NTK-VM' | sed 's/^/  /'
-  echo "[vm] building (Xcode 26.3, ad-hoc)"
+  echo "[vm] building (${VM_WHERE}: Xcode $(printf '%s' "${VM_OS}" | cut -f5), ad-hoc)"
   vm_op build "${RUN_ID}" | sed 's/^/  /'
   vm_op enumerate "${RUN_ID}" > "${OUT}/enumeration.json"
   vm_op enumerate-lib "${RUN_ID}" > "${OUT}/unit-enumeration.json"
@@ -612,7 +615,7 @@ run_vm() {
   fi
   vm_enumeration "${head}" "${mac_tree}"
   IFS=$'\t' read -r VM_OS_VERSION VM_OS_BUILD VM_ARCH VM_LANGUAGE VM_XCODE <<< "${VM_OS}"
-  runner preflight --where vm --enumeration "${OUT}/enumeration.json" --unit-enumeration "${OUT}/unit-enumeration.json" \
+  runner preflight --where "${WHERE}" --enumeration "${OUT}/enumeration.json" --unit-enumeration "${OUT}/unit-enumeration.json" \
     --tests-dir "${TESTS_DIR}" --repo "${ROOT_DIR}" --feature "${FEATURE}" --qualification "${QUALIFICATION}" \
     --os-major "${VM_OS_VERSION%%.*}" --os-version "${VM_OS_VERSION}" --os-build "${VM_OS_BUILD}" --xcode "${VM_XCODE}" \
     --head "${head}" --mac-tree "${mac_tree}" --unit "${UNIT}" --plan "${plan}" --baseline-dir "${BASELINE_DIR}" \
@@ -669,11 +672,11 @@ run_vm() {
   grep '^NTK-VM' "${PRIVATE}/finish.out" | sed 's/^/  /' || true
   json_lines "${PRIVATE}/finish.out" | runner accept --results "${RESULTS}"
   python3 - "${OUT}/environment.json" "${OUT}/vm-qualification.json" "${VM_OS_VERSION}" "${VM_OS_BUILD}" "${VM_ARCH}" \
-    "${VM_LANGUAGE}" "${VM_XCODE}" "${restarts}" <<'PY'
+    "${VM_LANGUAGE}" "${VM_XCODE}" "${restarts}" "${WHERE}" <<'PY'
 import json, sys
 q = json.load(open(sys.argv[2]))
 q["notificationUIRestarts"] = int(sys.argv[8])
-env = {"where": "vm", "os": sys.argv[3], "osBuild": sys.argv[4], "arch": sys.argv[5], "language": sys.argv[6],
+env = {"where": sys.argv[9], "os": sys.argv[3], "osBuild": sys.argv[4], "arch": sys.argv[5], "language": sys.argv[6],
        "xcode": sys.argv[7], "signing": "adhoc", "vm": q}
 json.dump(env, open(sys.argv[1], "w"), indent=2)
 PY
@@ -681,7 +684,7 @@ PY
   local code=0
   runner summary --plan "${plan}" --environment "${OUT}/environment.json" --results "${RESULTS}" \
     --baseline-dir "${BASELINE_DIR}" --repo "${ROOT_DIR}" $([[ "${BASELINE}" == 1 ]] && echo --save-baseline) || code=$?
-  echo "[out] the public results: mac/MacLibraryExample/build/test_mac/${RUN_ID}-vm/"
+  echo "[out] the public results: mac/MacLibraryExample/build/test_mac/${RUN_ID}-${WHERE}/"
   return "${code}"
 }
 
@@ -973,7 +976,7 @@ main() {
   runner() { python3 "${ROOT_DIR}/scripts/mac_ui_runner.py" "$@"; }
   fail() { echo "Error: $*" >&2; exit 1; }
 
-  WHERE=""; VM_NAME="ntk-macos-15-new"; FEATURE=""; SKIP_UNIT=0; ALLOW=""; ALLOW_LSREGISTER=0; DRY_RUN=0; APPROVED=""
+  WHERE=""; VM_NAME=""; FEATURE=""; SKIP_UNIT=0; ALLOW=""; ALLOW_LSREGISTER=0; DRY_RUN=0; APPROVED=""
   BASELINE=0; NAME_EACH_TEST=0; QUALIFICATION=""; KEEP_VM_RUN=0
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -993,17 +996,30 @@ main() {
     esac
   done
 
-  [[ "${WHERE}" == vm || "${WHERE}" == mac ]] || fail "--where vm|mac is required (design 6.3)"
+  [[ "${WHERE}" == vm || "${WHERE}" == vm26 || "${WHERE}" == mac ]] || fail "--where vm|vm26|mac is required (design 6.3)"
+  # The VM of the run: vm26 is the macOS 26 VM; vm and this Mac's enumeration are the macOS 15 VM (D-21 revised
+  # 2026-11-28). The runner qualifies it by that profile (its UUID, OS and Xcode), whatever --vm names.
+  VM_WHERE=vm; [[ "${WHERE}" == vm26 ]] && VM_WHERE=vm26
+  if [[ -z "${VM_NAME}" ]]; then
+    VM_NAME="ntk-macos-15-new"; [[ "${VM_WHERE}" == vm26 ]] && VM_NAME="ntk-macos-26"
+  fi
   [[ "${VM_NAME}" =~ ^[A-Za-z0-9._-]+$ ]] || fail "malformed --vm"
   case "${FEATURE}" in ""|Dialog|Notification|Share|Clipboard) ;; *) fail "--feature must be Dialog, Notification, Share or Clipboard" ;; esac
   case "${QUALIFICATION}" in ""|mac26|mac26-reply|vm-ja) ;; *) fail "--qualification must be mac26, mac26-reply or vm-ja" ;; esac
-  if [[ "${WHERE}" == vm ]]; then
+  if [[ "${WHERE}" != mac ]]; then
     [[ -z "${ALLOW}" && "${ALLOW_LSREGISTER}" == 0 && "${DRY_RUN}" == 0 && -z "${APPROVED}" ]] || \
       fail "--allow, --allow-lsregister, --dry-run and --approved are for --where mac"
-    [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" == vm-ja ]] || fail "--qualification ${QUALIFICATION} runs on this Mac"
+    case "${WHERE}:${QUALIFICATION}" in
+      vm:|vm:vm-ja|vm26:|vm26:mac26|vm26:mac26-reply) ;;
+      vm:*) fail "--qualification ${QUALIFICATION} runs with --where vm26" ;;
+      *) fail "--qualification ${QUALIFICATION} runs with --where vm" ;;
+    esac
   else
-    [[ "${NAME_EACH_TEST}" == 0 && "${KEEP_VM_RUN}" == 0 ]] || fail "--name-each-test and --keep-vm-run are for --where vm"
-    [[ -z "${QUALIFICATION}" || "${QUALIFICATION}" != vm-ja ]] || fail "--qualification vm-ja runs in the VM"
+    # No UI test ever runs on this Mac (D-21 revised 2026-11-28): nothing that would select one is taken.
+    [[ -z "${ALLOW}" && -z "${FEATURE}" && -z "${QUALIFICATION}" && "${BASELINE}" == 0 ]] || \
+      fail "UI tests do not run on this Mac (D-21 revised 2026-11-28): --allow, --feature, --qualification and --baseline are refused; use --where vm or vm26"
+    [[ "${SKIP_UNIT}" == 0 ]] || fail "--skip-unit leaves nothing to run on this Mac (no UI test runs here)"
+    [[ "${NAME_EACH_TEST}" == 0 && "${KEEP_VM_RUN}" == 0 ]] || fail "--name-each-test and --keep-vm-run are for a VM"
     [[ "${ALLOW_LSREGISTER}" == 0 ]] || fail "--allow-lsregister is not implemented: remove the extra registered copies yourself, then plan and ask again"
     if [[ "${DRY_RUN}" == 1 ]]; then
       [[ -z "${APPROVED}" ]] || fail "--dry-run and --approved go to separate runs"
@@ -1037,7 +1053,7 @@ main() {
   RESULTS="${OUT}/results.jsonl"
   : > "${RESULTS}"
   echo "[run] ${RUN_ID} (${WHERE})"
-  if [[ "${WHERE}" == vm ]]; then
+  if [[ "${WHERE}" != mac ]]; then
     run_vm
   else
     run_mac

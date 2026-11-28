@@ -106,7 +106,7 @@ CLASS_ANY_OF = {"ShareUITests": {"sharepicker", "realservice"}}
 
 # Exclusion reasons (3.4 ExclusionReason): the one vocabulary of --dry-run, the results and the baseline.
 EXCLUSION_REASONS = ("category", "vmOnly", "osOnly", "macDeferred", "qualificationOnly", "environmentExclusion",
-                     "auditExpired", "ownerUnverified")
+                     "auditExpired", "ownerUnverified", "noUIOnThisMac")
 
 # Tests that run only in the VM whatever their categories say. None today: every VM-only test is
 # VM only through its categories (ncsettings, pasteprivacy, realservice). Keys must be declared.
@@ -120,8 +120,9 @@ OS_ONLY_TESTS = {
     "ShareUITests/testS2_shareTextCopy": "26",
     "ShareUITests/testS4_shareURLCopy": "26",
 }
-# What each deferred test presses that has not been checked on macOS 26 (5.0, U-5, U-30): on this
-# Mac a test is selected only when every target of it is in MAC_VERIFIED_TARGETS. The reason is
+# What each deferred test presses that has not been checked on macOS 26 (5.0, U-5, U-30): on 26 (the 26 VM
+# since D-21 was revised on 2026-11-28; never this Mac) a test is selected only when every target of it is
+# in MAC_VERIFIED_TARGETS. The reason is
 # macDeferred when the test also waits for the Reply check (U-5), ownerUnverified otherwise.
 MAC_DEFERRED_TESTS = {
     "NotificationEventUITests/testN20_categoryAddsOptions": ("ownerUnverified", ("notificationMenuItem",)),
@@ -134,12 +135,14 @@ MAC_DEFERRED_TESTS = {
     "ShareUITests/testS4_shareURLCopy": ("ownerUnverified", ("pickerCopy",)),
 }
 PRESS_TARGETS = ("notificationMenuItem", "replyInBanner", "pasteButton", "pickerCopy")
-# The press targets checked on macOS 26 (the results of U-30 copied here). Empty until U-30.
+# The press targets checked on macOS 26 (the results of U-30, now run in the 26 VM, copied here). Empty until U-30.
 MAC_VERIFIED_TARGETS = frozenset()
-# Tests of the qualification stages (U-30): never in a normal run or a baseline.
+# Tests of the qualification stages (U-30): never in a normal run or a baseline. mac26 and mac26-reply run in
+# the 26 VM (`--where vm26`), vm-ja in the 15 VM (D-21 revised 2026-11-28).
 QUALIFICATION_ONLY_TESTS = {"mac26": frozenset(), "mac26-reply": frozenset(), "vm-ja": frozenset()}
+QUALIFICATION_WHERE = {"mac26": "vm26", "mac26-reply": "vm26", "vm-ja": "vm"}
 # Exclusions per environment (U-33: if the back button cannot be pressed on 26 either). Empty.
-ENVIRONMENT_EXCLUSIONS = {"vm": {}, "mac": {}}
+ENVIRONMENT_EXCLUSIONS = {"vm": {}, "vm26": {}, "mac": {}}
 
 # The fixed Clipboard classes (U-26): their files are pinned whole and their methods listed (0c 3.1).
 FROZEN_FILES = {
@@ -166,9 +169,10 @@ FROZEN_METHODS = {
 # Pinned in stage 0d (2026-11-23) from commit 623a919b, the end of stage 0c. NotificationCenterUI,
 # NotificationRules and OtherApps pinned again on 2026-11-24 after Codex's FinderFront review v1-v3
 # (reviews/2026-11-23-macos-c-abi-finderfront-review-v1.md; stage 0d working notes 17).
+# NotificationCenterUI pinned again on 2026-11-28 (pressInCenter: detection in the VM; Codex presscenter review v1).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/NotificationCenterUI.swift": "3f7f9d159d1ae6fa1b4e856709b1e30ea627b171f91553f7b9f1aefe7cf7acd0",
+    "Support/NotificationCenterUI.swift": "0c5bfac8995511ca8ea9fe6af5d50d8f295556f961c9bfdc1cc101144c827717",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
     "Support/NotificationRules.swift": "5826469d5a8e7f722a52cbd565b945746b89ea2f710a60cb5a476cbfd06908cd",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
@@ -229,6 +233,21 @@ VM_LANGUAGE = "en-US"
 VM_ALLOWED_ACCOUNT_TYPES = {"com.apple.account.HolidayCalendar": True, "com.apple.account.OnMyDevice": False,
                             "com.apple.account.iTunesStore": False}
 MAC_MAJOR = "26"
+# The VMs (6.3 step 0, U-25). D-21 was revised on 2026-11-28: macOS 26 is tested in a tart VM too and no UI test
+# runs on this Mac (a notification of the user's that comes right before a click can take it: Codex presscenter
+# review v1 A-1). Per VM: the tart name used by default, the IOPlatformUUID it must have, the OS and Xcode it must
+# run, its provenance and its major version. A value of None is not set up yet, and such a VM never qualifies.
+VM_PROFILES = {
+    "vm": {"name": "ntk-macos-15-new", "uuid": "50DCC3EF-6AD8-5EAA-AC56-451AD340113C", "os": VM_OS,
+           "xcode": VM_XCODE, "provenance": VM_PROVENANCE, "major": "15"},
+    "vm26": {"name": "ntk-macos-26", "uuid": None, "os": None, "xcode": None,
+             "provenance": "cirrus-macos-tahoe-vanilla-26.6.2+26.7.3", "major": "26"},
+}
+WHERE_VALUES = ("vm", "vm26", "mac")
+
+
+def is_vm(where):
+    return where in VM_PROFILES
 # The Xcode this Mac builds with (U-23).
 MAC_XCODE = "26.6"
 
@@ -1036,6 +1055,10 @@ def exclusion_reason(key, categories, where, os_major, allowed, verified_targets
         return "osOnly"
     if key in ENVIRONMENT_EXCLUSIONS.get(where, {}):
         return "environmentExclusion"
+    if where == "vm26":
+        deferred = deferred_reason(key, verified_targets)
+        if deferred:
+            return deferred
     if where == "mac":
         if key in VM_ONLY_TESTS or any(c in VM_ONLY_CATEGORIES for c in categories):
             return "vmOnly"
@@ -1060,14 +1083,16 @@ def select_tests(identifiers, declarations, where, os_major, allowed, feature=No
     unknown = allowed - set(CATEGORIES)
     if unknown:
         raise RunnerError(f"unknown categories in --allow: {sorted(unknown)}")
-    if where == "vm" and allowed:
+    if is_vm(where) and allowed:
         raise RunnerError("--allow is for this Mac only (the VM allows every category)")
     if where == "mac" and allowed & set(VM_ONLY_CATEGORIES):
         raise RunnerError(f"VM-only categories cannot be allowed on this Mac: {sorted(allowed & set(VM_ONLY_CATEGORIES))}")
-    if where not in ("vm", "mac"):
-        raise RunnerError(f"--where must be vm or mac, not {where!r}")
+    if where not in WHERE_VALUES:
+        raise RunnerError(f"--where must be vm, vm26 or mac, not {where!r}")
     if qualification is not None and qualification not in QUALIFICATION_ONLY_TESTS:
         raise RunnerError(f"unknown qualification stage {qualification}")
+    if qualification is not None and QUALIFICATION_WHERE[qualification] != where:
+        raise RunnerError(f"the qualification stage {qualification} runs with --where {QUALIFICATION_WHERE[qualification]}")
     selected, excluded = [], []
     for identifier in identifiers:
         key = key_from_enumeration_id(identifier)
@@ -1131,9 +1156,9 @@ def build_invocations(identifiers, selected, where, feature=None, name_each_test
             for n, test in enumerate(tests):
                 key = key_from_enumeration_id(test)
                 stage = "watch" if test == watch else "ui"
-                add(stage, key, cls, [test], prepare=("ncui",) if n == 0 and where == "vm" else ())
+                add(stage, key, cls, [test], prepare=("ncui",) if n == 0 and is_vm(where) else ())
             continue
-        after = ("stopMail",) if cls == MAIL_CLASS and where == "vm" else ()
+        after = ("stopMail",) if cls == MAIL_CLASS and is_vm(where) else ()
         if one_each:
             for n, test in enumerate(tests):
                 add("ui", key_from_enumeration_id(test), cls, [test],
@@ -1292,7 +1317,7 @@ def unit_invocations(where, audit_suites, unit_keys=None):
     U-29). This Mac: the audited suites of MacLibraryTests only, each named. `expected` is the set of
     tests the enumeration gives for those names (Codex A-8); the results must be exactly that set."""
     keys = list(unit_keys or [])
-    if where == "vm":
+    if is_vm(where):
         return [{"target": t, "onlyTesting": [t], "expected": [k for k in keys if k.split("/", 1)[0] == t]}
                 for t in (LIBRARY_UNIT_TARGET, EXAMPLE_UNIT_TARGET)]
     if not audit_suites:
@@ -1305,10 +1330,21 @@ def unit_invocations(where, audit_suites, unit_keys=None):
 def make_plan(where, identifiers, declarations, allowed, feature, os_major, head, mac_tree, trusted_changes,
               unit, audit_state, name_each_test=False, runner_files=None, qualification=None, tables_hash=None,
               declarations_hash=None, lsregister=None, stale=None, unit_keys=None, environment=None,
-              baseline=False, prerequisites=None):
+              baseline=False, prerequisites=None, ui_on_this_mac=False):
+    """The plan of one run. On this Mac no UI test is ever selected (D-21 revised 2026-11-28): every UI test is
+    excluded as noUIOnThisMac and --allow, --feature and --qualification are refused, so the approval, its
+    ledger and the preconditions stay for the audited unit suites only. `ui_on_this_mac` keeps the old selection
+    reachable for the self-tests of that code; the runner's commands never pass it."""
+    if where == "mac" and not ui_on_this_mac and (allowed or feature is not None or qualification is not None):
+        raise RunnerError("UI tests do not run on this Mac (D-21 revised 2026-11-28): --allow, --feature and "
+                          "--qualification are refused; run them in a VM (--where vm or vm26)")
     selected, excluded = select_tests(identifiers, declarations, where, os_major, allowed, feature,
                                       qualification=qualification)
-    if where == "mac":
+    if where == "mac" and not ui_on_this_mac:
+        excluded = sorted([(i, c, "noUIOnThisMac") for i, c, _ in excluded] +
+                          [(i, declarations.get(key_from_enumeration_id(i), []), "noUIOnThisMac") for i in selected])
+        selected = []
+    if where == "mac" and ui_on_this_mac:
         leaked = mac_selection_leaks(selected, allowed)
         if leaked:
             raise RunnerError("; ".join(leaked))
@@ -1329,6 +1365,8 @@ def make_plan(where, identifiers, declarations, allowed, feature, os_major, head
     unit_excluded = []
     if where == "mac" and unit and qualification is None and audit_state and audit_state.get("expired"):
         unit_excluded = [{"target": LIBRARY_UNIT_TARGET, "reason": "auditExpired"}]
+    if where == "mac" and not ui_on_this_mac and not units:
+        raise RunnerError("nothing runs on this Mac: no UI test ever does, and no audited unit suite is selected")
     return {
         "schema": 1, "where": where, "feature": feature, "qualification": qualification, "allow": sorted(allowed),
         "osMajor": os_major, "head": head, "macTree": mac_tree,
@@ -1682,9 +1720,11 @@ def tart_run_problems(ps_lines, vm):
     return problems
 
 
-def vm_qualification(facts):
+def vm_qualification(facts, where="vm"):
     """[(item, passed)] of 6.3 step 0 from the facts the shell read; a fact that is missing or
     cannot be read fails its item. The raw values never leave the run (3.4)."""
+    profile = VM_PROFILES[where]
+
     def get(name):
         return facts.get(name)
 
@@ -1703,17 +1743,19 @@ def vm_qualification(facts):
         ("tartRunArgs", get("tartProblems") == []),
         ("hvVmmPresent", get("hvVmmPresent") == "1"),
         ("hwModelVirtualMac", isinstance(get("hwModel"), str) and get("hwModel").startswith("VirtualMac")),
-        ("osVersion", (get("osVersion"), get("osBuild")) == VM_OS),
+        ("osVersion", profile["os"] is not None and (get("osVersion"), get("osBuild")) == profile["os"]),
         ("noAppleAccount", get("mobileMeAccounts") == "absent"),
         ("accountsOnlySystem", accounts_ok),
         ("noSharedFolder", get("virtiofsMounts") == "0"),
         ("tartIsThePeer", isinstance(get("macAddress"), str) and
          re.fullmatch(r"[0-9a-f]{2}(:[0-9a-f]{2}){5}", get("macAddress").lower()) is not None and
          str(get("tartMacAddress") or "").lower() == get("macAddress").lower()),
-        ("xcode", (get("xcodeVersion"), get("xcodeBuild")) == VM_XCODE),
+        ("xcode", profile["xcode"] is not None and (get("xcodeVersion"), get("xcodeBuild")) == profile["xcode"]),
         ("identity", isinstance(get("platformUUID"), str) and
          re.fullmatch(r"[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}", get("platformUUID")) is not None
          and isinstance(get("vmBoottime"), str) and re.fullmatch(r"[1-9][0-9]{8,11}", get("vmBoottime")) is not None),
+        # The VM of this --where by its IOPlatformUUID (D-21 revised 2026-11-28: two VMs are never mixed up).
+        ("pinnedUUID", profile["uuid"] is not None and get("platformUUID") == profile["uuid"]),
     ]
     return items
 
@@ -2610,8 +2652,8 @@ def classify_reply_state(root_before, windows_before, windows_after, fields_afte
 # --- Baseline (6.3 "基準のファイル") ---------------------------------------------------------------
 
 def baseline_name(where, os_version):
-    if where not in ("vm", "mac") or not re.fullmatch(r"\d+(\.\d+)*", str(os_version)):
-        raise RunnerError("a baseline name needs vm|mac and an OS version")
+    if where not in WHERE_VALUES or not re.fullmatch(r"\d+(\.\d+)*", str(os_version)):
+        raise RunnerError("a baseline name needs vm|vm26|mac and an OS version")
     return f"test_mac.baseline.{where}-{os_version}.json"
 
 
@@ -2740,7 +2782,7 @@ def completeness_problems(plan, records):
             problems.append(f"the records of {u['target']} are not exactly its planned tests")
     names = {r["test"] for r in records}
     required = []
-    if plan["where"] == "vm":
+    if is_vm(plan["where"]):
         required.append(f"{UI_TARGET}#fixture")
         if plan["feature"] is None and plan.get("qualification") is None:
             required.append(f"{UI_TARGET}#buttonCoverage")
@@ -2767,13 +2809,14 @@ def baseline_refusal(env, plan, failed, dirty_mac, executed=None, lost=None):
         return "--baseline needs every eligible test executed exactly once"
     if lost:
         return "tests that passed in the previous baseline did not pass now"
-    if plan["where"] == "vm":
+    if is_vm(plan["where"]):
+        profile = VM_PROFILES[plan["where"]]
         if plan["feature"] is not None or not plan["unitInvocations"]:
             return "--baseline needs a full run in the VM (no --feature, no --skip-unit)"
         if dirty_mac:
             return "--baseline needs mac/ without uncommitted changes"
-        if (env.get("os"), env.get("osBuild")) != VM_OS or env.get("language") != VM_LANGUAGE:
-            return "the VM is not the baseline environment (15.8.3, en-US)"
+        if profile["os"] is None or (env.get("os"), env.get("osBuild")) != profile["os"] or env.get("language") != VM_LANGUAGE:
+            return f"the VM is not the baseline environment of --where {plan['where']} ({profile['os']}, {VM_LANGUAGE})"
         return None
     if sorted(plan["allow"]) != sorted(MAC_CATEGORIES):
         return "--baseline on this Mac needs all seven categories allowed (U-32)"
@@ -2794,7 +2837,7 @@ def make_baseline(env, plan, results, durations, created, runs=None):
         "schema": 1, "createdAt": created,
         "where": plan["where"], "os": env.get("os"), "osBuild": env.get("osBuild"), "arch": env.get("arch"),
         "language": env.get("language"), "xcode": env.get("xcode"), "signing": env.get("signing"),
-        "vm": env.get("vm"), "allowed": list(CATEGORIES) if plan["where"] == "vm" else plan["allow"],
+        "vm": env.get("vm"), "allowed": list(CATEGORIES) if is_vm(plan["where"]) else plan["allow"],
         "source": {"head": plan["head"], "macTree": plan["macTree"], "declarations": plan["declarationsHash"],
                    "tables": plan["tablesHash"], "audit": plan["auditHash"],
                    "runnerFiles": dict(plan.get("runnerFiles") or {})},
@@ -2832,7 +2875,11 @@ HAPPENINGS = {
            "when nothing of its run is shown running, and the approved run stops before it builds otherwise"],
     "notification": ["Notifications of the sample appear and play their sound; the sample's notifications are "
                      "removed and its schedule cancelled",
-                     "Finder comes to the front (your Finder windows and file names may show)"],
+                     "Finder comes to the front (your Finder windows and file names may show)",
+                     "If another app's notification arrives between the runner's last look at Notification Center "
+                     "and its click (a race of unbounded length), the click can reach that notification and open "
+                     "that app, and the runner may not notice. This is why no UI test runs on this Mac (D-21 "
+                     "revised 2026-11-28); the line stays for the record"],
     "settings": ["System Settings opens at the Notifications pane and is closed if it was not open before"],
     "badge": ["The Dock badge of the sample is set to 1 and back to 0"],
     "clipboard": ["The general pasteboard is overwritten with test strings and is not restored (its old "
@@ -2846,8 +2893,9 @@ PREPARATIONS = {
     None: ["Unlock the Mac, keep it awake (no screen lock or screen saver) and connected to power",
            "Close or move private windows to another Space",
            "Grant the accessibility and automation access the UI test runner asks for (U-31)"],
-    "notification": ["Turn on a Focus that allows only MacLibraryExample, and \"Allow notifications when mirroring "
-                     "or sharing the display\" (U-20); turn it back afterwards",
+    "notification": ["Required: turn on a Focus that allows only MacLibraryExample (another app's notification "
+                     "arriving right before a click could take it; 2026-11-28), and \"Allow notifications when "
+                     "mirroring or sharing the display\" (U-20); turn it back afterwards",
                      "The sample's notifications must already be allowed (the run stops otherwise; U-7)"],
     "clipboard": ["Turn off Handoff and Universal Clipboard for the run (otherwise do not allow clipboard)"],
     "coldstart": ["No extra registered copies of the sample (the list below shows them; remove them yourself, "
@@ -2990,12 +3038,12 @@ def cmd_tart_check(args):
 def cmd_vm_qualify(args):
     facts = json.loads(_read(args.facts))
     facts["tartProblems"] = tart_run_problems(_ps_text(args.ps), args.vm)
-    items = vm_qualification(facts)
+    items = vm_qualification(facts, args.where)
     failed = [name for name, ok in items if not ok]
     language = vm_language_problem(facts, args.qualification)
     for name, ok in items:
         print(f"  {'pass' if ok else 'FAIL'} {name}")
-    result = {"provenance": VM_PROVENANCE, "items": {name: ok for name, ok in items}}
+    result = {"provenance": VM_PROFILES[args.where]["provenance"], "items": {name: ok for name, ok in items}}
     _write_json(args.out, result)
     pathlib.Path(args.uuid_out).write_text(f"{facts.get('platformUUID', '')}\t{facts.get('vmBoottime', '')}\n",
                                            encoding="utf-8")
@@ -3004,7 +3052,7 @@ def cmd_vm_qualify(args):
                      "Mac (design 6.3 step 0)")
     if language:
         return _fail(language)
-    print(f"[vm] qualified ({VM_PROVENANCE}; {len(items)} items)")
+    print(f"[vm] qualified ({args.where}: {VM_PROFILES[args.where]['provenance']}; {len(items)} items)")
     return 0
 
 
@@ -3069,8 +3117,8 @@ def cmd_preflight(args):
                      environment={"osVersion": args.os_version, "osBuild": args.os_build, "xcode": args.xcode},
                      baseline=args.baseline, prerequisites=prerequisite_status(args.repo))
     _write_json(args.plan, plan)
-    if args.where == "vm":
-        print(f"[select] vm: {len(plan['selected'])} UI tests to run, {len(plan['excluded'])} excluded, "
+    if is_vm(args.where):
+        print(f"[select] {args.where}: {len(plan['selected'])} UI tests to run, {len(plan['excluded'])} excluded, "
               f"{len(plan['invocations'])} xcodebuild calls")
         for entry in plan["excluded"]:
             print(f"  EXCLUDE {key_from_enumeration_id(entry['id'])} {entry['reason']}")
@@ -4083,6 +4131,7 @@ def main(argv=None):
     p.set_defaults(func=cmd_tart_check)
 
     p = sub.add_parser("vm-qualify")
+    p.add_argument("--where", default="vm", choices=tuple(VM_PROFILES))
     p.add_argument("--facts", required=True)
     p.add_argument("--ps", required=True)
     p.add_argument("--vm", required=True)
@@ -4092,7 +4141,7 @@ def main(argv=None):
     p.set_defaults(func=cmd_vm_qualify)
 
     p = sub.add_parser("preflight")
-    p.add_argument("--where", required=True, choices=("vm", "mac"))
+    p.add_argument("--where", required=True, choices=WHERE_VALUES)
     p.add_argument("--enumeration", required=True)
     p.add_argument("--unit-enumeration", required=True)
     p.add_argument("--tests-dir", required=True)

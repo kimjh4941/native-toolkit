@@ -15,8 +15,8 @@
 ## テストをそろえる（段階 0）
 
 - [ ] 段階 0a のスパイクで、XCUITest と人の確認の分担を確定する（`common.md` の例外にした項目は理由を記録している）。D-21 の VM が使えるかも確かめた
-- [ ] Clipboard / Dialog / Notification / Share のすべてにサンプルの UI テストがあり、通知のクリックからのコールドスタートを含む（段階 0c。UI テストの設計書の 95 件。コールドスタートは NC1〜NC3。この Mac で保留したテスト（`MAC_DEFERRED_TESTS`）は、U-30 の適格性の段の結果で解くか、理由つきで基準の `excluded` に記録している）
-- [ ] `scripts/test_mac.sh` があり、私物に触れるテストを区分で選び（宣言の正しさを照らし）、毎回の許可を求める。今のコードの結果を D-21 の環境で基準として記録している（段階 0d）
+- [ ] Clipboard / Dialog / Notification / Share のすべてにサンプルの UI テストがあり、通知のクリックからのコールドスタートを含む（段階 0c。UI テストの設計書の 95 件。コールドスタートは NC1〜NC3。26 で保留したテスト（`MAC_DEFERRED_TESTS`）は、26 の VM の U-30 の適格性の段の結果で解くか、理由つきで 26 の VM の基準の `excluded` に記録している。2026-11-28 の D-21 の見直しで、この Mac の保留から 26 の VM の保留に移した）
+- [ ] `scripts/test_mac.sh` があり、私物に触れるテストを区分で選び（宣言の正しさを照らし）、この Mac では UI テストを選ばない（選ぶ指定を拒む。単体テストは毎回の許可を求める）。今のコードの結果を D-21 の環境（2026-11-28 の見直しの後: 15 の VM と 26 の VM）で、VM ごとの基準として記録している（段階 0d。15 の VM の基準と 26 の VM の基準）
 - [ ] `UnityMacPluginTests` の 75 件を 0e の前に一度流し、結果を `results/` に保存している（D-22）
 - [ ] `MacLibrary` とサンプルが Swift 6 の言語モードと strict concurrency complete で、警告が 0（段階 0e・0f。UI テストのターゲットは D-14 の例外）。公開 API の差分を `results/swiftinterface/` に記録している
 - [ ] 0e〜0g と 1b の前後で、サンプルの UI テストの結果が変わらない（変えたテストは理由を記録している）
@@ -40,7 +40,7 @@
 - [ ] `MacLibraryCApi` が企画 6 章の振る舞いの集合をすべて公開している（2a の機械照合）
 - [ ] `check_mac_dist.py` の全項目（企画 7.3）が通る。公開シンボルが `ntk_*` だけで、capi が Swift のモジュール・interface・ヘッダーを配らず、版付きの構成の symlink があり、両方のアーキテクチャの minos が 15.0 で、署名が D-18 のとおり
 - [ ] sandbox の C のホストで、ファイルのパネルの結果のパスを後から読めること、そのファイルを非同期の Share に渡せることを、最後の dist で確かめている（決定の文書の 8.6 の契約）
-- [ ] macOS 15.8.3 の VM でサンプルの単体テスト・UI テストが通り、この Mac で組んだ dist の smoke（と、流せるなら C ABI のテストの束）が動く。確かめていない範囲（15.0〜15.8.2）と、macOS 27 は対応予定であることを、マニュアルとリリースの記録に書いている
+- [ ] macOS 15.8.3 の VM と macOS 26 の VM（26 の最新。2026-11-28 の D-21 の見直し）でサンプルの単体テスト・UI テストが通り、この Mac で組んだ dist の smoke（と、流せるなら C ABI のテストの束）が動く。確かめていない範囲（15.0〜15.8.2）と、macOS 27 は対応予定であることを、マニュアルとリリースの記録に書いている
 - [ ] `ntk_notification_install` が、main から呼ぶと戻る前に delegate を設定し終え、main 以外からは同期のエラーを返す
 - [ ] smoke が dist の 2 つの xcframework だけで組めて、arm64 と Rosetta の x86_64 で動く。利用者の下限の Xcode 26.3 でも組める。Hardened Runtime と sandbox の組み合わせ（企画 7 章）で起動する
 - [ ] 照合のスクリプト（`check_c_abi_contract_mac.py`、`check_manual_c_examples_mac.py`、`check_mac_dist.py`）が通り、Windows・Android・iOS の照合も通る。照合の自己テストが、規則を 1 つずつ壊すと落ちる。`IosLibraryCApi/Common` と `MacLibraryCApi/Common` の写しの一致を照らしている

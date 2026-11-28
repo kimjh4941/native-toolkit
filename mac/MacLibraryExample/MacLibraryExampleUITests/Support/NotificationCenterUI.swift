@@ -48,6 +48,35 @@ enum NotificationCenterRead {
         })
     }
 
+    /// The groups Notification Center shows now, as `identifier@x,y,w,h` (identifiers and frames only; no
+    /// label is read). Notification Center draws every banner in one window, so a banner that arrives is seen
+    /// here, not in the window list (2026-11-28: one window, the same number and frame, while banners came).
+    static func groupLayout() throws -> [String] {
+        let root: XCUIElementSnapshot
+        do {
+            root = try center.snapshot()
+        } catch {
+            throw SampleUITestError(.overlay, "Notification Center's tree could not be read")
+        }
+        var out: [String] = []
+        func visit(_ node: XCUIElementSnapshot) {
+            if node.elementType == .group, !node.identifier.isEmpty, node.frame.width > 0, node.frame.height > 0 {
+                let f = node.frame
+                out.append("\(node.identifier)@\(Int(f.minX)),\(Int(f.minY)),\(Int(f.width))x\(Int(f.height))")
+            }
+            for child in node.children {
+                visit(child)
+            }
+        }
+        visit(root)
+        return out.sorted()
+    }
+
+    /// The identifiers of a layout.
+    static func groupIdentifiers(_ layout: [String]) -> Set<String> {
+        Set(layout.map { String($0.split(separator: "@", maxSplits: 1).first ?? "") })
+    }
+
     /// Frames of the menus of Notification Center that are open now (outside the menu bar, with a
     /// visible frame).
     static func openMenuFrames() throws -> [CGRect] {
@@ -228,10 +257,8 @@ struct NotificationCenterUI {
             Thread.sleep(forTimeInterval: wait)
         }
         let element = try self.element(root)
-        try checkBeforePress(element, kind: { .banner(rootFrame: try self.element(root).frame) },
-                             sampleIs: expected, name: "body of \(root.anchor.title)")
-        element.click()
-        try session.checkInterruption()
+        try pressInCenter(element, kind: { .banner(rootFrame: try self.element(root).frame) },
+                          sampleIs: expected, name: "body of \(root.anchor.title)")
     }
 
     /// Moves the pointer onto the root (it shows `Options` only then).
@@ -279,10 +306,8 @@ struct NotificationCenterUI {
             Thread.sleep(forTimeInterval: 0.1)
         }
         let options = try exactlyOne(optionsQuery(in: try element(root)), "Options in the root", step: .notificationAction)
-        try checkBeforePress(options, kind: { .banner(rootFrame: try self.element(root).frame) },
-                             sampleIs: expected, name: "Options of \(root.anchor.title)")
-        options.click()
-        try session.checkInterruption()
+        try pressInCenter(options, kind: { .banner(rootFrame: try self.element(root).frame) },
+                          sampleIs: expected, name: "Options of \(root.anchor.title)")
         try waitForOneOpenMenu()
     }
 
@@ -330,10 +355,8 @@ struct NotificationCenterUI {
     func choose(_ title: String, of root: NotificationRoot, sampleIs expected: SampleStateAtPress) throws {
         _ = try element(root)
         let item = try menuItem(title)
-        try checkBeforePress(item, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
-                             sampleIs: expected, name: "menu item \(title)")
-        item.click()
-        try session.checkInterruption()
+        try pressInCenter(item, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
+                          sampleIs: expected, name: "menu item \(title)")
     }
 
     /// Closes the open menu with Escape: exactly one menu is open and Notification Center is in front.
@@ -459,10 +482,8 @@ struct NotificationCenterUI {
         }
         let options = try exactlyOne(optionsQuery(in: try promptElement(prompt)), "Options of the prompt",
                                      step: .permissionPrompt)
-        try checkBeforePress(options, kind: { .banner(rootFrame: try self.promptElement(prompt).frame) },
-                             sampleIs: nil, name: "Options of the permission prompt")
-        options.click()
-        try session.checkInterruption()
+        try pressInCenter(options, kind: { .banner(rootFrame: try self.promptElement(prompt).frame) },
+                          sampleIs: nil, name: "Options of the permission prompt")
         try waitForOneOpenMenu()
         let titles = allow ? SystemLabels.permissionAllow : SystemLabels.permissionDontAllow
         let menus = try NotificationCenterRead.openMenuFrames()
@@ -475,12 +496,35 @@ struct NotificationCenterUI {
             throw SampleUITestError(.permissionPrompt, "\(items.count) items \(titles[0]) in the prompt's menu")
         }
         _ = try promptElement(prompt)
-        try checkBeforePress(item, kind: { .menuItem }, sampleIs: nil, name: "permission item \(titles[0])")
-        item.click()
-        try session.checkInterruption()
+        try pressInCenter(item, kind: { .menuItem }, sampleIs: nil, name: "permission item \(titles[0])")
     }
 
     // MARK: Checks (design 5.0)
+
+    /// Every click into Notification Center (2026-11-28: a banner of another app that came 0.2 s before the
+    /// click took the press). The groups Notification Center shows are read when the check starts and again
+    /// right before the click: if anything came, went or moved in between, nothing is pressed. They are read
+    /// once more right after the click: a group that was not there before means the press may have reached
+    /// it, and the test fails saying so. This is detection in the VM, not a guard: between the last read and
+    /// the event XCTest synthesizes is a race of a length nobody bounds, and a notification that took the
+    /// click and went away is not seen here (only the test's own later checks, the sample's event, fail).
+    /// UI tests therefore never run on this Mac (D-21 revised 2026-11-28; Codex presscenter review v1 A-1).
+    private func pressInCenter(_ element: XCUIElement, kind: () throws -> NotificationPressKind,
+                               sampleIs expected: SampleStateAtPress?, name: String) throws {
+        let atCheck = try NotificationCenterRead.groupLayout()
+        try checkBeforePress(element, kind: kind, sampleIs: expected, name: name)
+        let beforePress = try NotificationCenterRead.groupLayout()
+        guard beforePress == atCheck else {
+            throw SampleUITestError(.overlay, "Notification Center changed between the check and \(name); nothing was pressed")
+        }
+        element.click()
+        let afterPress = try NotificationCenterRead.groupLayout()
+        let arrived = NotificationCenterRead.groupIdentifiers(afterPress).subtracting(NotificationCenterRead.groupIdentifiers(beforePress))
+        guard arrived.isEmpty else {
+            throw SampleUITestError(.overlay, "\(arrived.count) notification(s) arrived while pressing \(name); the press may have reached another notification")
+        }
+        try session.checkInterruption()
+    }
 
     /// `expected` nil: any sample state (the permission prompt).
     private func checkBeforePress(_ element: XCUIElement, kind: () throws -> NotificationPressKind,

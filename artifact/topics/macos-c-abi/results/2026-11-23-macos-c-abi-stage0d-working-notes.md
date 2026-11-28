@@ -535,3 +535,51 @@ Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で�
 - 前に来た形 16 件はおとりへの到達 0（落ちた 4 件は根が見つからず押す前に止まった）。後に来た形 3 件のうち 1 件（NC1）で、押す 0.2 秒前に来たおとりのバナーに押下が届いた（確かめと押下の間の競合）。2 秒ごとの強い負荷の回は、8 件とも根が見つからず押す前に止まり到達 0（既知の制限として扱い、基準の条件には入れない）
 - この Mac では、準備の「サンプルだけを許す集中モード」が、ほかのアプリのバナーを出さないことでこの競合を防ぐ。次は VM でその状態で流して到達 0 を確かめる案（親の判断を待つ）
 
+### 20.3 押下の前後の照らし（2026-11-28 の 2 回目）
+
+- `NotificationCenterUI.pressInCenter` を足し、通知センターへのクリックを、確かめの始め・押す直前・押した直後に通知センターのグループ（identifier と枠）を読んで比べる形にした。窓の一覧では比べられなかった（通知センターはバナーを 1 つの全画面の窓に描く）。要素に向けた押下は公開の API に無く、アクセシビリティの許可が新しく要る形は採らなかった。最後に読んでからクリックが合成されるまでの間（長さを誰も縛れない。初めは「数 ms」と書いたが、Codex のレビューの C-1 で根拠が無いと分かり直した）は `--dry-run` の「起きること」に入れ、サンプルだけを許す集中モードを準備で必須にした
+- VM でおとりを出しながら 6 回流し、おとりに届いたものはすべて 0。後に並ぶ形は 1 件だけで、段取りの 2 回に足りない。VM の集中モードは入れられていない。`decoyNotificationRoot` は None のまま。記録は `results/2026-11-28-macos-c-abi-prereq-decoy-notification.md` の 2 章
+- 信頼する部分（`NotificationCenterUI.swift`）を変えたので、ハッシュを取り直すまで自己テストの `SourceRules` の 2 件は落ちる（21 章で取り直した）
+- Codex の押下の直しのレビュー v1（A 1・B 1・C 1）は A-1 を致命的とした: 最後の読みとクリックの間に来た利用者の通知にクリックが届きうる。利用者はこれを受けて D-21 を見直した（21 章）
+
+## 21. D-21 の見直し: 26 も VM、この Mac では UI テストを流さない（2026-11-28。コミットしていない）
+
+利用者の決定（2026-11-28）。決定の文書の D-21 と 8.3、`agent-rules/device-testing.md` の macOS の節、UI テストの設計書（改訂の行、2.1、U-16、U-30、`--qualification`、5 章の数の表、9.1、9.2）、DoD の 18・19・43 行目を直した。企画の段階の表には書き足していない。
+
+### 21.1 押下の直しの扱い
+
+- `pressInCenter`（確かめの始め・押す直前・押した直後の通知センターのグループの比べ）は、VM での検出の強化として残した。コメントを「守りでなく VM での検出。最後の読みと合成のクリックの間は長さを誰も縛れない」に直した
+- Codex の A-1 は、この Mac では UI テストを流さないので適用外とし、VM の合成のおとりで検出できることの限界として記録した。B-1（クリックを取って消えた通知はこの照らしでは見えない）と C-1（「数 ms」の言い回し）は既知の限界として記録した。記録は `results/2026-11-28-macos-c-abi-prereq-decoy-notification.md` の 3 章
+- 信頼する部分のハッシュ（`TRUSTED_FILES` の `NotificationCenterUI.swift`）を今の Support で取り直した。`HAPPENINGS["notification"]` は、この Mac で UI テストを流さない理由として残した
+
+### 21.2 ランナー: VM を 2 つ扱う
+
+- `VM_PROFILES`: `vm`（`ntk-macos-15-new`、IOPlatformUUID `50DCC3EF-…`、15.8.3（24H241）、Xcode 26.3（17C529））と `vm26`（`ntk-macos-26`。UUID・OS・Xcode は作った後に入れる。None のままの VM は資格を通らない）。`--where` は `vm`・`vm26`・`mac`
+- 資格の確かめは VM ごとに同じ項目（`vm_qualification(facts, where)`）で、OS と Xcode の版をその VM の値と比べ、新しい項目 `pinnedUUID` でその VM の IOPlatformUUID と照らす（2 つの VM を取り違えない）。同一性の照らし（UUID と起動の時刻の幅 5 秒）は、資格で読んだ UUID で VM ごとに同じに働く
+- `test_mac.sh`: `--vm` の既定は `--where` で決める（`vm` と `mac` は `ntk-macos-15-new`、`vm26` は `ntk-macos-26`）。`vm-qualify` と `preflight` に `--where` を渡す。結果の `environment.json` の `where` と出力のフォルダーの名前も `--where` のまま
+- 基準のファイルの名前は `test_mac.baseline.<where>-<版>.json`（26 の VM は `test_mac.baseline.vm26-26.7.3.json` の形）。26 の VM の基準は、その VM の OS の値が入るまで拒む
+- 26 の VM の選び方: 26 だけのテスト（`OS_ONLY_TESTS` の 26）を選び、`MAC_DEFERRED_TESTS`（`ownerUnverified`・`macDeferred`）は U-30 で押す先を確かめるまで除く（`MAC_VERIFIED_TARGETS` を読む）。VM なので区分はすべて許し、許可は求めない。`QUALIFICATION_ONLY_TESTS` の `mac26`・`mac26-reply` は `--where vm26` でだけ、`vm-ja` は `--where vm` でだけ選べる（`QUALIFICATION_WHERE`）
+- **この Mac**: `make_plan("mac", …)` は UI テストをすべて `noUIOnThisMac` で除き（選ぶものは 0 件）、`--allow`・`--feature`・`--qualification` で止まる。単体テストが無ければ「この Mac で流すものが無い」で止まる。`test_mac.sh --where mac` は `--allow`・`--feature`・`--qualification`・`--baseline`・`--skip-unit` で止まる。U-29 の監査した suite はこの Mac でも今のまま（前提の 2 項目が None なので、今は承認の段で止まる）
+- 届かなくした所: この Mac の UI テストの選び方（`mac_selection_leaks`・空の選択の拒み・許可の一覧の UI テストの行・この Mac の基準）は、`make_plan` の `ui_on_this_mac=True` からだけ届く。ランナーのコマンドはこれを渡さない（自己テストでソースを照らす）。許可の仕組み（`--approved`・台帳・前提の 4 項目）はコードに残し、消すかは 26 の VM が動いた後に決める
+
+### 21.3 確かめ
+
+- この Mac の自己テスト（偽の口だけ）: 205 件が通った（8 件は VM の中だけのものを飛ばした）。新しく `NoUIOnThisMac`（6 件: 0 件の計画、`--allow`・`--feature`・`--qualification` の拒み、流すものの無い計画、基準と承認、`ui_on_this_mac` を渡すコマンドが無いこと、shell の拒み）と `TwoVMs`（6 件: 26 の VM の選び方、15 の VM が 26 のテストを選ばないこと、適格性の段の VM、VM ごとの資格、VM ごとの基準、shell の VM の選び方）を足し、`--where` の shell のテストに `vm26` とこの Mac の拒みを足した
+- 変異（15 の VM の中だけ）: 押下の 4 件は CAUGHT（基準は生き残った）。D-21 の見直しの 14 件もすべて CAUGHT（2026-11-28、`ntk-macos-15-new`。VM の自己テストは 205 件が通り、飛ばしたのは 1 件）。全 248 件の通しはまだ
+
+### 21.4 26 の VM の準備の段取り（VM ができてから、親が頼む）
+
+15 の VM（0a と 9.0 の 1）と同じ設定にする。設定は VM の中だけで行い、この Mac の設定は変えない。
+
+1. 作る: Cirrus Labs の `macos-tahoe-vanilla:26.6.2` から `ntk-macos-26` を作る（親が作っている）。起動は常に `tart run ntk-macos-26 --no-graphics --no-clipboard`（`--dir` を付けない。ランナーの `tart-check` が照らす）
+2. 更新: VM の中で 26.7.3 に上げる（`softwareupdate`。VM の中だけ）。上げた後の `sw_vers` の版とビルドを読む
+3. 鍵: 15 の VM と同じく VM 専用の鍵で入る。VM の `~/.ssh/authorized_keys` に `~/.tart/ntk-ssh/id_ed25519.pub` を入れ、`~/.tart/ntk-ssh/known_hosts` にこの VM のホスト鍵を固定する（ランナーは `StrictHostKeyChecking=yes`。15 の VM と同じファイルに足す）。既定の利用者のパスワードでの入り方は鍵を入れた後に閉じる
+4. アカウント: Apple アカウントでサインインしない。`defaults read MobileMeAccounts Accounts` が無いこと、`Accounts4.sqlite` がシステムの種類だけであることを読む（資格の `noAppleAccount`・`accountsOnlySystem`）
+5. 共有なし: `mount | grep -c virtiofs` が 0（資格の `noSharedFolder`）。Handoff とユニバーサルクリップボードは VM の中で切る
+6. 言語: `defaults write -g AppleLanguages '(en-US)'` と地域を en-US にし、再ログインの後に `defaults read -g AppleLanguages` の 2 行目が `en-US` であることを読む
+7. 通知: `com.apple.ncprefs` の `dnd_prefs` の `dndMirrored=false`（画面の共有中も通知を出す。0a の 4.1 の `results/probes/0a-uitest-spike/scripts/nc-allow-when-shared.sh` と同じ形）を VM の中で設定し、daemon を立て直して読み直す
+8. 自動化の許可: 15 の VM と同じく `sudo automationmodetool enable-automationmode-without-authentication`、`sudo DevToolsSecurity -enable`、`admin` を `_developer` に入れる（0a の 4.1。15 の VM ではこれだけで UI テストが走り、アクセシビリティの許可の画面は出なかった。26 でも出ないかは最初の回で見る）
+9. Xcode: この Mac の Xcode 26.6（17F113）を写す（`/Applications/Xcode26.6.app` を `tar` で ssh に流す。`scp -r` は symlink を壊す）。VM の中で `xcode-select -s` で選び、`xcodebuild -license accept`・`-runFirstLaunch`・`-checkFirstLaunchStatus` を通す。`xcodebuild -version` の版とビルドを読む
+10. ランナーに入れる: `VM_PROFILES["vm26"]` に、VM の IOPlatformUUID・`(26.7.3, <ビルド>)`・`(26.6, 17F113)` を入れる（その差分はレビューと自己テストを通す）
+11. 資格の確かめ: `test_mac.sh --where vm26 --feature Dialog --skip-unit` 相当で `vm-qualify` の全項目（`pinnedUUID` を含む）が pass になることを見る。次に U-30 の `mac26` の段、全件、26 の VM の基準（`--baseline`）の順
+
