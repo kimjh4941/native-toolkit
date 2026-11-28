@@ -282,7 +282,7 @@ struct CenterRead: Equatable {
 /// What was pressed and on which macOS (vm26 review v1 A-2): the exceptions seen on 26 apply only on 26 and only to the
 /// press they were seen with; 15 keeps the strict comparison.
 struct CenterPressContext: Equatable {
-    enum Press: Equatable {
+    enum Press: Hashable {
         case body, options, menuItem, promptOptions, promptAnswer
     }
     let press: Press
@@ -408,13 +408,12 @@ enum CenterLayoutRule {
                 return .cannotTell
             }
         }
-        // 26.6.2 (2026-11-28, NP2 `Don’t Allow` in the 26 VM): the prompt, closing after its answer, is read once more
-        // at the same frame and under the same parent but without its identifier. Taken on 26, for an answer to the
-        // prompt, for one such group only, and only when the root is gone.
+        // 26.6.2: the pressed root, closing, is read once more without its identifier, under the same parent, at its
+        // frame or at its frame with the highlight (NP2 `Don’t Allow`, 2026-11-28; N21 and N22 body, N23 `Open`, with
+        // the sample's banner alone, 2026-11-29). Taken on 26, for those presses, for one such group only, and only when
+        // the root is gone.
         var rest = afterClick.filter { $0.identifier.isEmpty && !partOfRoot($0) }
-        if on26, context.press == .promptAnswer, after[pressedRoot] == nil, before[pressedRoot]?.count == 1,
-           let root = before[pressedRoot]?.first,
-           let index = rest.firstIndex(where: { same($0.frame, root.frame) && $0.parent == root.parent }) {
+        if after[pressedRoot] == nil, let index = rest.firstIndex(where: { Self.closingRoot($0, beforeClick, pressedRoot, context) }) {
             rest.remove(at: index)
         }
         var unnamedBefore = beforeClick.filter { $0.identifier.isEmpty }.map(\.frame)
@@ -425,6 +424,21 @@ enum CenterLayoutRule {
             unnamedBefore.remove(at: index)
         }
         return .clear
+    }
+
+    /// The presses after which 26 was seen reading the closing root without its identifier.
+    static let closingRootPresses: Set<CenterPressContext.Press> = [.promptAnswer, .body, .menuItem]
+
+    /// 26: whether `group` (no identifier) is the pressed root closing: one root before, the same parent, at the root's
+    /// frame or at it with the highlight.
+    static func closingRoot(_ group: CenterGroup, _ beforeClick: [CenterGroup], _ pressedRoot: String,
+                            _ context: CenterPressContext) -> Bool {
+        let roots = beforeClick.filter { $0.identifier == pressedRoot && !pressedRoot.isEmpty }
+        guard context.osMajor >= 26, closingRootPresses.contains(context.press), group.identifier.isEmpty,
+              roots.count == 1, let root = roots.first, group.parent == root.parent else {
+            return false
+        }
+        return group.frame == root.frame || group.frame == highlighted(root.frame)
     }
 
     /// The highlight of 26.6.2: 6 points to the left, 4 to the top (2026-11-28 in the 26 VM).
@@ -506,9 +520,7 @@ enum CenterLayoutRule {
         for group in step {
             if group.identifier.isEmpty {
                 let unchanged = beforeClick.contains(group)
-                let closingPrompt = context.press == .promptAnswer &&
-                    beforeClick.contains { $0.identifier == pressedRoot && $0.frame == group.frame && $0.parent == group.parent }
-                guard unchanged || closingPrompt else { return false }
+                guard unchanged || closingRoot(group, beforeClick, pressedRoot, context) else { return false }
                 continue
             }
             if listIdentifiers.contains(group.identifier) {

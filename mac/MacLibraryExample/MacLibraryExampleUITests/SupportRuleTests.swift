@@ -501,7 +501,7 @@ final class SupportRuleTests: SampleUITestCase {
         let closing = others + [Self.g("", 658, 42, 350, 77)]
         XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .promptAnswer, os: 26), .clear)
         XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .promptAnswer, os: 15), .cannotTell)
-        XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .body, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .body, os: 26), .clear)       // N21 (2026-11-29)
         XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .promptOptions, os: 26), .cannotTell)
         XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 50, 350, 77)], root: "P", press: .promptAnswer, os: 26),
                        .cannotTell)                                                                            // moved
@@ -512,6 +512,24 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77, in: "X")], root: "P",
                              press: .promptAnswer, os: 26), .cannotTell)                                       // another parent
         XCTAssertEqual(after(others + [prompt], closing, root: "Q", press: .promptAnswer, os: 26), .cannotTell)   // not the root
+
+        // N21, N22 (body), N23 (`Open`) with the sample's banner alone (2026-11-29): the root, closing, read without its
+        // identifier at its frame with the highlight; then the full-screen groups went with it.
+        let banner = Self.g("R", 664, 46, 344, 73), lit = Self.g("", 658, 42, 350, 77)
+        XCTAssertEqual(after(others + [banner], others + [lit], press: .body, os: 26), .clear)
+        XCTAssertEqual(after(others + [banner], others + [lit], press: .menuItem, os: 26), .clear)
+        XCTAssertEqual(after(others + [banner], others + [lit], press: .body, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [banner], others + [lit], press: .options, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [banner], others + [Self.g("", 657, 42, 351, 77)], press: .body, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [banner], others + [Self.g("", 658, 42, 350, 77, in: "X")], press: .body, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [banner], others + [banner, lit], press: .body, os: 26), .cannotTell)  // root stays
+        XCTAssertEqual(after(others + [banner], others + [lit, lit], press: .body, os: 26), .cannotTell)     // two
+        let screenOnly = [widget, photos]
+        let settledN21 = CenterLayoutRule.afterClickSettling(
+            beforeClick: others + [banner], reads: [CenterRead(others + [lit], at: 0), CenterRead(screenOnly, at: 0.3),
+                                                    CenterRead(screenOnly, at: 0.6)],
+            deadline: 3, pressedRoot: "R", context: CenterPressContext(press: .body, osMajor: 26))
+        XCTAssertEqual(settledN21, .clear)
 
         // NP1 (`Allow`): the highlight moved from the prompt (6 points off its left, 4 off its top) to the banner
         // right below it (6 more to the left, 4 more to the top); right and bottom edges unchanged.
