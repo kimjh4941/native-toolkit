@@ -423,7 +423,12 @@ class Approval(unittest.TestCase):
         self.assertTrue(any("older than" in p for p in r.approval_problems(approval, plan, now=later)))
         not_ready = mac_plan(ready=False)
         self.assertTrue(any("not checked yet" in p for p in r.approval_problems(r.make_approval(not_ready), not_ready)))
-        self.assertTrue(all(v is None for v in r.MAC_RUN_PREREQUISITES.values()))
+        # Each value set is a record that exists; this Mac's window owners on 26 stay unchecked, so an
+        # approval is still refused (the --approved path stays closed).
+        status = r.prerequisite_status(ROOT)
+        self.assertEqual({k: v for k, v in status.items() if v}, {k: v for k, v in r.MAC_RUN_PREREQUISITES.items() if v})
+        self.assertIsNone(r.MAC_RUN_PREREQUISITES["windowOwnersReadableOn26"])
+        self.assertTrue(any(v is None for v in status.values()))
 
     def test_any_change_is_refused(self):
         plan = mac_plan()

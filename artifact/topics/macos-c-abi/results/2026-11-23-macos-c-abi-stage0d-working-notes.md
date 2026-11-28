@@ -506,3 +506,18 @@ Codex のレビュー（A 0、B 4、C 2）の直しと、treeHash を shell で�
 
 順は、VM の 3 つ（U-8 → KILL → おとり。どれも合成の道具を先に作る）を先にし、記録がそろってから、この Mac の `mac26` の許可を利用者に頼む。
 
+## 20. 前提の 3 項目の確かめ（2026-11-28 に最初からやり直した。途中）
+
+- **U-8 の監視**: 通った。3 回とも監視が来て、何も押さずにサンプルを止め、テストが落ちて止まった。押す枝を持たせた変異では監視の中の押下が 2 つ記録に出た。記録は `results/2026-11-28-macos-c-abi-prereq-u8-monitor.md`、`MAC_RUN_PREREQUISITES["u8MonitorStopsTheTest"]` に書いた
+- **収録中の KILL**: 通った。2 回とも xcodebuild の group は 2 秒以内に止まり、バンドルへの書き込みも止まった。残ったサンプルは判定が「動いている」と数えてフォルダーを残し、サンプルを終わらせた後は「消せる」になり、消した後 30 秒作り直されなかった。記録は `results/2026-11-28-macos-c-abi-prereq-kill-during-recording.md`、`MAC_RUN_PREREQUISITES["killDuringRecording"]` に書いた。ランナーは直していない
+- 自己テスト（`test_an_old_approval_or_unchecked_preconditions_are_refused`）を「値のあるものは実在する記録、26 の窓の持ち主は None、承認はまだ拒まれる」に直した。この Mac の自己テストは 190 件のうち 182 件が通り 8 件が skip
+- **おとりの通知**: 途中。VM の写しにおとりのアプリを 2 つ作った（`dev.ntkprobe.decoya` は表示名 `NtkDecoy`、`dev.ntkprobe.decoyb` は表示名 `MacLibraryExample`。どちらもサンプルと同じ題・本文・category（`Open`・`Reply`、同じ placeholder）の通知を一定の間隔で出し、届いた `didReceive` を書く。通知の許可は `com.apple.ncprefs` にサンプルと同じ値の項目を足した）。`--where vm --feature Notification` をおとりを出しながら流した:
+
+| 回 | おとり | 結果 | おとりに届いたもの |
+|---|---|---|---|
+| A-1 | `NtkDecoy`、2 秒ごと | ui 22 で中断（下の「VM の同一性の照らし」） | 0 |
+| A-2 | `NtkDecoy`、2 秒ごと | 51/60。落ちた 9 件（N13、N20〜N24、NC1〜NC3）は、どれもサンプルの根が見つからない（`found 0`、`no root`、`No matches found`）で、押す前に止まった。2 秒ごとのおとりのバナーが、サンプルのバナーを押し出すため | **0**（`didReceive` 0） |
+| A-3 | `NtkDecoy`、9 秒ごと | ui 15 まで落ちたもの無し、ui 16 の前で中断（同じ理由） | 0（65 通出した） |
+
+- **VM の同一性の照らしが、ゲストの時計の調整で外れる**: A-1 と A-3 は、VM に送る命令の前の照らし（`vm_ssh` の前置き。UUID と `kern.boottime` の秒）で「the VM is not the one that was qualified」になって止まった。ゲストを起こし直してから約 1 時間の間に、`kern.boottime` が `1795821503.017` から `1795821502.948` に動いていた（壁の時計の調整で、起動の時刻の秒が 1 つ変わる）。照らしは秒の完全一致なので、同じ VM を別の VM と見て止まる（止まる側に倒れるので害は無いが、長い回が中断する）。直すなら、`kern.boottime` の比べに数秒の幅を持たせる（再起動なら分単位で変わるので区別は保てる）。ランナーの判定を変えることになるので、この回では直していない
+

@@ -239,8 +239,10 @@ APPROVAL_HOURS = 12
 # U-30): each value is where the check is recorded, or None while it is not done. An approval is
 # refused while any is None (Claude B-14, Codex B-5).
 MAC_RUN_PREREQUISITES = {
-    "u8MonitorStopsTheTest": None,         # U-8: the monitor really stops a test (a harmless alert in the VM)
-    "killDuringRecording": None,           # 9.1: the parent KILLed during a real recording; the writers stop
+    # U-8: the monitor really stops a test, pressing nothing (an unexpected alert in the VM; 2026-11-28).
+    "u8MonitorStopsTheTest": "artifact/topics/macos-c-abi/results/2026-11-28-macos-c-abi-prereq-u8-monitor.md",
+    # 9.1: the parent KILLed during a real recording; the group stops, the sample left keeps the folder (2026-11-28).
+    "killDuringRecording": "artifact/topics/macos-c-abi/results/2026-11-28-macos-c-abi-prereq-kill-during-recording.md",
     "windowOwnersReadableOn26": None,      # U-30 mac26: CGWindowListCopyWindowInfo on this Mac
     "decoyNotificationRoot": None,         # 6c and 7 "根（動き）": nothing reaches a decoy with the same title
 }
