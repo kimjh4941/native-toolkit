@@ -319,10 +319,10 @@ enum CenterLayoutRule {
             listIdentifiers.contains(identifier) && before[identifier]?.count == 1 &&
                 beforeClick.contains { $0.parent == identifier && !$0.identifier.isEmpty }
         }
-        // 26 reads frames half way through an animation (2026-11-28, NP3 in the 26 VM: 171.9993 for 172), so on 26
-        // the frames of the exceptions below are compared within `frameTolerance`; on 15 exactly.
+        // Frames are compared exactly; the reads are taken once they settle (afterClickSettling), so frames half way
+        // through an animation (26: 171.9993 for 172) are not compared.
         func same(_ a: CGRect, _ b: CGRect) -> Bool {
-            on26 ? close(a, b) : a == b
+            a == b
         }
         // 15.8.3 (2026-11-28, N23 `Open` in the VM, 3 of 3): when the pressed banner goes and one banner is left,
         // the list goes and that banner takes the list's frame. Taken only when all of it holds: the list was there
@@ -347,7 +347,26 @@ enum CenterLayoutRule {
         // that banner gained exactly that, their right and bottom edges unchanged. Only that transition is taken:
         // on 26, for an answer to the prompt, once.
         var highlightTaken = false
+        // 26.6.2 (2026-11-28, NP3 settled reads): when the prompt closed, the list laid itself out again and the banner
+        // that came under the pointer was drawn with the highlight: exactly 6 wider and 4 higher, its right edge where
+        // it was. Taken on 26, for an answer to the prompt, when the root is gone, once (with the move above).
+        func highlightedAfterTheRootWent(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
+            guard on26, context.press == .promptAnswer, !highlightTaken, groups.count == 1,
+                  before[identifier]?.count == 1, let old = before[identifier]?.first, let list = old.parent, isList(list),
+                  groups[0].parent == list, before[pressedRoot]?.count == 1, after[pressedRoot] == nil,
+                  before[pressedRoot]?.first?.parent == list,
+                  groups[0].frame.width == old.frame.width + Self.highlightLeft,
+                  groups[0].frame.height == old.frame.height + Self.highlightTop,
+                  groups[0].frame.maxX == old.frame.maxX else {
+                return false
+            }
+            highlightTaken = true
+            return true
+        }
         func highlightMovedFromRoot(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
+            if highlightedAfterTheRootWent(identifier, groups) {
+                return true
+            }
             guard on26, context.press == .promptAnswer, !highlightTaken, groups.count == 1,
                   before[identifier]?.count == 1, let old = before[identifier]?.first, let list = old.parent, isList(list),
                   groups[0].parent == list, before[pressedRoot]?.count == 1, after[pressedRoot]?.count == 1,
@@ -361,34 +380,10 @@ enum CenterLayoutRule {
             highlightTaken = true
             return true
         }
-        // 26.6.2 (2026-11-28, NP1, NP2 and NP3 in the 26 VM, 6 of 15 answers): answering the prompt with a banner of
-        // the sample below it, that banner was read covering exactly its own frame and the prompt's (the list closing
-        // the gap, half way). Taken on 26, for an answer to the prompt, once: the root was in the list and is gone, the
-        // banner was below it in the same list, and its frame is the union of the two frames before.
-        var absorbTaken = false
-        func absorbedTheRoot(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
-            guard on26, context.press == .promptAnswer, !absorbTaken, groups.count == 1, before[identifier]?.count == 1,
-                  let old = before[identifier]?.first, let list = old.parent, isList(list), groups[0].parent == list,
-                  before[pressedRoot]?.count == 1, after[pressedRoot] == nil, let root = before[pressedRoot]?.first,
-                  root.parent == list, old.frame.minY > root.frame.minY,
-                  close(groups[0].frame, old.frame.union(root.frame)) else {
-                return false
-            }
-            absorbTaken = true
-            return true
-        }
-        // On 26 a frame read half way through an animation can be larger by a rounding (73.00000000000001 for 73); a
-        // growth there is more than `frameTolerance` on a side. On 15 any growth of the area counts.
-        func grew(_ identifier: String, _ own: [CenterGroup]) -> Bool {
-            if on26, own.count == 1, before[identifier]?.count == 1, let old = before[identifier]?.first {
-                return own[0].frame.width - old.frame.width > frameTolerance || own[0].frame.height - old.frame.height > frameTolerance
-            }
-            return own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
-        }
         for (identifier, groups) in after where identifier != pressedRoot && !isList(identifier) {
             let own = groups.filter { !partOfRoot($0) }
-            if grew(identifier, own) && !collapsedOnto(identifier, own) && !highlightMovedFromRoot(identifier, own) &&
-                !absorbedTheRoot(identifier, own) {
+            let grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
+            if grown && !collapsedOnto(identifier, own) && !highlightMovedFromRoot(identifier, own) {
                 return .cannotTell
             }
         }
@@ -414,8 +409,6 @@ enum CenterLayoutRule {
     /// The highlight of 26.6.2: 6 points to the left, 4 to the top (2026-11-28 in the 26 VM).
     static let highlightLeft: CGFloat = 6
     static let highlightTop: CGFloat = 4
-    /// Frames read half way through an animation differ by less than this (26.6.2: 0.0007).
-    static let frameTolerance: CGFloat = 0.01
 
     static func highlighted(_ frame: CGRect) -> CGRect {
         CGRect(x: frame.minX - highlightLeft, y: frame.minY - highlightTop,
@@ -427,20 +420,75 @@ enum CenterLayoutRule {
                width: frame.width - highlightLeft, height: frame.height - highlightTop)
     }
 
-    private static func close(_ a: CGRect, _ b: CGRect) -> Bool {
-        abs(a.minX - b.minX) <= frameTolerance && abs(a.minY - b.minY) <= frameTolerance &&
-            abs(a.width - b.width) <= frameTolerance && abs(a.height - b.height) <= frameTolerance
-    }
 
     /// 26.6.2 (2026-11-28, N22 in the 26 VM): the banner the list collapsed onto is under the pointer and drawn wider
     /// to the left by its highlight: the list's frame, 6 points wider to the left (the same top, height and right edge).
     private static func highlightedCollapse(_ frame: CGRect, _ drawn: CGRect) -> Bool {
-        close(drawn, CGRect(x: frame.minX - highlightLeft, y: frame.minY, width: frame.width + highlightLeft, height: frame.height))
+        drawn == CGRect(x: frame.minX - highlightLeft, y: frame.minY, width: frame.width + highlightLeft, height: frame.height)
     }
 
     private static func area(_ frame: CGRect) -> CGFloat {
         frame.width * frame.height
     }
+
+    /// The reads after the click, the first right after it and then one every `settleInterval` (2026-11-28: 26 reads
+    /// Notification Center half way through its animations). A notification that came in any read is `arrived`. A
+    /// first read that is `clear` is taken as before. Otherwise the reads must settle: the first two reads in a row
+    /// that are the same groups (identifier, frame and parent) are compared; reads that never settle are `cannotTell`.
+    /// Not seen: a group without an identifier, or a growth, that came and went before the reads settled.
+    static func afterClickSettling(beforeClick: [CenterGroup], reads: [[CenterGroup]], pressedRoot: String,
+                                   context: CenterPressContext) -> CenterPressVerdict {
+        guard !reads.isEmpty else {
+            return .cannotTell
+        }
+        let verdicts = reads.map { afterClick(beforeClick: beforeClick, afterClick: $0, pressedRoot: pressedRoot, context: context) }
+        if verdicts.contains(.arrived) {
+            return .arrived
+        }
+        if verdicts[0] == .clear {
+            return .clear
+        }
+        for index in reads.indices.dropFirst() where sameGroups(reads[index - 1], reads[index]) {
+            return verdicts[index]
+        }
+        return .cannotTell
+    }
+
+    /// Whether the reads so far are enough for `afterClickSettling`: the first is clear, one has a new notification
+    /// (unless the press is expected to bring the sample's own banner: then the reads go on until they settle with it,
+    /// NP3), or the last two are the same.
+    static func readsAreDone(beforeClick: [CenterGroup], reads: [[CenterGroup]], pressedRoot: String,
+                             context: CenterPressContext, expectingBanner: Bool = false) -> Bool {
+        guard let last = reads.last else {
+            return false
+        }
+        let verdict = afterClick(beforeClick: beforeClick, afterClick: last, pressedRoot: pressedRoot, context: context)
+        if (verdict == .arrived && !expectingBanner) || (reads.count == 1 && verdict == .clear) {
+            return true
+        }
+        return reads.count >= 2 && sameGroups(reads[reads.count - 2], last)
+    }
+
+    /// The identifiers that are there more times after the click than before (the notifications that came).
+    static func arrivedIdentifiers(beforeClick: [CenterGroup], reads: [[CenterGroup]]) -> Set<String> {
+        let before = Dictionary(grouping: beforeClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
+        var arrived: Set<String> = []
+        for read in reads {
+            for (identifier, groups) in Dictionary(grouping: read.filter { !$0.identifier.isEmpty }, by: \.identifier)
+            where groups.count > (before[identifier]?.count ?? 0) {
+                arrived.insert(identifier)
+            }
+        }
+        return arrived
+    }
+
+    /// The reads without the groups of `identifier` (the sample's own banner that the press was expected to bring).
+    static func without(_ identifier: String, _ reads: [[CenterGroup]]) -> [[CenterGroup]] {
+        reads.map { $0.filter { $0.identifier != identifier } }
+    }
+
+    static let settleInterval: TimeInterval = 0.3
+    static let settleTimeout: TimeInterval = 3
 
     private static func sameGroups(_ a: [CenterGroup], _ b: [CenterGroup]) -> Bool {
         guard a.count == b.count else {

@@ -48,9 +48,10 @@ final class NotificationPermissionUITests: SampleUITestCase {
         let before = try sample.resultSequence(.notification)
         try sample.tap(button, token)
         let prompt = try center.waitForPermissionPrompt(settings, timeout: Self.promptTimeout)
-        try center.answerPermissionPrompt(prompt, allow: allow, settings)
+        let seen = try center.answerPermissionPrompt(prompt, allow: allow, settings, expecting: banner)
         let text = try sample.waitForNextResult(.notification, after: before, marker: button.resultMarker)
-        if let banner {
+        // The banner came: seen by the reads after the answer (exact label), or found now.
+        if let banner, seen == nil {
             _ = try center.waitForRoot(banner, timeout: SampleApp.elementTimeout)
         }
         try sample.expectNoFurtherResult(.notification, sequence: before + 1)

@@ -454,6 +454,7 @@ final class SupportRuleTests: SampleUITestCase {
         checkWhatARightPressDoesOn15()
         checkWhatARightPressDoesOn26()
         checkNoExceptionFromFramesAlone()
+        checkTheSettledReads()
     }
 
     /// CenterLayoutRule review v1: a group is not a container because its frame holds another (A-1), and a group
@@ -540,36 +541,31 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(after(others + [l, p, b, d], others + [lAfter, pAfter, bAfter, Self.g("D", 658, 216, 350, 93, in: Self.list)],
                              root: "P", press: .promptAnswer, os: 26), .cannotTell)
 
-        // NP3 and NP2 (2026-11-28, 4 of 8 answers): the collapse read half way through its animation (171.9993 for 172).
+        // NP3 settled: the prompt went, the list laid out again, and the banner now under the pointer is highlighted.
+        let lp = Self.g(Self.list, 658, 42, 350, 251), pp = Self.g("P", 658, 42, 350, 77, in: Self.list)
+        let bp = Self.g("B", 664, 125, 344, 73, in: Self.list), tp = Self.g("T", 664, 204, 344, 89, in: Self.list)
+        let settled = others + [Self.g(Self.list, 658, 46, 350, 247), Self.g("B", 664, 46, 344, 73, in: Self.list),
+                                Self.g("T", 658, 121, 350, 93, in: Self.list)]
+        XCTAssertEqual(after(others + [lp, pp, bp, tp], settled, root: "P", press: .promptAnswer, os: 26), .clear)
+        XCTAssertEqual(after(others + [lp, pp, bp, tp], settled, root: "P", press: .promptAnswer, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [lp, pp, bp, tp], settled, root: "P", press: .body, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [lp, pp, bp, tp], others + [Self.g(Self.list, 658, 46, 350, 247), Self.g("B", 664, 46, 344, 73, in: Self.list),
+                                                                  Self.g("T", 658, 121, 350, 100, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                           // more than the highlight
+        XCTAssertEqual(after(others + [lp, pp, bp, tp], others + [Self.g(Self.list, 658, 46, 350, 247), Self.g("B", 658, 42, 350, 77, in: Self.list),
+                                                                  Self.g("T", 658, 121, 350, 93, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                           // two highlighted
+        XCTAssertEqual(after(others + [lp, pp, bp, tp], others + [Self.g(Self.list, 658, 46, 350, 247), pp, Self.g("B", 664, 46, 344, 73, in: Self.list),
+                                                                  Self.g("T", 652, 121, 350, 93, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                           // root stays, right edge moved
+
+        // NP1〜NP3 (2026-11-28): reads half way through an animation — the collapse at 171.9993 for 172, a banner over its
+        // own frame and the prompt's, a rounding — are not compared one by one any more; afterClickSettling waits for
+        // two reads in a row that are the same. Read alone, they are what they look like.
         let t = Self.g("T", 664, 125, 344, 89, in: Self.list), r3 = Self.g("R", 658, 42, 350, 77, in: Self.list)
-        let half = others + [Self.g("T", 658, 42, 350, 171.9993)]
-        XCTAssertEqual(after(others + [l, r3, t], half, press: .promptAnswer, os: 26), .clear)
-        XCTAssertEqual(after(others + [l, r3, t], half, press: .promptAnswer, os: 15), .cannotTell)
-        XCTAssertEqual(after(others + [l, r3, t], others + [Self.g("T", 658, 42, 350, 171.98)], press: .promptAnswer, os: 26),
-                       .cannotTell)                                                                            // 0.02 off
-
-        // NP1, NP2, NP3 with a banner of the sample below the prompt: that banner read over its own frame and the
-        // prompt's; and a frame larger by a rounding only.
-        let l4 = Self.g(Self.list, 658, 42, 350, 251), p4 = Self.g("P", 658, 42, 350, 77, in: Self.list)
-        let e4 = Self.g("E", 664, 125, 344, 73, in: Self.list), f4 = Self.g("F", 664, 204, 344, 89, in: Self.list)
-        let union = others + [l4, Self.g("E", 658, 42, 350, 156, in: Self.list), f4]
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], union, root: "P", press: .promptAnswer, os: 26), .clear)
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], union, root: "P", press: .promptAnswer, os: 15), .cannotTell)
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], union, root: "P", press: .body, os: 26), .cannotTell)
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, Self.g("E", 658, 42, 350, 157, in: Self.list), f4],
-                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // not the union
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, p4, Self.g("E", 658, 42, 350, 156, in: Self.list), f4],
-                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // the root stays
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, Self.g("E", 658, 42, 350, 156, in: Self.list),
-                                                                    Self.g("F", 658, 42, 350, 251, in: Self.list)],
-                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // two
-        let rounding = others + [Self.g(Self.list, 658, 42, 350, 250.998), Self.g("E", 664, 124.998, 344, 73.00000000000001, in: Self.list),
-                                 Self.g("F", 664, 203.998, 344, 89, in: Self.list)]
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], rounding, root: "P", press: .promptAnswer, os: 26), .clear)
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], rounding, root: "P", press: .promptAnswer, os: 15), .cannotTell)
-        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, Self.g("E", 664, 125, 344, 73.02, in: Self.list), f4],
-                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // 0.02 more
-
+        let half = others + [Self.g("T", 658, 42, 350, 171.9993)], done = others + [Self.g("T", 658, 42, 350, 172)]
+        XCTAssertEqual(after(others + [l, r3, t], half, press: .promptAnswer, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [l, r3, t], done, press: .promptAnswer, os: 26), .clear)
         // N22 (body): the list went and the last banner took the list's frame, drawn 6 points wider by its highlight.
         let l22 = Self.g(Self.list, 664, 46, 344, 168), t22 = Self.g("T", 664, 46, 344, 89, in: Self.list)
         let r22 = Self.g("R", 664, 141, 344, 73, in: Self.list)
@@ -609,6 +605,40 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(classify(root: nil), .unknown)
         XCTAssertEqual(classify(margin: -1), .unknown)
         XCTAssertEqual(classify(after: [CGRect(x: 600, y: 600, width: 10, height: 10)]), .unknown)    // lost the root
+    }
+
+    /// The reads after the click, settled (2026-11-28, 26): the first two reads in a row that are the same are compared;
+    /// a notification in any read is `arrived`; a first read that is clear is taken; reads that never settle fail.
+    private func checkTheSettledReads() {
+        let l = Self.g(Self.list, 658, 42, 350, 172), r = Self.g("R", 658, 42, 350, 77, in: Self.list)
+        let t = Self.g("T", 664, 125, 344, 89, in: Self.list)
+        let before = [l, r, t]
+        let half = [Self.g("T", 658, 42, 350, 171.9993)], done = [Self.g("T", 658, 42, 350, 172)]
+        let half2 = [Self.g("T", 658, 42, 350, 171.5)]
+        func settle(_ reads: [[CenterGroup]], os: Int = 26) -> CenterPressVerdict {
+            CenterLayoutRule.afterClickSettling(beforeClick: before, reads: reads, pressedRoot: "R",
+                                                context: CenterPressContext(press: .promptAnswer, osMajor: os))
+        }
+        XCTAssertEqual(settle([half, done, done]), .clear)                       // settled on the collapse
+        XCTAssertEqual(settle([half, done, done], os: 15), .clear)               // the same on 15
+        XCTAssertEqual(settle([done]), .clear)                                   // a first read that is clear
+        XCTAssertEqual(settle([half, half2, done]), .cannotTell)                 // never two the same
+        XCTAssertEqual(settle([half, half, done]), .cannotTell)                  // settled half way: compared as it is
+        XCTAssertEqual(settle([]), .cannotTell)
+        let came = done + [Self.g("B", 664, 300, 344, 70)]
+        XCTAssertEqual(settle([half, came, done, done]), .arrived)               // came and went before settling
+        let grown = [Self.g("T", 658, 42, 350, 260)]
+        XCTAssertEqual(settle([half, grown, grown]), .cannotTell)                // settled on a growth
+        // When the reads are enough to decide.
+        func enough(_ reads: [[CenterGroup]]) -> Bool {
+            CenterLayoutRule.readsAreDone(beforeClick: before, reads: reads, pressedRoot: "R",
+                                          context: CenterPressContext(press: .promptAnswer, osMajor: 26))
+        }
+        XCTAssertTrue(enough([done]))
+        XCTAssertFalse(enough([half]))
+        XCTAssertFalse(enough([half, half2]))
+        XCTAssertTrue(enough([half, half2, half2]))
+        XCTAssertTrue(enough([half, came]))
     }
 
     func testCenterLayoutDoesNotSeeWhatItsReadsCannotShow() {

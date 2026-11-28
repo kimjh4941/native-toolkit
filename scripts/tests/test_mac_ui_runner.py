@@ -2103,10 +2103,13 @@ class NotificationCenterPress(unittest.TestCase):
                                            "let beforePress = try NotificationCenterRead.groups()",
                                            "guard CenterLayoutRule.beforeClick(atCheck: atCheck, beforeClick: beforePress) == .clear else {",
                                            "element.click()",
-                                           "let afterPress = try NotificationCenterRead.groups()",
                                            "let context = CenterPressContext(press: press, osMajor: SampleUITestCase.osMajorVersion)",
-                                           "switch CenterLayoutRule.afterClick(beforeClick: beforePress, afterClick: afterPress, "
-                                           "pressedRoot: root.groupIdentifier,\n                                           context: context) {")]
+                                           "var reads = [try NotificationCenterRead.groups()]",
+                                           "while !CenterLayoutRule.readsAreDone(beforeClick: beforePress, reads: reads, ",
+                                           "reads.append(try NotificationCenterRead.groups())",
+                                           "var verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: reads,",
+                                           "if verdict == .arrived, let banner {",
+                                           "switch verdict {")]
         self.assertEqual(order, sorted(order))
         # Each press names its kind; only the answer to the permission prompt is `.promptAnswer` (vm26 review v1 A-2).
         for call, press in (("try pressInCenter(element, root: root, press: .body,", 1),
@@ -2116,7 +2119,10 @@ class NotificationCenterPress(unittest.TestCase):
                             ("try pressInCenter(item, root: prompt, press: .promptAnswer,", 1)):
             self.assertEqual(self.text.count(call), press, call)
         self.assertEqual(self.text.count("press: .promptAnswer"), 1)
-        after = helper[helper.index("switch CenterLayoutRule.afterClick("):]
+        after = helper[helper.index("switch verdict {"):]
+        # The sample's own banner is set aside only when it is the one group that came and is the expected root.
+        self.assertIn("if arrived.count == 1, let identifier = arrived.first, isRoot(of: banner, identifier: identifier) {", helper)
+        self.assertEqual(self.text.count("expecting: banner)"), 1)   # only answerPermissionPrompt passes it on (NP3)
         self.assertEqual(after.count("        case .clear:\n            break\n"), 1)   # only .clear goes on
         self.assertEqual(after.count("throw SampleUITestError"), 2)
         groups = self.text[self.text.index("static func groups()"):self.text.index("/// Frames of the menus")]
@@ -2146,6 +2152,7 @@ class NotificationCenterPress(unittest.TestCase):
         after = after[:after.index("\n    }\n")]
         self.assertIn("checkWhatARightPressDoesOn15()", after)
         self.assertIn("checkNoExceptionFromFramesAlone()", after)
+        self.assertIn("checkTheSettledReads()", after)
 
 
 class Commands(unittest.TestCase):

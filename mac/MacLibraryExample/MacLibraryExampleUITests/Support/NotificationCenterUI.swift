@@ -258,7 +258,7 @@ struct NotificationCenterUI {
             Thread.sleep(forTimeInterval: wait)
         }
         let element = try self.element(root)
-        try pressInCenter(element, root: root, press: .body, kind: { .banner(rootFrame: try self.element(root).frame) },
+        _ = try pressInCenter(element, root: root, press: .body, kind: { .banner(rootFrame: try self.element(root).frame) },
                           sampleIs: expected, name: "body of \(root.anchor.title)")
     }
 
@@ -307,7 +307,7 @@ struct NotificationCenterUI {
             Thread.sleep(forTimeInterval: 0.1)
         }
         let options = try exactlyOne(optionsQuery(in: try element(root)), "Options in the root", step: .notificationAction)
-        try pressInCenter(options, root: root, press: .options, kind: { .banner(rootFrame: try self.element(root).frame) },
+        _ = try pressInCenter(options, root: root, press: .options, kind: { .banner(rootFrame: try self.element(root).frame) },
                           sampleIs: expected, name: "Options of \(root.anchor.title)")
         try waitForOneOpenMenu()
     }
@@ -356,7 +356,7 @@ struct NotificationCenterUI {
     func choose(_ title: String, of root: NotificationRoot, sampleIs expected: SampleStateAtPress) throws {
         _ = try element(root)
         let item = try menuItem(title)
-        try pressInCenter(item, root: root, press: .menuItem, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
+        _ = try pressInCenter(item, root: root, press: .menuItem, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
                           sampleIs: expected, name: "menu item \(title)")
     }
 
@@ -504,7 +504,12 @@ struct NotificationCenterUI {
     }
 
     /// Answers the prompt: hover, its `Options`, then `Allow` or `Don’t Allow` (exactly one each).
-    func answerPermissionPrompt(_ prompt: NotificationRoot, allow: Bool, _ token: NCSettingsToken) throws {
+    /// `expecting`: the sample's banner that this answer brings (NP3: ShowImmediate shows once allowed). Returns that
+    /// banner's root when the reads after the answer already saw it (it may be gone by the time the test looks: the
+    /// reads settle for up to 3 seconds and a banner shows for about 5).
+    @discardableResult
+    func answerPermissionPrompt(_ prompt: NotificationRoot, allow: Bool, _ token: NCSettingsToken,
+                                expecting banner: BannerAnchor? = nil) throws -> NotificationRoot? {
         let wait = Self.settleAfterAppear - Date().timeIntervalSince(prompt.appearedAt)
         if wait > 0 {
             Thread.sleep(forTimeInterval: wait)
@@ -526,7 +531,7 @@ struct NotificationCenterUI {
         }
         let options = try exactlyOne(optionsQuery(in: try promptElement(prompt)), "Options of the prompt",
                                      step: .permissionPrompt)
-        try pressInCenter(options, root: prompt, press: .promptOptions, kind: { .banner(rootFrame: try self.promptElement(prompt).frame) },
+        _ = try pressInCenter(options, root: prompt, press: .promptOptions, kind: { .banner(rootFrame: try self.promptElement(prompt).frame) },
                           sampleIs: nil, name: "Options of the permission prompt")
         try waitForOneOpenMenu()
         let titles = allow ? SystemLabels.permissionAllow : SystemLabels.permissionDontAllow
@@ -540,7 +545,8 @@ struct NotificationCenterUI {
             throw SampleUITestError(.permissionPrompt, "\(items.count) items \(titles[0]) in the prompt's menu")
         }
         _ = try promptElement(prompt)
-        try pressInCenter(item, root: prompt, press: .promptAnswer, kind: { .menuItem }, sampleIs: nil, name: "permission item \(titles[0])")
+        return try pressInCenter(item, root: prompt, press: .promptAnswer, kind: { .menuItem }, sampleIs: nil,
+                                 name: "permission item \(titles[0])", expecting: banner)
     }
 
     // MARK: Checks (design 5.0)
@@ -557,7 +563,8 @@ struct NotificationCenterUI {
     /// revised 2026-11-28; Codex presscenter review v1 A-1).
     private func pressInCenter(_ element: XCUIElement, root: NotificationRoot, press: CenterPressContext.Press,
                                kind: () throws -> NotificationPressKind,
-                               sampleIs expected: SampleStateAtPress?, name: String) throws {
+                               sampleIs expected: SampleStateAtPress?, name: String,
+                               expecting banner: BannerAnchor? = nil) throws -> NotificationRoot? {
         let atCheck = try NotificationCenterRead.groups()
         try checkBeforePress(element, kind: kind, sampleIs: expected, name: name)
         let beforePress = try NotificationCenterRead.groups()
@@ -565,10 +572,30 @@ struct NotificationCenterUI {
             throw SampleUITestError(.overlay, "Notification Center changed between the check and \(name); nothing was pressed")
         }
         element.click()
-        let afterPress = try NotificationCenterRead.groups()
+        // Read until the reads settle (2026-11-28: 26 reads half way through its animations); see afterClickSettling.
         let context = CenterPressContext(press: press, osMajor: SampleUITestCase.osMajorVersion)
-        switch CenterLayoutRule.afterClick(beforeClick: beforePress, afterClick: afterPress, pressedRoot: root.groupIdentifier,
-                                           context: context) {
+        var reads = [try NotificationCenterRead.groups()]
+        let deadline = Date().addingTimeInterval(CenterLayoutRule.settleTimeout)
+        while !CenterLayoutRule.readsAreDone(beforeClick: beforePress, reads: reads, pressedRoot: root.groupIdentifier,
+                                             context: context, expectingBanner: banner != nil), Date() < deadline {
+            Thread.sleep(forTimeInterval: CenterLayoutRule.settleInterval)
+            reads.append(try NotificationCenterRead.groups())
+        }
+        var verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: reads,
+                                                          pressedRoot: root.groupIdentifier, context: context)
+        // NP3 (2026-11-28, 26: the settled reads see it): allowing ShowImmediate brings the sample's own banner. Only that
+        // one group is set aside, and only when it is the one group that came and is the root of `banner` (its whole
+        // label, as `waitForRoot` finds it); the rest is compared as before.
+        var broughtRoot: NotificationRoot?
+        if verdict == .arrived, let banner {
+            let arrived = CenterLayoutRule.arrivedIdentifiers(beforeClick: beforePress, reads: reads)
+            if arrived.count == 1, let identifier = arrived.first, isRoot(of: banner, identifier: identifier) {
+                verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: CenterLayoutRule.without(identifier, reads),
+                                                              pressedRoot: root.groupIdentifier, context: context)
+                broughtRoot = NotificationRoot(anchor: banner, groupIdentifier: identifier, appearedAt: Date())
+            }
+        }
+        switch verdict {
         case .clear:
             break
         case .arrived:
@@ -577,6 +604,13 @@ struct NotificationCenterUI {
             throw SampleUITestError(.overlay, "Notification Center changed while pressing \(name) in a way the reads cannot tell apart; the press may have reached another notification")
         }
         try session.checkInterruption()
+        return broughtRoot
+    }
+
+    /// Whether the one group of `identifier` is the sample's root of `banner` (the whole label).
+    private func isRoot(of banner: BannerAnchor, identifier: String) -> Bool {
+        let groups = center.groups.matching(identifier: identifier)
+        return groups.count == 1 && banner.matches(groups.element.label)
     }
 
     /// `expected` nil: any sample state (the permission prompt).
