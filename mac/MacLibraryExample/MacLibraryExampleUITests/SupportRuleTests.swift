@@ -607,38 +607,67 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(classify(after: [CGRect(x: 600, y: 600, width: 10, height: 10)]), .unknown)    // lost the root
     }
 
-    /// The reads after the click, settled (2026-11-28, 26): the first two reads in a row that are the same are compared;
-    /// a notification in any read is `arrived`; a first read that is clear is taken; reads that never settle fail.
+    /// The reads after the click, settled (2026-11-28, 26; settle review v1): the first two reads in a row that are the
+    /// same, taken before the deadline, are compared; a notification in any read is `arrived`; a first read that is
+    /// clear and the only read is taken; a step before the settled pair that is not clear fails unless, on 26, it lies
+    /// between the reads before and the settled read.
     private func checkTheSettledReads() {
         let l = Self.g(Self.list, 658, 42, 350, 172), r = Self.g("R", 658, 42, 350, 77, in: Self.list)
         let t = Self.g("T", 664, 125, 344, 89, in: Self.list)
         let before = [l, r, t]
         let half = [Self.g("T", 658, 42, 350, 171.9993)], done = [Self.g("T", 658, 42, 350, 172)]
         let half2 = [Self.g("T", 658, 42, 350, 171.5)]
-        func settle(_ reads: [[CenterGroup]], os: Int = 26) -> CenterPressVerdict {
-            CenterLayoutRule.afterClickSettling(beforeClick: before, reads: reads, pressedRoot: "R",
-                                                context: CenterPressContext(press: .promptAnswer, osMajor: os))
+        func reads(_ groups: [[CenterGroup]], every step: TimeInterval = 0.3, banner: [String?] = []) -> [CenterRead] {
+            groups.enumerated().map { CenterRead($1, at: Double($0) * step, expectedBanner: $0 < banner.count ? banner[$0] : nil) }
         }
-        XCTAssertEqual(settle([half, done, done]), .clear)                       // settled on the collapse
-        XCTAssertEqual(settle([half, done, done], os: 15), .clear)               // the same on 15
-        XCTAssertEqual(settle([done]), .clear)                                   // a first read that is clear
-        XCTAssertEqual(settle([half, half2, done]), .cannotTell)                 // never two the same
-        XCTAssertEqual(settle([half, half, done]), .cannotTell)                  // settled half way: compared as it is
+        func settle(_ rs: [CenterRead], os: Int = 26, press: CenterPressContext.Press = .promptAnswer, root: String = "R",
+                    from: [CenterGroup]? = nil) -> CenterPressVerdict {
+            CenterLayoutRule.afterClickSettling(beforeClick: from ?? before, reads: rs, deadline: 3, pressedRoot: root,
+                                                context: CenterPressContext(press: press, osMajor: os))
+        }
+        XCTAssertEqual(settle(reads([half, done, done])), .clear)                 // a step of the collapse, then settled
+        XCTAssertEqual(settle(reads([half, done, done]), os: 15), .cannotTell)    // 15 keeps every step (strict)
+        XCTAssertEqual(settle(reads([done])), .clear)                             // one read, clear
+        XCTAssertEqual(settle(reads([half, half2, done])), .cannotTell)           // never two the same
+        XCTAssertEqual(settle(reads([half, half, done])), .cannotTell)            // settled half way: compared as it is
         XCTAssertEqual(settle([]), .cannotTell)
-        let came = done + [Self.g("B", 664, 300, 344, 70)]
-        XCTAssertEqual(settle([half, came, done, done]), .arrived)               // came and went before settling
+        XCTAssertEqual(settle(reads([half, done, done], every: 1.6)), .cannotTell) // the pair only after the deadline (B-2)
+        let came = done + [Self.g("D", 664, 300, 344, 70)]
+        XCTAssertEqual(settle(reads([half, came, done, done])), .arrived)         // came and went before settling
         let grown = [Self.g("T", 658, 42, 350, 260)]
-        XCTAssertEqual(settle([half, grown, grown]), .cannotTell)                // settled on a growth
+        XCTAssertEqual(settle(reads([half, grown, grown])), .cannotTell)          // settled on a growth
+        // A-1: a step that is not between before and settled is kept, though the reads settle clear.
+        let s0 = [Self.g("R", 600, 40, 360, 80), Self.g("T", 600, 130, 360, 80)]
+        XCTAssertEqual(settle(reads([s0 + [Self.g("", 600, 310, 360, 80)], s0, s0]), press: .options, from: s0), .cannotTell)
+        XCTAssertEqual(settle(reads([[s0[0], Self.g("T", 600, 130, 360, 160)], s0, s0]), press: .options, from: s0), .cannotTell)
+        // A-2, B-1: the expected banner is set aside only as the one identifier that came and was confirmed in a read's
+        // own snapshot; the settled reads without it must still be clear, and no first-read shortcut applies.
+        let b = Self.g("B", 664, 220, 344, 73, in: Self.list)
+        let bannerOnly = reads([done + [b], done + [b], done + [b]], banner: ["B", "B", "B"])
+        XCTAssertEqual(settle(bannerOnly), .clear)
+        let unconfirmed = reads([done + [b], done + [b], done + [b]])
+        XCTAssertEqual(settle(unconfirmed), .arrived)                             // never confirmed in a snapshot
+        let p = Self.g("P", 600, 40, 360, 80), tt = Self.g("T", 600, 130, 360, 80), bb = Self.g("B", 600, 300, 360, 80)
+        let tPlus = Self.g("T", 600, 130, 360, 160)
+        XCTAssertEqual(settle(reads([[tt, bb], [tPlus, bb], [tPlus, bb]], banner: ["B", "B", "B"]), root: "P", from: [p, tt]),
+                       .cannotTell)                                               // the review's A-2 example
+        let other = Self.g("D", 600, 400, 360, 80)
+        XCTAssertEqual(settle(reads([done + [b, other], done + [b], done + [b]], banner: ["B", "B", "B"])), .arrived)
+        // A-3: on 26 a width that grew while the height shrank (and the reverse) is a growth.
+        let w = [Self.g("R", 664, 300, 344, 73), Self.g("T", 664, 125, 344, 89)]
+        XCTAssertEqual(after(w, [w[0], Self.g("T", 658, 125, 350, 85)], press: .options, os: 26), .cannotTell)
+        XCTAssertEqual(after(w, [w[0], Self.g("T", 666, 125, 342, 95)], press: .options, os: 26), .cannotTell)
         // When the reads are enough to decide.
-        func enough(_ reads: [[CenterGroup]]) -> Bool {
-            CenterLayoutRule.readsAreDone(beforeClick: before, reads: reads, pressedRoot: "R",
-                                          context: CenterPressContext(press: .promptAnswer, osMajor: 26))
+        func enough(_ groups: [[CenterGroup]], expecting: Bool = false) -> Bool {
+            CenterLayoutRule.readsAreDone(beforeClick: before, reads: reads(groups), pressedRoot: "R",
+                                          context: CenterPressContext(press: .promptAnswer, osMajor: 26), expectingBanner: expecting)
         }
         XCTAssertTrue(enough([done]))
         XCTAssertFalse(enough([half]))
         XCTAssertFalse(enough([half, half2]))
         XCTAssertTrue(enough([half, half2, half2]))
         XCTAssertTrue(enough([half, came]))
+        XCTAssertFalse(enough([half, came], expecting: true))
     }
 
     func testCenterLayoutDoesNotSeeWhatItsReadsCannotShow() {

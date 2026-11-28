@@ -264,6 +264,21 @@ enum CenterPressVerdict: Equatable {
     case cannotTell
 }
 
+/// One read of Notification Center after a click (settle review v1): its groups, when it was taken (seconds after the
+/// click, monotonic), and the identifier of the expected banner when this same snapshot holds exactly one group with
+/// the banner's whole label.
+struct CenterRead: Equatable {
+    let groups: [CenterGroup]
+    let at: TimeInterval
+    let expectedBanner: String?
+
+    init(_ groups: [CenterGroup], at: TimeInterval = 0, expectedBanner: String? = nil) {
+        self.groups = groups
+        self.at = at
+        self.expectedBanner = expectedBanner
+    }
+}
+
 /// What was pressed and on which macOS (vm26 review v1 A-2): the exceptions seen on 26 apply only on 26 and only to the
 /// press they were seen with; 15 keeps the strict comparison.
 struct CenterPressContext: Equatable {
@@ -382,7 +397,13 @@ enum CenterLayoutRule {
         }
         for (identifier, groups) in after where identifier != pressedRoot && !isList(identifier) {
             let own = groups.filter { !partOfRoot($0) }
-            let grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
+            // 26 (settle review v1 A-3): a growth of the width or of the height, each on its own; 15 as before (the area).
+            let grown: Bool
+            if on26, own.count == 1, before[identifier]?.count == 1, let old = before[identifier]?.first {
+                grown = own[0].frame.width > old.frame.width || own[0].frame.height > old.frame.height
+            } else {
+                grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
+            }
             if grown && !collapsedOnto(identifier, own) && !highlightMovedFromRoot(identifier, own) {
                 return .cannotTell
             }
@@ -431,42 +452,90 @@ enum CenterLayoutRule {
         frame.width * frame.height
     }
 
-    /// The reads after the click, the first right after it and then one every `settleInterval` (2026-11-28: 26 reads
-    /// Notification Center half way through its animations). A notification that came in any read is `arrived`. A
-    /// first read that is `clear` is taken as before. Otherwise the reads must settle: the first two reads in a row
-    /// that are the same groups (identifier, frame and parent) are compared; reads that never settle are `cannotTell`.
-    /// Not seen: a group without an identifier, or a growth, that came and went before the reads settled.
-    static func afterClickSettling(beforeClick: [CenterGroup], reads: [[CenterGroup]], pressedRoot: String,
-                                   context: CenterPressContext) -> CenterPressVerdict {
+    /// The reads after the click (settle review v1). Each read carries the time it was taken, counted from the click
+    /// on a monotonic clock, and the identifier of the sample's expected banner when that same snapshot holds exactly
+    /// one group with the banner's whole label (`expectedBanner`).
+    ///
+    /// - The expected banner (NP3) is set aside only when it is the one identifier that came in any read and some read
+    ///   confirmed it in its own snapshot; any other identifier that came in any read is `arrived`.
+    /// - A first read that is `clear` and is the only read is taken as it is.
+    /// - Otherwise the reads must settle before `deadline`: the first two reads in a row that are the same groups
+    ///   (identifier, frame and parent), the second taken before the deadline, are compared.
+    /// - Every read before that pair must be clear, or, on 26 only, a step of an animation towards the settled read:
+    ///   every named group inside the box of its frames before and settled (a list anywhere, a group without an
+    ///   identifier only when unchanged from before or as the closing prompt). A read that was not is kept: the result
+    ///   is `cannotTell` even when the reads settle clear.
+    static func afterClickSettling(beforeClick: [CenterGroup], reads: [CenterRead], deadline: TimeInterval,
+                                   pressedRoot: String, context: CenterPressContext) -> CenterPressVerdict {
         guard !reads.isEmpty else {
             return .cannotTell
         }
-        let verdicts = reads.map { afterClick(beforeClick: beforeClick, afterClick: $0, pressedRoot: pressedRoot, context: context) }
+        let arrived = arrivedIdentifiers(beforeClick: beforeClick, reads: reads.map(\.groups))
+        let confirmed = Set(reads.compactMap(\.expectedBanner))
+        var groupsRead = reads.map(\.groups)
+        if !arrived.isEmpty {
+            guard arrived.count == 1, confirmed == arrived, let banner = arrived.first else {
+                return .arrived
+            }
+            groupsRead = without(banner, groupsRead)
+        }
+        let verdicts = groupsRead.map { afterClick(beforeClick: beforeClick, afterClick: $0, pressedRoot: pressedRoot, context: context) }
         if verdicts.contains(.arrived) {
             return .arrived
         }
-        if verdicts[0] == .clear {
-            return .clear
+        if groupsRead.count == 1 {
+            return verdicts[0] == .clear ? .clear : .cannotTell
         }
-        for index in reads.indices.dropFirst() where sameGroups(reads[index - 1], reads[index]) {
-            return verdicts[index]
+        guard let settled = groupsRead.indices.dropFirst().first(where: {
+            sameGroups(groupsRead[$0 - 1], groupsRead[$0]) && reads[$0].at <= deadline
+        }) else {
+            return .cannotTell
         }
-        return .cannotTell
+        for index in 0..<(settled - 1) where verdicts[index] != .clear {
+            guard context.osMajor >= 26, stepTowards(groupsRead[settled], groupsRead[index], beforeClick: beforeClick,
+                                                     pressedRoot: pressedRoot, context: context) else {
+                return .cannotTell
+            }
+        }
+        return verdicts[settled]
     }
 
-    /// Whether the reads so far are enough for `afterClickSettling`: the first is clear, one has a new notification
-    /// (unless the press is expected to bring the sample's own banner: then the reads go on until they settle with it,
+    /// 26: whether `step` lies between the reads before the click and `settled` (an animation half way).
+    private static func stepTowards(_ settled: [CenterGroup], _ step: [CenterGroup], beforeClick: [CenterGroup],
+                                    pressedRoot: String, context: CenterPressContext) -> Bool {
+        for group in step {
+            if group.identifier.isEmpty {
+                let unchanged = beforeClick.contains(group)
+                let closingPrompt = context.press == .promptAnswer &&
+                    beforeClick.contains { $0.identifier == pressedRoot && $0.frame == group.frame && $0.parent == group.parent }
+                guard unchanged || closingPrompt else { return false }
+                continue
+            }
+            if listIdentifiers.contains(group.identifier) {
+                continue
+            }
+            let frames = (beforeClick + settled).filter { $0.identifier == group.identifier }.map(\.frame)
+            guard let first = frames.first else { return false }
+            let box = frames.dropFirst().reduce(first) { $0.union($1) }
+            let list = beforeClick.first { listIdentifiers.contains($0.identifier) && $0.identifier == group.parent }?.frame
+            guard box.contains(group.frame) || (list?.contains(group.frame) ?? false) else { return false }
+        }
+        return true
+    }
+
+    /// Whether the reads so far are enough for `afterClickSettling`: the first and only read is clear, a read has a
+    /// new notification other than the expected banner (with an expected banner the reads go on until they settle,
     /// NP3), or the last two are the same.
-    static func readsAreDone(beforeClick: [CenterGroup], reads: [[CenterGroup]], pressedRoot: String,
+    static func readsAreDone(beforeClick: [CenterGroup], reads: [CenterRead], pressedRoot: String,
                              context: CenterPressContext, expectingBanner: Bool = false) -> Bool {
         guard let last = reads.last else {
             return false
         }
-        let verdict = afterClick(beforeClick: beforeClick, afterClick: last, pressedRoot: pressedRoot, context: context)
+        let verdict = afterClick(beforeClick: beforeClick, afterClick: last.groups, pressedRoot: pressedRoot, context: context)
         if (verdict == .arrived && !expectingBanner) || (reads.count == 1 && verdict == .clear) {
             return true
         }
-        return reads.count >= 2 && sameGroups(reads[reads.count - 2], last)
+        return reads.count >= 2 && sameGroups(reads[reads.count - 2].groups, last.groups)
     }
 
     /// The identifiers that are there more times after the click than before (the notifications that came).

@@ -645,6 +645,11 @@ class TwoVMs(unittest.TestCase):
         self.assertIn('if ! defaults read com.apple.ncprefs apps 2>/dev/null | grep -qF "${SAMPLE_ID}"; then', reset)
         prepare = function_body(text, "vm_prepare")
         self.assertIn('  if [[ "$(vm_os_major)" -ge 26 ]]; then\n    vm_nc_group dnd-off || {', prepare)
+        # 26: other apps' notifications are removed before the run, and the removal is checked (2026-11-29).
+        self.assertIn("    vm_nc_drop_other_apps\n", prepare)
+        drop = function_body(text, "vm_nc_drop_other_apps")
+        self.assertIn("delete from record where app_id in (select app_id from app where identifier != '${SAMPLE_ID}');", drop)
+        self.assertIn('[[ "${left}" == 0 ]] || {', drop)
         self.assertEqual(function_body(SCRIPT.read_text(), "vm_os_major").strip(),
                          "/usr/bin/sw_vers -productVersion | /usr/bin/cut -d. -f1")
         self.assertIn('p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")', prepare)
@@ -2104,11 +2109,12 @@ class NotificationCenterPress(unittest.TestCase):
                                            "guard CenterLayoutRule.beforeClick(atCheck: atCheck, beforeClick: beforePress) == .clear else {",
                                            "element.click()",
                                            "let context = CenterPressContext(press: press, osMajor: SampleUITestCase.osMajorVersion)",
-                                           "var reads = [try NotificationCenterRead.groups()]",
+                                           "let clicked = ProcessInfo.processInfo.systemUptime",
+                                           "var reads = [try NotificationCenterRead.read(expecting: banner, at: since())]",
                                            "while !CenterLayoutRule.readsAreDone(beforeClick: beforePress, reads: reads, ",
-                                           "reads.append(try NotificationCenterRead.groups())",
-                                           "var verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: reads,",
-                                           "if verdict == .arrived, let banner {",
+                                           "reads.append(try NotificationCenterRead.read(expecting: banner, at: since()))",
+                                           "let verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: reads, "
+                                           "deadline: CenterLayoutRule.settleTimeout,",
                                            "switch verdict {")]
         self.assertEqual(order, sorted(order))
         # Each press names its kind; only the answer to the permission prompt is `.promptAnswer` (vm26 review v1 A-2).
@@ -2120,20 +2126,25 @@ class NotificationCenterPress(unittest.TestCase):
             self.assertEqual(self.text.count(call), press, call)
         self.assertEqual(self.text.count("press: .promptAnswer"), 1)
         after = helper[helper.index("switch verdict {"):]
-        # The sample's own banner is set aside only when it is the one group that came and is the expected root.
-        self.assertIn("if arrived.count == 1, let identifier = arrived.first, isRoot(of: banner, identifier: identifier) {", helper)
+        # The sample's own banner is confirmed in each read's own snapshot (settle review v1 B-1).
+        read = self.text[self.text.index("static func read(expecting banner: BannerAnchor?"):self.text.index("/// Frames of the menus")]
+        self.assertIn("if let banner, !node.identifier.isEmpty, banner.matches(node.label) {", read)
+        self.assertIn("expectedBanner: bannerGroups.count == 1 ? bannerGroups[0] : nil)", read)
         self.assertEqual(self.text.count("expecting: banner)"), 1)   # only answerPermissionPrompt passes it on (NP3)
         self.assertEqual(after.count("        case .clear:\n            break\n"), 1)   # only .clear goes on
         self.assertEqual(after.count("throw SampleUITestError"), 2)
         groups = self.text[self.text.index("static func groups()"):self.text.index("/// Frames of the menus")]
         self.assertIn("out.append(CenterGroup(identifier: node.identifier, frame: node.frame, parent: parent))", groups)
         self.assertIn("visit(child, parent: below)", groups)            # the snapshot's parents (CenterLayoutRule review v1)
-        self.assertNotIn(".label", groups)              # identifiers and frames, never labels
+        # Identifiers and frames are kept, never labels; the one label read is compared with the expected banner's whole
+        # label and not kept (settle review v1 B-1).
+        self.assertEqual(groups.count(".label"), 1)
+        self.assertIn("banner.matches(node.label)", groups)
         # Groups without an identifier are compared too (Codex v7 B-1): the only test of the identifier is the one
         # that passes it down as the parent.
         self.assertIn("            if node.elementType == .group, node.frame.width > 0, node.frame.height > 0 {\n"
                       "                out.append(", groups)
-        self.assertEqual(groups.count("identifier.isEmpty"), 1)
+        self.assertEqual(groups.count("identifier.isEmpty"), 2)   # the parent, and a banner needs an identifier
         self.assertIn("            if node.elementType == .group, !node.identifier.isEmpty {\n                below = node.identifier",
                       groups)
 

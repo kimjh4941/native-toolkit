@@ -54,6 +54,13 @@ enum NotificationCenterRead {
     /// Groups without an area are left out (nothing on the screen to take a click); a group without an area still
     /// passes its identifier down as the parent. `CenterLayoutRule` compares them (runner review v7: Codex B-1).
     static func groups() throws -> [CenterGroup] {
+        try read(expecting: nil, at: 0).groups
+    }
+
+    /// One read after a click: the groups as `groups()` gives them and, from the same snapshot, the identifier of the
+    /// one group whose whole label is `banner`'s (none, or two or more, is nil). The label is compared, never kept
+    /// (settle review v1 B-1).
+    static func read(expecting banner: BannerAnchor?, at time: TimeInterval) throws -> CenterRead {
         let root: XCUIElementSnapshot
         do {
             root = try center.snapshot()
@@ -61,11 +68,15 @@ enum NotificationCenterRead {
             throw SampleUITestError(.overlay, "Notification Center's tree could not be read")
         }
         var out: [CenterGroup] = []
+        var bannerGroups: [String] = []
         // `parent`: the nearest group above with an identifier (CenterLayoutRule review v1 A-1).
         func visit(_ node: XCUIElementSnapshot, parent: String?) {
             var below = parent
             if node.elementType == .group, node.frame.width > 0, node.frame.height > 0 {
                 out.append(CenterGroup(identifier: node.identifier, frame: node.frame, parent: parent))
+                if let banner, !node.identifier.isEmpty, banner.matches(node.label) {
+                    bannerGroups.append(node.identifier)
+                }
             }
             if node.elementType == .group, !node.identifier.isEmpty {
                 below = node.identifier
@@ -75,7 +86,7 @@ enum NotificationCenterRead {
             }
         }
         visit(root, parent: nil)
-        return out
+        return CenterRead(out, at: time, expectedBanner: bannerGroups.count == 1 ? bannerGroups[0] : nil)
     }
 
     /// Frames of the menus of Notification Center that are open now (outside the menu bar, with a
@@ -573,27 +584,27 @@ struct NotificationCenterUI {
         }
         element.click()
         // Read until the reads settle (2026-11-28: 26 reads half way through its animations); see afterClickSettling.
+        // Times are on a monotonic clock from the click; a read taken after the deadline never counts as settled.
         let context = CenterPressContext(press: press, osMajor: SampleUITestCase.osMajorVersion)
-        var reads = [try NotificationCenterRead.groups()]
-        let deadline = Date().addingTimeInterval(CenterLayoutRule.settleTimeout)
+        let clicked = ProcessInfo.processInfo.systemUptime
+        func since() -> TimeInterval { ProcessInfo.processInfo.systemUptime - clicked }
+        var reads = [try NotificationCenterRead.read(expecting: banner, at: since())]
         while !CenterLayoutRule.readsAreDone(beforeClick: beforePress, reads: reads, pressedRoot: root.groupIdentifier,
-                                             context: context, expectingBanner: banner != nil), Date() < deadline {
-            Thread.sleep(forTimeInterval: CenterLayoutRule.settleInterval)
-            reads.append(try NotificationCenterRead.groups())
+                                             context: context, expectingBanner: banner != nil),
+              since() < CenterLayoutRule.settleTimeout {
+            Thread.sleep(forTimeInterval: min(CenterLayoutRule.settleInterval, max(0, CenterLayoutRule.settleTimeout - since())))
+            reads.append(try NotificationCenterRead.read(expecting: banner, at: since()))
         }
-        var verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: reads,
+        let verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: reads, deadline: CenterLayoutRule.settleTimeout,
                                                           pressedRoot: root.groupIdentifier, context: context)
         // NP3 (2026-11-28, 26: the settled reads see it): allowing ShowImmediate brings the sample's own banner. Only that
         // one group is set aside, and only when it is the one group that came and is the root of `banner` (its whole
         // label, as `waitForRoot` finds it); the rest is compared as before.
+        // NP3: the banner the answer brought, when a read confirmed it in its own snapshot (afterClickSettling set it
+        // aside only then).
         var broughtRoot: NotificationRoot?
-        if verdict == .arrived, let banner {
-            let arrived = CenterLayoutRule.arrivedIdentifiers(beforeClick: beforePress, reads: reads)
-            if arrived.count == 1, let identifier = arrived.first, isRoot(of: banner, identifier: identifier) {
-                verdict = CenterLayoutRule.afterClickSettling(beforeClick: beforePress, reads: CenterLayoutRule.without(identifier, reads),
-                                                              pressedRoot: root.groupIdentifier, context: context)
-                broughtRoot = NotificationRoot(anchor: banner, groupIdentifier: identifier, appearedAt: Date())
-            }
+        if let banner, let identifier = reads.compactMap(\.expectedBanner).first {
+            broughtRoot = NotificationRoot(anchor: banner, groupIdentifier: identifier, appearedAt: Date())
         }
         switch verdict {
         case .clear:
@@ -605,12 +616,6 @@ struct NotificationCenterUI {
         }
         try session.checkInterruption()
         return broughtRoot
-    }
-
-    /// Whether the one group of `identifier` is the sample's root of `banner` (the whole label).
-    private func isRoot(of banner: BannerAnchor, identifier: String) -> Bool {
-        let groups = center.groups.matching(identifier: identifier)
-        return groups.count == 1 && banner.matches(groups.element.label)
     }
 
     /// `expected` nil: any sample state (the permission prompt).

@@ -335,10 +335,27 @@ sys.stdout.buffer.write(plistlib.dumps(d))'
   return "${rc}"
 }
 
+# macOS 26 (2026-11-29 in the 26 VM): notifications of other apps left in Notification Center (Tips, Software Update)
+# stay in its list at the top right; with them there Notification Center put some of the sample's notifications only
+# into its list (9 of 20 without a banner; 0 of 20 once they were gone) and their list covered the panels' items
+# (D8, D10). The VM's own records of every app but the sample are removed before the run (VM only; the records are
+# synthetic system notices), then Notification Center is started again by the caller.
+vm_nc_drop_other_apps() {
+  local db="${HOME}/Library/Group Containers/group.com.apple.usernoted/db2/db" left
+  [[ -f "${db}" ]] || { echo "NTK-VM prepare failed (no notification records)"; exit 1; }
+  /usr/bin/sqlite3 "${db}" "delete from record where app_id in (select app_id from app where identifier != '${SAMPLE_ID}');" \
+    || { echo "NTK-VM prepare failed (notification records)"; exit 1; }
+  left="$(/usr/bin/sqlite3 "${db}" "select count(*) from record r join app a on r.app_id = a.app_id where a.identifier != '${SAMPLE_ID}';")"
+  [[ "${left}" == 0 ]] || { echo "NTK-VM prepare failed (${left} notification records of other apps left)"; exit 1; }
+  killall usernoted 2>/dev/null || true
+  echo "NTK-VM other apps' notifications removed"
+}
+
 vm_prepare() {
   # U-20: banners show while XCUITest records the screen.
   if [[ "$(vm_os_major)" -ge 26 ]]; then
     vm_nc_group dnd-off || { echo "NTK-VM prepare failed (dnd_prefs)"; exit 1; }
+    vm_nc_drop_other_apps
   else
   /usr/bin/python3 - <<'PY'
 import os, plistlib
