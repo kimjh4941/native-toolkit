@@ -482,7 +482,17 @@ vm_ssh() {
   ps -axo args= | runner tart-check --ps - --vm "${VM_NAME}" || exit 96
   vm_ssh_raw "u=\$(/usr/sbin/ioreg -rd1 -c IOPlatformExpertDevice | /usr/bin/awk -F'\"' '/IOPlatformUUID/{print \$4}'); \
 b=\$(/usr/sbin/sysctl -n kern.boottime | /usr/bin/sed -E 's/^\\{ sec = ([0-9]+),.*/\\1/'); \
-[ \"\$u\" = '${VM_UUID}' ] && [ \"\$b\" = '${VM_BOOT}' ] || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }; $*"
+$(vm_identity_check) || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }; $*"
+}
+
+# The check the VM runs on `u` (its IOPlatformUUID) and `b` (the seconds of its kern.boottime): the UUID exactly,
+# and the same boot within VM_BOOT_SLACK seconds. The guest's clock is adjusted while it runs, and that moves
+# kern.boottime across a second's edge (2026-11-28: …503.017 → …502.948); a restart moves it by minutes and
+# stays another VM. A `b` that is not a number is another VM too.
+VM_BOOT_SLACK="5"
+vm_identity_check() {
+  printf '%s' "case \"\$b\" in ''|*[!0-9]*) b=-1 ;; esac; [ \"\$u\" = '${VM_UUID}' ] && [ \"\$b\" -ge 0 ] && \
+[ \$((b - ${VM_BOOT})) -ge -${VM_BOOT_SLACK} ] && [ \$((b - ${VM_BOOT})) -le ${VM_BOOT_SLACK} ]"
 }
 
 vm_op() {  # <op> <run id> [args...]: the in-VM half of this script (stdin is not the caller's)

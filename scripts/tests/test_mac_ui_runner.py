@@ -426,7 +426,9 @@ class Approval(unittest.TestCase):
         # Each value set is a record that exists; this Mac's window owners on 26 stay unchecked, so an
         # approval is still refused (the --approved path stays closed).
         status = r.prerequisite_status(ROOT)
-        self.assertEqual({k: v for k, v in status.items() if v}, {k: v for k, v in r.MAC_RUN_PREREQUISITES.items() if v})
+        if (ROOT / "artifact").is_dir():  # the mutation harness's copy holds no records
+            self.assertEqual({k: v for k, v in status.items() if v},
+                             {k: v for k, v in r.MAC_RUN_PREREQUISITES.items() if v})
         self.assertIsNone(r.MAC_RUN_PREREQUISITES["windowOwnersReadableOn26"])
         self.assertTrue(any(v is None for v in status.values()))
 
@@ -2229,6 +2231,25 @@ class ShellOrder(unittest.TestCase):
         self.assertFalse(re.search(r"FAILED_KEEP=", finish))
         self.assertNotIn("${HOME}/ntk/failed", self.text.replace('FAILED_KEEP="${HOME}/ntk/failed/${run_id}"', ""))
 
+    def test_the_vm_is_the_same_by_its_uuid_and_its_boot_within_seconds(self):
+        # The guest's clock moves kern.boottime across a second's edge (2026-11-28); a restart is minutes away.
+        check = function_body(self.text, "vm_identity_check")
+        self.assertIn('VM_BOOT_SLACK="5"', self.text)
+        self.assertIn("$(vm_identity_check) || { echo 'Error: the VM is not the one that was qualified' >&2; exit 96; }",
+                      function_body(self.text, "vm_ssh"))
+        def same(u, b):
+            script = ('VM_UUID=U-1; VM_BOOT=1000; VM_BOOT_SLACK=5\nvm_identity_check() {\n' + check + '\n}\n'
+                      f'u={u}; b={b}; eval "$(vm_identity_check)" && echo same || echo other')
+            done = subprocess.run(["/bin/bash", "-c", script], capture_output=True, text=True,
+                                  env={"PATH": str(ROOT), "HOME": str(ROOT)})
+            return done.stdout.strip()
+        for b in (1000, 1001, 999, 1005, 995):
+            self.assertEqual(same("U-1", b), "same", b)
+        for b in (1006, 994, 1060, 940, "''", "x1000", "-1000"):
+            self.assertEqual(same("U-1", b), "other", b)
+        self.assertEqual(same("U-2", 1000), "other")      # the UUID stays exact
+        self.assertEqual(same("''", 1000), "other")
+
     def test_the_vm_writes_down_what_each_xcodebuild_left(self):
         capped = function_body(self.text, "capped_group")
         self.assertLess(capped.index('/usr/bin/perl -e "${CAPPED_PERL}"'),
@@ -2336,7 +2357,7 @@ class ShellOrder(unittest.TestCase):
     def test_every_ssh_command_checks_the_vm(self):
         body = function_body(self.text, "vm_ssh")
         self.assertIn('ps -axo args= | runner tart-check --ps - --vm "${VM_NAME}" || exit 96', body)
-        self.assertIn("[ \\\"\\$u\\\" = '${VM_UUID}' ] && [ \\\"\\$b\\\" = '${VM_BOOT}' ] || {", body)
+        self.assertIn("$(vm_identity_check) || {", body)
         self.assertIn("exit 96; }; $*", body)
         self.assertEqual(function_body(self.text, "vm_op").count("vm_ssh "), 1)
         self.assertIn("--in-vm ${op} ${id} ${VM_UUID}", function_body(self.text, "vm_op"))
