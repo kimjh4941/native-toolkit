@@ -213,6 +213,9 @@
           "identifier" : "MacLibraryExampleUITests/MacQualificationProbeTests/testQ4_pasteButtonPassesTheCheck()"
         },
         {
+          "identifier" : "MacLibraryExampleUITests/MacQualificationProbeTests/testR1_replyStaysInTheBanner()"
+        },
+        {
           "identifier" : "MacLibraryExampleUITests/NavigationUITests/testM1a_menuOpensEachScreen()"
         },
         {
@@ -430,6 +433,9 @@
         },
         {
           "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testOverlayStopsAtAnotherAppsWindow()"
+        },
+        {
+          "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testReplyStateFollowsTheRunnersRule()"
         },
         {
           "identifier" : "MacLibraryExampleUITests/SupportRuleTests/testResultLineParsesOnlyTheNumberedShape()"

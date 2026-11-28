@@ -135,9 +135,10 @@ MAC_DEFERRED_TESTS = {
     "ShareUITests/testS4_shareURLCopy": ("ownerUnverified", ("pickerCopy",)),
 }
 PRESS_TARGETS = ("notificationMenuItem", "replyInBanner", "pasteButton", "pickerCopy")
-# The press targets checked on macOS 26 (the results of U-30, now run in the 26 VM, copied here). 2026-11-28, the
-# mac26 stage in the 26 VM (26.6.2): MacQualificationProbeTests Q2 (the menu item), Q3 (Copy) and Q4 (the
-# PasteButton) passed. replyInBanner is the mac26-reply stage, not run yet.
+# The press targets checked on macOS 26: the results of U-30 (run in the 26 VM), copied here by hand after their
+# record is read; the runner never writes this table. 2026-11-28, the mac26 stage in the 26 VM (26.6.2):
+# MacQualificationProbeTests Q2 (the menu item), Q3 (Copy) and Q4 (the PasteButton) passed the check before the
+# press (their owners; the candidates were not pressed). replyInBanner is the mac26-reply stage.
 MAC_VERIFIED_TARGETS = frozenset({"notificationMenuItem", "pickerCopy", "pasteButton"})
 # Tests of the qualification stages (U-30): never in a normal run or a baseline. mac26 and mac26-reply run in
 # the 26 VM (`--where vm26`), vm-ja in the 15 VM (D-21 revised 2026-11-28).
@@ -146,7 +147,7 @@ QUALIFICATION_ONLY_TESTS = {
                         "MacQualificationProbeTests/testQ2_notificationMenuItemPassesTheCheck",
                         "MacQualificationProbeTests/testQ3_pickerCopyPassesTheCheck",
                         "MacQualificationProbeTests/testQ4_pasteButtonPassesTheCheck"}),
-    "mac26-reply": frozenset(), "vm-ja": frozenset()}
+    "mac26-reply": frozenset({"MacQualificationProbeTests/testR1_replyStaysInTheBanner"}), "vm-ja": frozenset()}
 QUALIFICATION_WHERE = {"mac26": "vm26", "mac26-reply": "vm26", "vm-ja": "vm"}
 # Exclusions per environment (U-33: if the back button cannot be pressed on 26 either). Empty.
 ENVIRONMENT_EXCLUSIONS = {"vm": {}, "vm26": {}, "mac": {}}
@@ -183,9 +184,9 @@ FROZEN_METHODS = {
 # the closing root and the moving highlight, the probes' checks without a press, the panel column scrolled in).
 BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
-    "Support/NotificationCenterUI.swift": "1e62ebab5e86820b3d106fdbb11f72e9dda2a24bf6e4cf076c7f58fabc874098",
+    "Support/NotificationCenterUI.swift": "3ab6e11299eecdb417301d7c1a303ae9fcd9d0457dc79d2aff7362a71b4d3901",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
-    "Support/NotificationRules.swift": "c1f7d156e70687a1bc5ab0144e80f79e935e497e8847ae705365601e60543565",
+    "Support/NotificationRules.swift": "ed2bd96cd2420244e00ff3f766fdd25e7974f07a76137004663434bd5edbe30b",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
     "Support/OtherApps.swift": "165dfc696861f02159cc53a1fddeaacf156124a5929dd492936a524bd7bc56dc",
     "Support/Panels.swift": "04a858f6e6aae1ca4b5d4cc61bc09c2a340b7c358b686ae9f7db3d58161917e3",

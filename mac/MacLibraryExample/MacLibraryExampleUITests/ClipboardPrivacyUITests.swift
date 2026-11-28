@@ -26,8 +26,16 @@ final class ClipboardPrivacyUITests: SampleUITestCase {
     private var written = 0
 
     /// With the preview, the general pasteboard's access behavior reads `ask` (without it,
-    /// `alwaysAllow` on the 15.8.3 VM. Stage 0c 3.3).
-    private static let accessBehaviorWithPreview = "ask"
+    /// `alwaysAllow` on the 15.8.3 VM. Stage 0c 3.3). On 26 (26.6.2 in the VM, 2026-11-28) it reads `default` until
+    /// the sample's first answer and `ask` after it; with either the confirmation comes (CB4 passed from `default`),
+    /// and without the preview it reads `alwaysAllow` as on 15. 15's expectation is unchanged.
+    private static var accessBehaviorsWithPreview: [String] {
+        SampleUITestCase.osMajorVersion >= 26 ? ["ask", "default"] : ["ask"]
+    }
+
+    private func isPreviewBehavior(_ text: String) -> Bool {
+        Self.accessBehaviorsWithPreview.contains { text == ClipboardWaitRule.expected(success: true, label: "accessBehavior", $0) }
+    }
 
     override func setUpAfterGate() throws {
         clipboard = try clipboardToken()
@@ -43,8 +51,8 @@ final class ClipboardPrivacyUITests: SampleUITestCase {
         let before = try sample.resultSequence(.clipboard)
         try sample.pressClipboardButton("AccessBehavior", clipboard)
         let text = try sample.waitForNextClipboardResult(after: before, label: "accessBehavior")
-        guard text == ClipboardWaitRule.expected(success: true, label: "accessBehavior", Self.accessBehaviorWithPreview) else {
-            throw SampleUITestError(.precondition, "NTK-PRECONDITION:pastePrivacyPreview the access behavior is not \(Self.accessBehaviorWithPreview): \(text)")
+        guard isPreviewBehavior(text) else {
+            throw SampleUITestError(.precondition, "NTK-PRECONDITION:pastePrivacyPreview the access behavior is not \(Self.accessBehaviorsWithPreview): \(text)")
         }
         try sample.expectNoFurtherResult(.clipboard, sequence: before + 1)
     }
@@ -111,7 +119,10 @@ final class ClipboardPrivacyUITests: SampleUITestCase {
     func testCB6_accessBehaviorAndDetectionAskNothing() throws {
         var before = try sample.resultSequence(.clipboard)
         try sample.pressClipboardButton("AccessBehavior", clipboard)
-        try expectResult(after: before, label: "accessBehavior", Self.accessBehaviorWithPreview)
+        let behavior = try sample.waitForNextClipboardResult(after: before, label: "accessBehavior")
+        XCTAssertTrue(isPreviewBehavior(behavior), "access behavior: \(behavior)")
+        try prompt.waitGone()
+        try sample.expectNoFurtherResult(.clipboard, sequence: before + 1)
 
         before = try sample.resultSequence(.clipboard)
         try sample.pressClipboardButton("DetectPatterns", clipboard)

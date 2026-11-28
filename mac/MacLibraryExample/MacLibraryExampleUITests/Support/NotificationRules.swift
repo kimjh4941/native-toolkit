@@ -264,6 +264,16 @@ enum CenterPressVerdict: Equatable {
     case cannotTell
 }
 
+/// What was pressed and on which macOS (vm26 review v1 A-2): the exceptions seen on 26 apply only on 26 and only to the
+/// press they were seen with; 15 keeps the strict comparison.
+struct CenterPressContext: Equatable {
+    enum Press: Equatable {
+        case body, options, menuItem, promptOptions, promptAnswer
+    }
+    let press: Press
+    let osMajor: Int
+}
+
 /// The comparison of `pressInCenter`, cut out so that `SupportRuleTests` gives it made-up reads. This is detection
 /// in the VM, not a guard (UI tests never run on this Mac; D-21 revised 2026-11-28).
 ///
@@ -278,11 +288,6 @@ enum CenterLayoutRule {
     /// Only such a group, holding banners before the click, may grow without being a notification.
     static let listIdentifiers: Set<String> = ["AXNotificationListItems"]
 
-    /// The most a banner's highlight under the pointer adds to its frame each way (26.6.2: 6 and 4 points).
-    static let highlightLimit: CGFloat = 8
-
-    /// One group before and after the click.
-    typealias GroupPair = (before: CenterGroup, after: CenterGroup)
 
     /// Right before the click against the read when the check started: the same groups, each with the same
     /// identifier, exactly the same frame and the same parent (as a multiset: their order does not matter).
@@ -297,12 +302,14 @@ enum CenterLayoutRule {
     /// brings a group. `pressedRoot` is the identifier of
     /// the root whose part was pressed. Every exception is taken from the snapshot's parents, never from frames
     /// that happen to contain each other (CenterLayoutRule review v1 A-1, A-2).
-    static func afterClick(beforeClick: [CenterGroup], afterClick: [CenterGroup], pressedRoot: String) -> CenterPressVerdict {
+    static func afterClick(beforeClick: [CenterGroup], afterClick: [CenterGroup], pressedRoot: String,
+                           context: CenterPressContext) -> CenterPressVerdict {
         let before = Dictionary(grouping: beforeClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
         let after = Dictionary(grouping: afterClick.filter { !$0.identifier.isEmpty }, by: \.identifier)
         for (identifier, groups) in after where groups.count > (before[identifier]?.count ?? 0) {
             return .arrived
         }
+        let on26 = context.osMajor >= 26
         // The pressed root's own parts: below it in the snapshot.
         func partOfRoot(_ group: CenterGroup) -> Bool {
             !pressedRoot.isEmpty && group.identifier != pressedRoot && group.parent == pressedRoot
@@ -312,10 +319,16 @@ enum CenterLayoutRule {
             listIdentifiers.contains(identifier) && before[identifier]?.count == 1 &&
                 beforeClick.contains { $0.parent == identifier && !$0.identifier.isEmpty }
         }
+        // 26 reads frames half way through an animation (2026-11-28, NP3 in the 26 VM: 171.9993 for 172), so on 26
+        // the frames of the exceptions below are compared within `frameTolerance`; on 15 exactly.
+        func same(_ a: CGRect, _ b: CGRect) -> Bool {
+            on26 ? close(a, b) : a == b
+        }
         // 15.8.3 (2026-11-28, N23 `Open` in the VM, 3 of 3): when the pressed banner goes and one banner is left,
         // the list goes and that banner takes the list's frame. Taken only when all of it holds: the list was there
         // and is gone, the pressed root was in the list and is gone, the list held exactly the root and this banner,
-        // and the banner now has exactly the list's frame.
+        // and the banner now has exactly the list's frame. On 26, for a press of a banner's body only (N21, N22,
+        // NC1), the banner may be drawn wider to the left by its highlight (`highlightedCollapse`).
         func collapsedOnto(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
             guard groups.count == 1, before[identifier]?.count == 1, let banner = before[identifier]?.first,
                   let list = banner.parent, isList(list), after[list] == nil,
@@ -324,45 +337,44 @@ enum CenterLayoutRule {
                 return false
             }
             let held = Set(beforeClick.filter { $0.parent == list && !$0.identifier.isEmpty }.map(\.identifier))
-            return held == [pressedRoot, identifier] && (groups[0].frame == listFrame || highlighted(listFrame, groups[0].frame))
+            guard held == [pressedRoot, identifier] else { return false }
+            return same(groups[0].frame, listFrame) ||
+                (on26 && context.press == .body && highlightedCollapse(listFrame, groups[0].frame))
         }
-        // 26.6.2 (2026-11-28, NP1 `Allow` in the 26 VM): the banner under the pointer is drawn a few points larger
-        // (6 wider, 4 higher). When a press moves the pointer's banner, one banner of the list loses that much and
-        // another gains exactly as much. Taken only for banners of a checked list, for a gain of at most
-        // `highlightLimit` points each way, and against one loss of exactly the same size per gain.
-        var losses: [String: [CGSize]] = [:]
-        for (identifier, groups) in after where groups.count == 1 && before[identifier]?.count == 1 {
-            guard let old = before[identifier]?.first, let list = old.parent, isList(list), groups[0].parent == list else { continue }
-            let loss = CGSize(width: old.frame.width - groups[0].frame.width, height: old.frame.height - groups[0].frame.height)
-            if loss.width > 0 || loss.height > 0, loss.width >= 0, loss.height >= 0 {
-                losses[list, default: []].append(loss)
-            }
-        }
-        func highlightMoved(_ pair: GroupPair?) -> Bool {
-            guard let pair, let list = pair.before.parent, isList(list), pair.after.parent == list else { return false }
-            let old = pair.before, new = pair.after
-            let gain = CGSize(width: new.frame.width - old.frame.width, height: new.frame.height - old.frame.height)
-            guard gain.width >= 0, gain.height >= 0, gain.width <= Self.highlightLimit, gain.height <= Self.highlightLimit,
-                  let index = losses[list]?.firstIndex(of: gain) else {
+        // 26.6.2 (2026-11-28, NP1 `Allow` in the 26 VM): the banner under the pointer is drawn 6 points wider to the
+        // left and 4 higher to the top. Answering the permission prompt moved the pointer's banner from the prompt
+        // (the pressed root) to the banner right below it: the root lost exactly that on its left and top edges and
+        // that banner gained exactly that, their right and bottom edges unchanged. Only that transition is taken:
+        // on 26, for an answer to the prompt, once.
+        var highlightTaken = false
+        func highlightMovedFromRoot(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
+            guard on26, context.press == .promptAnswer, !highlightTaken, groups.count == 1,
+                  before[identifier]?.count == 1, let old = before[identifier]?.first, let list = old.parent, isList(list),
+                  groups[0].parent == list, before[pressedRoot]?.count == 1, after[pressedRoot]?.count == 1,
+                  let rootOld = before[pressedRoot]?.first, let rootNew = after[pressedRoot]?.first,
+                  rootOld.parent == list, rootNew.parent == list, old.frame.minY > rootOld.frame.minY else {
                 return false
             }
-            losses[list]?.remove(at: index)
+            guard same(rootNew.frame, Self.unhighlighted(rootOld.frame)), same(groups[0].frame, Self.highlighted(old.frame)) else {
+                return false
+            }
+            highlightTaken = true
             return true
         }
         for (identifier, groups) in after where identifier != pressedRoot && !isList(identifier) {
             let own = groups.filter { !partOfRoot($0) }
             let grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
-            let pair: GroupPair? = own.count == 1 && before[identifier]?.count == 1 ? (before[identifier]![0], own[0]) : nil
-            if grown && !collapsedOnto(identifier, own) && !highlightMoved(pair) {
+            if grown && !collapsedOnto(identifier, own) && !highlightMovedFromRoot(identifier, own) {
                 return .cannotTell
             }
         }
-        // 26.6.2 (2026-11-28, NP2 `Don’t Allow` in the 26 VM): the pressed root, closing, is read once more at the
-        // same frame and under the same parent but without its identifier. Taken for one such group only, and only
-        // when the root is gone; anything else without an identifier is matched below.
+        // 26.6.2 (2026-11-28, NP2 `Don’t Allow` in the 26 VM): the prompt, closing after its answer, is read once more
+        // at the same frame and under the same parent but without its identifier. Taken on 26, for an answer to the
+        // prompt, for one such group only, and only when the root is gone.
         var rest = afterClick.filter { $0.identifier.isEmpty && !partOfRoot($0) }
-        if after[pressedRoot] == nil, before[pressedRoot]?.count == 1, let root = before[pressedRoot]?.first,
-           let index = rest.firstIndex(where: { $0.frame == root.frame && $0.parent == root.parent }) {
+        if on26, context.press == .promptAnswer, after[pressedRoot] == nil, before[pressedRoot]?.count == 1,
+           let root = before[pressedRoot]?.first,
+           let index = rest.firstIndex(where: { same($0.frame, root.frame) && $0.parent == root.parent }) {
             rest.remove(at: index)
         }
         var unnamedBefore = beforeClick.filter { $0.identifier.isEmpty }.map(\.frame)
@@ -375,12 +387,31 @@ enum CenterLayoutRule {
         return .clear
     }
 
-    /// 26.6.2 (2026-11-28, N22 in the 26 VM): the banner the list collapsed onto is under the pointer and drawn
-    /// wider to the left by its highlight (the list's frame 6 points wider; the same top, height and right edge).
-    private static func highlighted(_ frame: CGRect, _ drawn: CGRect) -> Bool {
-        let gain = drawn.width - frame.width
-        return drawn.minY == frame.minY && drawn.height == frame.height && drawn.maxX == frame.maxX &&
-            gain > 0 && gain <= highlightLimit
+    /// The highlight of 26.6.2: 6 points to the left, 4 to the top (2026-11-28 in the 26 VM).
+    static let highlightLeft: CGFloat = 6
+    static let highlightTop: CGFloat = 4
+    /// Frames read half way through an animation differ by less than this (26.6.2: 0.0007).
+    static let frameTolerance: CGFloat = 0.01
+
+    static func highlighted(_ frame: CGRect) -> CGRect {
+        CGRect(x: frame.minX - highlightLeft, y: frame.minY - highlightTop,
+               width: frame.width + highlightLeft, height: frame.height + highlightTop)
+    }
+
+    static func unhighlighted(_ frame: CGRect) -> CGRect {
+        CGRect(x: frame.minX + highlightLeft, y: frame.minY + highlightTop,
+               width: frame.width - highlightLeft, height: frame.height - highlightTop)
+    }
+
+    private static func close(_ a: CGRect, _ b: CGRect) -> Bool {
+        abs(a.minX - b.minX) <= frameTolerance && abs(a.minY - b.minY) <= frameTolerance &&
+            abs(a.width - b.width) <= frameTolerance && abs(a.height - b.height) <= frameTolerance
+    }
+
+    /// 26.6.2 (2026-11-28, N22 in the 26 VM): the banner the list collapsed onto is under the pointer and drawn wider
+    /// to the left by its highlight: the list's frame, 6 points wider to the left (the same top, height and right edge).
+    private static func highlightedCollapse(_ frame: CGRect, _ drawn: CGRect) -> Bool {
+        close(drawn, CGRect(x: frame.minX - highlightLeft, y: frame.minY, width: frame.width + highlightLeft, height: frame.height))
     }
 
     private static func area(_ frame: CGRect) -> CGFloat {
@@ -399,5 +430,50 @@ enum CenterLayoutRule {
             rest.remove(at: index)
         }
         return true
+    }
+}
+
+// MARK: - Reply state (U-30 mac26-reply)
+
+/// Whether `Reply` opened Notification Center's list (U-30): the runner's `classify_reply_state`, the same rules.
+enum ReplyState: Equatable {
+    case list, banner, unknown
+}
+
+struct ReplyField: Equatable {
+    let inRoot: Bool
+    let focused: Bool
+}
+
+enum ReplyStateRule {
+    /// `rootBefore`: the frame of the sample's root before `Reply`. `windowsBefore` / `windowsAfter`: the frames of
+    /// Notification Center's windows in front of the sample's window, before and within 2 seconds after. Precondition:
+    /// exactly one window before, holding the root and inside the root plus `margin` (a banner-sized window). `list`
+    /// when a window was added, or the window holding the root grew past root plus `margin`. `banner` when the count is
+    /// the same, that window stays inside root plus `margin`, and exactly one focused field is in the root. Anything
+    /// else, or any value missing, is `unknown`.
+    static func classify(rootBefore: CGRect?, windowsBefore: [CGRect]?, windowsAfter: [CGRect]?,
+                         fieldsAfter: [ReplyField]?, margin: CGFloat) -> ReplyState {
+        guard let root = rootBefore, let before = windowsBefore, let after = windowsAfter, let fields = fieldsAfter,
+              margin >= 0 else {
+            return .unknown
+        }
+        let bound = root.insetBy(dx: -margin, dy: -margin)
+        let holdingBefore = before.filter { $0.contains(root) }
+        guard before.count == 1, holdingBefore.count == 1, bound.contains(holdingBefore[0]) else {
+            return .unknown
+        }
+        if after.count > before.count {
+            return .list
+        }
+        let holdingAfter = after.filter { $0.contains(root) }
+        if holdingAfter.count == 1 && !bound.contains(holdingAfter[0]) {
+            return .list
+        }
+        guard after.count == before.count, holdingAfter.count == 1 else {
+            return .unknown
+        }
+        let inRoot = fields.filter(\.inRoot)
+        return inRoot.count == 1 && inRoot[0].focused ? .banner : .unknown
     }
 }

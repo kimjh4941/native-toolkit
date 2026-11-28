@@ -377,8 +377,11 @@ final class SupportRuleTests: SampleUITestCase {
         CenterGroup(identifier: identifier, frame: CGRect(x: x, y: y, width: w, height: h), parent: parent)
     }
 
-    private func after(_ before: [CenterGroup], _ after: [CenterGroup], root: String = "R") -> CenterPressVerdict {
-        CenterLayoutRule.afterClick(beforeClick: before, afterClick: after, pressedRoot: root)
+    /// 15 and a press of the body unless a case says otherwise (vm26 review v1 A-2: the context is part of the input).
+    private func after(_ before: [CenterGroup], _ after: [CenterGroup], root: String = "R",
+                       press: CenterPressContext.Press = .body, os: Int = 15) -> CenterPressVerdict {
+        CenterLayoutRule.afterClick(beforeClick: before, afterClick: after, pressedRoot: root,
+                                    context: CenterPressContext(press: press, osMajor: os))
     }
 
     func testCenterLayoutBeforeTheClickTakesOnlyTheSameGroups() {
@@ -484,52 +487,106 @@ final class SupportRuleTests: SampleUITestCase {
                               Self.g("R", 664, 103, 344, 73, in: "X")], [onto]), .cannotTell)
     }
 
-    /// The reads of 26.6.2 in the VM (2026-11-28, NP2): no list, three widgets, and the prompt (the pressed root) that
-    /// is read once more without its identifier while it closes.
+    /// The reads of 26.6.2 in the VM (2026-11-28): no list for NP2's prompt, three widgets, and a list for NP1, NP3 and
+    /// N22. Each exception holds on 26 for the press it was seen with, and the same reads fail on 15 or with another
+    /// press (vm26 review v1 A-1, A-2, B-1).
     private func checkWhatARightPressDoesOn26() {
         let screen = Self.g("", 0, 0, 1024, 768), big = Self.g("", 272, 0, 752, 690)
         let widget = Self.g("", 8, 218, 360, 180), photos = Self.g("widget-local:photos", 16, 226, 344, 164)
         let others = [screen, big, widget, photos]
+
+        // NP2 (`Don’t Allow`): the prompt, closing, is read once more without its identifier.
         let prompt = Self.g("P", 658, 42, 350, 77)
-        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77)], root: "P"), .clear)
-        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 50, 350, 77)], root: "P"), .cannotTell)  // moved
-        XCTAssertEqual(after(others + [prompt], others + [prompt, Self.g("", 658, 42, 350, 77)], root: "P"),
-                       .cannotTell)                                                                            // root stays
-        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77), Self.g("", 658, 42, 350, 77)],
-                             root: "P"), .cannotTell)                                                          // two
-        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77, in: "X")], root: "P"),
-                       .cannotTell)                                                                            // another parent
-        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77)], root: "Q"), .cannotTell)  // not the root
-        // NP1 (`Allow`): the highlight under the pointer moved from the prompt (6 by 4 points smaller) to the banner
-        // below it (6 by 4 points larger); the list moved with them.
+        let closing = others + [Self.g("", 658, 42, 350, 77)]
+        XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .promptAnswer, os: 26), .clear)
+        XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .promptAnswer, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .body, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [prompt], closing, root: "P", press: .promptOptions, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 50, 350, 77)], root: "P", press: .promptAnswer, os: 26),
+                       .cannotTell)                                                                            // moved
+        XCTAssertEqual(after(others + [prompt], others + [prompt, Self.g("", 658, 42, 350, 77)], root: "P",
+                             press: .promptAnswer, os: 26), .cannotTell)                                       // root stays
+        XCTAssertEqual(after(others + [prompt], closing + [Self.g("", 658, 42, 350, 77)], root: "P", press: .promptAnswer, os: 26),
+                       .cannotTell)                                                                            // two
+        XCTAssertEqual(after(others + [prompt], others + [Self.g("", 658, 42, 350, 77, in: "X")], root: "P",
+                             press: .promptAnswer, os: 26), .cannotTell)                                       // another parent
+        XCTAssertEqual(after(others + [prompt], closing, root: "Q", press: .promptAnswer, os: 26), .cannotTell)   // not the root
+
+        // NP1 (`Allow`): the highlight moved from the prompt (6 points off its left, 4 off its top) to the banner
+        // right below it (6 more to the left, 4 more to the top); right and bottom edges unchanged.
         let l = Self.g(Self.list, 658, 42, 350, 172), p = Self.g("P", 658, 42, 350, 77, in: Self.list)
         let b = Self.g("B", 664, 125, 344, 89, in: Self.list)
         let lAfter = Self.g(Self.list, 658, 46, 350, 168)
-        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, Self.g("P", 664, 46, 344, 73, in: Self.list),
-                                                           Self.g("B", 658, 121, 350, 93, in: Self.list)], root: "P"), .clear)
-        // ... and what it is not: a gain without a loss, a gain over the limit, a gain other than the loss, two gains
-        // for one loss, banners outside a checked list.
-        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, p, Self.g("B", 658, 121, 350, 93, in: Self.list)],
-                             root: "P"), .cannotTell)
-        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, Self.g("P", 664, 46, 344, 47, in: Self.list),
-                                                           Self.g("B", 658, 95, 350, 119, in: Self.list)], root: "P"), .cannotTell)
-        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, Self.g("P", 664, 46, 344, 72, in: Self.list),
-                                                           Self.g("B", 658, 121, 350, 93, in: Self.list)], root: "P"), .cannotTell)
-        let c = Self.g("C", 664, 220, 344, 89, in: Self.list)
-        XCTAssertEqual(after(others + [l, p, b, c], others + [lAfter, Self.g("P", 664, 46, 344, 73, in: Self.list),
-                                                              Self.g("B", 658, 121, 350, 93, in: Self.list),
-                                                              Self.g("C", 658, 216, 350, 93, in: Self.list)], root: "P"), .cannotTell)
+        let pAfter = Self.g("P", 664, 46, 344, 73, in: Self.list), bAfter = Self.g("B", 658, 121, 350, 93, in: Self.list)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, pAfter, bAfter], root: "P", press: .promptAnswer, os: 26), .clear)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, pAfter, bAfter], root: "P", press: .promptAnswer, os: 15),
+                       .cannotTell)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, pAfter, bAfter], root: "P", press: .body, os: 26), .cannotTell)
+        // ... and what it is not: a gain without the root's loss, a gain to the right and bottom, a gain of 1 by 0, the
+        // root unchanged while another banner shrinks (the review's example), a gain above the root, two gains.
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, p, bAfter], root: "P", press: .promptAnswer, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, pAfter, Self.g("B", 664, 125, 350, 93, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [l, p, b], others + [lAfter, pAfter, Self.g("B", 663, 125, 345, 89, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)
+        let r = Self.g("R", 10, 10, 100, 80, in: Self.list), a = Self.g("A", 10, 100, 100, 80, in: Self.list)
+        let c = Self.g("C", 10, 200, 106, 84, in: Self.list), l2 = Self.g(Self.list, 0, 0, 400, 400)
+        XCTAssertEqual(after([l2, r, a, c], [l2, r, Self.g("A", 10, 100, 106, 84, in: Self.list), Self.g("C", 10, 200, 100, 80, in: Self.list)],
+                             press: .promptAnswer, os: 26), .cannotTell)
+        let above = Self.g("U", 664, 10, 344, 20, in: Self.list)
+        XCTAssertEqual(after(others + [l, above, p], others + [lAfter, Self.g("U", 658, 6, 350, 24, in: Self.list), pAfter],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)
+        let d = Self.g("D", 664, 220, 344, 89, in: Self.list)
+        XCTAssertEqual(after(others + [l, p, b, d], others + [lAfter, pAfter, bAfter, Self.g("D", 658, 216, 350, 93, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)
+
+        // NP3 and NP2 (2026-11-28, 4 of 8 answers): the collapse read half way through its animation (171.9993 for 172).
+        let t = Self.g("T", 664, 125, 344, 89, in: Self.list), r3 = Self.g("R", 658, 42, 350, 77, in: Self.list)
+        let half = others + [Self.g("T", 658, 42, 350, 171.9993)]
+        XCTAssertEqual(after(others + [l, r3, t], half, press: .promptAnswer, os: 26), .clear)
+        XCTAssertEqual(after(others + [l, r3, t], half, press: .promptAnswer, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [l, r3, t], others + [Self.g("T", 658, 42, 350, 171.98)], press: .promptAnswer, os: 26),
+                       .cannotTell)                                                                            // 0.02 off
+
         // N22 (body): the list went and the last banner took the list's frame, drawn 6 points wider by its highlight.
         let l22 = Self.g(Self.list, 664, 46, 344, 168), t22 = Self.g("T", 664, 46, 344, 89, in: Self.list)
         let r22 = Self.g("R", 664, 141, 344, 73, in: Self.list)
-        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 658, 46, 350, 168)]), .clear)
-        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 654, 46, 354, 168)]), .cannotTell)  // 10 wider
-        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 658, 46, 350, 169)]), .cannotTell)  // higher
-        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 664, 46, 350, 168)]), .cannotTell)  // to the right
-        XCTAssertEqual(after(others + [Self.g("X", 658, 42, 350, 172), Self.g("P", 658, 42, 350, 77, in: "X"),
-                                       Self.g("B", 664, 125, 344, 89, in: "X")],
-                             others + [Self.g("X", 658, 46, 350, 168), Self.g("P", 664, 46, 344, 73, in: "X"),
-                                       Self.g("B", 658, 121, 350, 93, in: "X")], root: "P"), .cannotTell)
+        let wide = others + [Self.g("T", 658, 46, 350, 168)]
+        XCTAssertEqual(after(others + [l22, t22, r22], wide, press: .body, os: 26), .clear)
+        XCTAssertEqual(after(others + [l22, t22, r22], wide, press: .body, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [l22, t22, r22], wide, press: .menuItem, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 654, 46, 354, 168)], os: 26), .cannotTell)  // 10 wider
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 658, 46, 350, 169)], os: 26), .cannotTell)  // higher
+        XCTAssertEqual(after(others + [l22, t22, r22], others + [Self.g("T", 664, 46, 350, 168)], os: 26), .cannotTell)  // to the right
+        XCTAssertEqual(after(others + [Self.g("X", 664, 46, 344, 168), Self.g("T", 664, 46, 344, 89, in: "X"),
+                                       Self.g("R", 664, 141, 344, 73, in: "X")], wide, os: 26), .cannotTell)       // not a list
+    }
+
+    /// The runner's ReplyState cases (U-30 `mac26-reply`), the same input and the same answer.
+    func testReplyStateFollowsTheRunnersRule() {
+        let root = CGRect(x: 100, y: 100, width: 300, height: 80), banner = CGRect(x: 96, y: 96, width: 308, height: 88)
+        func classify(before: [CGRect]? = [banner], after: [CGRect]? = [banner],
+                      fields: [ReplyField]? = [ReplyField(inRoot: true, focused: true)], root r: CGRect? = root,
+                      margin: CGFloat = 8) -> ReplyState {
+            ReplyStateRule.classify(rootBefore: r, windowsBefore: before, windowsAfter: after, fieldsAfter: fields, margin: margin)
+        }
+        XCTAssertEqual(classify(), .banner)
+        XCTAssertEqual(classify(after: [CGRect(x: 92, y: 92, width: 316, height: 96)]), .banner)       // the margin
+        XCTAssertEqual(classify(after: [CGRect(x: 91, y: 92, width: 317, height: 96)]), .list)         // a point past it
+        XCTAssertEqual(classify(after: [banner, CGRect(x: 0, y: 0, width: 400, height: 900)]), .list)   // a new window
+        XCTAssertEqual(classify(after: [CGRect(x: 96, y: 96, width: 308, height: 400)]), .list)        // it grew
+        for fields in [[], [ReplyField(inRoot: true, focused: false)],
+                       [ReplyField(inRoot: true, focused: true), ReplyField(inRoot: true, focused: false)],
+                       [ReplyField(inRoot: false, focused: true)]] {
+            XCTAssertEqual(classify(fields: fields), .unknown, "\(fields)")
+        }
+        let big = [CGRect(x: 0, y: 0, width: 1200, height: 900)]
+        XCTAssertEqual(classify(before: big, after: big), .unknown)                                    // one big window
+        XCTAssertEqual(classify(before: []), .unknown)
+        XCTAssertEqual(classify(before: nil), .unknown)
+        XCTAssertEqual(classify(root: nil), .unknown)
+        XCTAssertEqual(classify(margin: -1), .unknown)
+        XCTAssertEqual(classify(after: [CGRect(x: 600, y: 600, width: 10, height: 10)]), .unknown)    // lost the root
     }
 
     func testCenterLayoutDoesNotSeeWhatItsReadsCannotShow() {

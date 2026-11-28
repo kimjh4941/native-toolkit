@@ -301,12 +301,17 @@ vm_os_major() {
   /usr/bin/sw_vers -productVersion | /usr/bin/cut -d. -f1
 }
 # macOS 26: `dnd-off` sets dnd_prefs.dndMirrored to false; `drop <bundle id>` removes that app's entry; `has <bundle
-# id>` exits 0 when the entry is there (reads only).
+# id>` reads only and exits 0 when the entry is there, 1 when the settings were read and it is not, and 2 when they
+# could not be read or parsed (vm26 review v1 A-3: a read that failed is never "not there").
 vm_nc_group() {  # dnd-off | drop <bundle id> | has <bundle id>
   local prefs="${HOME}/${NC_GROUP_PREFS}" rc=0 program
   program='import plistlib, sys
-d = plistlib.loads(sys.stdin.buffer.read())
 mode = sys.argv[1]
+try:
+    d = plistlib.loads(sys.stdin.buffer.read())
+    assert isinstance(d, dict) and isinstance(d.get("apps", []), list)
+except Exception:
+    sys.exit(2)
 if mode == "has":
     sys.exit(0 if any(a.get("bundle-id") == sys.argv[2] for a in d.get("apps", [])) else 1)
 if mode == "dnd-off":
@@ -319,8 +324,10 @@ else:
     sys.exit(2)
 sys.stdout.buffer.write(plistlib.dumps(d))'
   if [[ "$1" == has ]]; then
-    /usr/bin/defaults export "${prefs}" - | /usr/bin/python3 -c "${program}" "$@"
-    return
+    /usr/bin/defaults export "${prefs}" "${RUN_DIR}/nc-group-read.plist" || { rm -f "${RUN_DIR}/nc-group-read.plist"; return 2; }
+    /usr/bin/python3 -c "${program}" "$@" < "${RUN_DIR}/nc-group-read.plist" || rc=$?
+    rm -f "${RUN_DIR}/nc-group-read.plist"
+    case "${rc}" in 0|1) return "${rc}" ;; *) return 2 ;; esac
   fi
   /usr/bin/defaults export "${prefs}" - | /usr/bin/python3 -c "${program}" "$@" > "${RUN_DIR}/nc-group-prefs.plist" || rc=1
   [[ "${rc}" == 0 ]] && { /usr/bin/defaults import "${prefs}" "${RUN_DIR}/nc-group-prefs.plist" || rc=1; }
@@ -385,10 +392,13 @@ vm_reset_permission() {  # U-7 (VM): the sample stopped, its entry gone from the
       vm_nc_group drop "${SAMPLE_ID}" || continue
       killall usernoted NotificationCenter 2>/dev/null || true
       sleep 3
-      if ! vm_nc_group has "${SAMPLE_ID}"; then
+      local found=0
+      vm_nc_group has "${SAMPLE_ID}" || found=$?
+      if [[ "${found}" == 1 ]]; then
         echo "NTK-VM permission reset attempt=${attempt}"
         return 0
       fi
+      [[ "${found}" == 2 ]] && echo "NTK-VM permission reset could not read the settings (attempt ${attempt})"
       continue
     fi
     /usr/bin/python3 - "${SAMPLE_ID}" <<'PY'

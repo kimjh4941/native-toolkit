@@ -4,9 +4,12 @@
 //
 //  U-30 `mac26`: the qualification probes of macOS 26, run in the 26 VM only (`--where vm26 --qualification
 //  mac26`; D-21 revised 2026-11-28). One method per candidate; passing means the candidate holds, and only the
-//  result (passed or failed) leaves the run. Each press target is found and checked exactly as the test that
-//  presses it does, and nothing is pressed: the runner copies a target that passes into `MAC_VERIFIED_TARGETS`,
-//  which lets the tests deferred on 26 (`MAC_DEFERRED_TESTS`) run there. `replyInBanner` is the separate
+//  result (passed or failed) leaves the run. The steps that lead to a candidate are done as the test that presses it
+//  does them (Q2 presses the root's `Options`, Q3 the share button), and the candidate itself (`Open`, Copy, the
+//  `PasteButton`) is found and checked before the press but never pressed. A pass says the candidate's owner is the
+//  allowed one, not how the press behaves. A target that passed is copied by hand, after its record is read, into the
+//  runner's `MAC_VERIFIED_TARGETS`, which lets the tests deferred on 26 (`MAC_DEFERRED_TESTS`) run there (vm26 review
+//  v1 C-1). `replyInBanner` is the separate
 //  `mac26-reply` stage. The runner's `QUALIFICATION_ONLY_TESTS` keeps this class out of normal runs and baselines.
 //
 
@@ -58,6 +61,30 @@ final class MacQualificationProbeTests: SampleUITestCase {
         try center.openOptions(root, sampleIs: .foreground)
         try center.checkMenuItemWithoutPressing(SampleNotification.openTitle, of: root, sampleIs: .foreground)
         try center.escapeMenu(of: root, anyItemTitle: SampleNotification.openTitle)
+    }
+
+    /// `mac26-reply` (`replyInBanner`): `Reply` of the sample's root is pressed (the VM has no private notification)
+    /// and the windows and fields say whether the list opened (`ReplyStateRule`). Passes only for `banner`; `list` and
+    /// `unknown` keep N24 and NC3 deferred (U-5, U-30).
+    @MainActor
+    func testR1_replyStaysInTheBanner() throws {
+        let sample = try launchSample()
+        self.sample = sample
+        try sample.open(.notification)
+        let screen = NotificationScreen(sample)
+        let token = try notificationToken()
+        notification = (screen, token)
+        try NotificationCleanup.prepare(screen, token)
+        let center = NotificationCenterUI(sample, token)
+        XCTAssertEqual(try screen.run(.registerCategory), ResultLine.expected(success: true, SampleNotification.registeredText))
+        XCTAssertEqual(try screen.run(.showImmediate, token, quiet: false), ResultLine.expected(success: true, "[showImmediate] success"))
+        let root = try center.waitForRoot(.immediate, timeout: SampleApp.elementTimeout)
+        try center.openOptions(root, sampleIs: .foreground)
+        let state = try center.replyStateAfterChoosingReply(of: root, sampleIs: .foreground, margin: 8)
+        XCTAssertEqual(state, .banner, "Reply: \(state)")
+        if state == .banner {
+            try center.escapeReply(of: root)
+        }
     }
 
     /// `pickerCopy`: Copy of the share picker passes the check before the press.

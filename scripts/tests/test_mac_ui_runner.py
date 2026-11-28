@@ -170,7 +170,7 @@ class Names(unittest.TestCase):
 class Enumeration(unittest.TestCase):
     def test_the_real_enumeration_matches_the_declarations(self):
         ids = enumeration()
-        self.assertEqual(len(ids), 125)  # + 3 SupportRuleTests (runner review v7) and the 4 U-30 mac26 probes
+        self.assertEqual(len(ids), 127)  # + 4 SupportRuleTests (v7, vm26) and the 5 U-30 probes (mac26 4, mac26-reply 1)
         self.assertEqual(r.check_enumeration(ids, declarations()), [])
 
     def test_unit_tests_and_the_base_class_are_dropped(self):
@@ -262,7 +262,7 @@ class Selection(unittest.TestCase):
         table = declarations()
         self.assertFalse([k for k in keys if set(table[k]) & set(r.VM_ONLY_CATEGORIES)])
         self.assertFalse(keys & set(r.MAC_DEFERRED_TESTS))
-        self.assertEqual(len(selected), 102)
+        self.assertEqual(len(selected), 103)
         reasons = {r.key_from_enumeration_id(i): reason for i, _, reason in excluded}
         self.assertEqual(reasons["NotificationPermissionUITests/testNP1_requestPermissionAllow"], "vmOnly")
         self.assertEqual(reasons["ShareUITests/testS2_shareTextCopy"], "ownerUnverified")
@@ -293,8 +293,8 @@ class Selection(unittest.TestCase):
         with self.assertRaises(r.RunnerError):
             r.select_tests(enumeration(), declarations(), "vm", "15", ["panels"])
         selected, excluded = r.select_tests(enumeration(), declarations(), "vm", "15", [])
-        self.assertEqual(len(selected), 116)
-        probes = r.QUALIFICATION_ONLY_TESTS["mac26"]
+        self.assertEqual(len(selected), 117)
+        probes = set().union(*r.QUALIFICATION_ONLY_TESTS.values())
         self.assertEqual(sorted(k for k in keys_of(i for i, _, _ in excluded) if k not in probes), sorted(r.OS_ONLY_TESTS))
         self.assertTrue(all(reason == ("qualificationOnly" if r.key_from_enumeration_id(i) in probes else "osOnly")
                             for i, _, reason in excluded))
@@ -636,7 +636,12 @@ class TwoVMs(unittest.TestCase):
         self.assertNotIn("plistlib.dump(", helper)                          # never the file itself
         reset = function_body(text, "vm_reset_permission")
         self.assertLess(reset.index('if [[ "$(vm_os_major)" -ge 26 ]]; then'), reset.index('vm_nc_group drop "${SAMPLE_ID}"'))
-        self.assertIn('if ! vm_nc_group has "${SAMPLE_ID}"; then', reset)
+        # A settings file that cannot be read or parsed is never taken as "the entry is gone" (vm26 review v1 A-3).
+        self.assertIn('vm_nc_group has "${SAMPLE_ID}" || found=$?', reset)
+        self.assertIn('if [[ "${found}" == 1 ]]; then', reset)
+        self.assertIn('case "${rc}" in 0|1) return "${rc}" ;; *) return 2 ;; esac', helper)
+        self.assertIn('/usr/bin/defaults export "${prefs}" "${RUN_DIR}/nc-group-read.plist" || { rm -f "${RUN_DIR}/nc-group-read.plist"; return 2; }', helper)
+        self.assertIn("except Exception:\n    sys.exit(2)", helper)
         self.assertIn('p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")', reset)   # 15 unchanged
         self.assertIn('if ! defaults read com.apple.ncprefs apps 2>/dev/null | grep -qF "${SAMPLE_ID}"; then', reset)
         prepare = function_body(text, "vm_prepare")
@@ -1664,7 +1669,7 @@ class Baseline(unittest.TestCase):
         plan = r.make_plan("vm", enumeration(), declarations(), (), None, "15", "a", "b", [], True, None)
         results = {"MacLibraryExampleUITests/" + D1: "passed"}
         baseline = r.make_baseline({"os": "15.8.3"}, plan, results, {D1: 3.0}, "2026-11-23T00:00:00+00:00")
-        self.assertEqual(len(baseline["eligible"]), 116)
+        self.assertEqual(len(baseline["eligible"]), 117)
         self.assertEqual(baseline["executed"], [D1])  # the same form as eligible (Codex v2 B-5)
         snapshot = {"scripts/test_mac.sh": "1" * 64}
         named = r.make_baseline({"os": "15.8.3"}, dict(plan, runnerFiles=snapshot), results, {}, "2026-11-23T00:00:00+00:00")
@@ -2098,9 +2103,18 @@ class NotificationCenterPress(unittest.TestCase):
                                            "guard CenterLayoutRule.beforeClick(atCheck: atCheck, beforeClick: beforePress) == .clear else {",
                                            "element.click()",
                                            "let afterPress = try NotificationCenterRead.groups()",
+                                           "let context = CenterPressContext(press: press, osMajor: SampleUITestCase.osMajorVersion)",
                                            "switch CenterLayoutRule.afterClick(beforeClick: beforePress, afterClick: afterPress, "
-                                           "pressedRoot: root.groupIdentifier) {")]
+                                           "pressedRoot: root.groupIdentifier,\n                                           context: context) {")]
         self.assertEqual(order, sorted(order))
+        # Each press names its kind; only the answer to the permission prompt is `.promptAnswer` (vm26 review v1 A-2).
+        for call, press in (("try pressInCenter(element, root: root, press: .body,", 1),
+                            ("try pressInCenter(options, root: root, press: .options,", 1),
+                            ("try pressInCenter(item, root: root, press: .menuItem,", 1),
+                            ("try pressInCenter(options, root: prompt, press: .promptOptions,", 1),
+                            ("try pressInCenter(item, root: prompt, press: .promptAnswer,", 1)):
+            self.assertEqual(self.text.count(call), press, call)
+        self.assertEqual(self.text.count("press: .promptAnswer"), 1)
         after = helper[helper.index("switch CenterLayoutRule.afterClick("):]
         self.assertEqual(after.count("        case .clear:\n            break\n"), 1)   # only .clear goes on
         self.assertEqual(after.count("throw SampleUITestError"), 2)

@@ -258,7 +258,7 @@ struct NotificationCenterUI {
             Thread.sleep(forTimeInterval: wait)
         }
         let element = try self.element(root)
-        try pressInCenter(element, root: root, kind: { .banner(rootFrame: try self.element(root).frame) },
+        try pressInCenter(element, root: root, press: .body, kind: { .banner(rootFrame: try self.element(root).frame) },
                           sampleIs: expected, name: "body of \(root.anchor.title)")
     }
 
@@ -307,7 +307,7 @@ struct NotificationCenterUI {
             Thread.sleep(forTimeInterval: 0.1)
         }
         let options = try exactlyOne(optionsQuery(in: try element(root)), "Options in the root", step: .notificationAction)
-        try pressInCenter(options, root: root, kind: { .banner(rootFrame: try self.element(root).frame) },
+        try pressInCenter(options, root: root, press: .options, kind: { .banner(rootFrame: try self.element(root).frame) },
                           sampleIs: expected, name: "Options of \(root.anchor.title)")
         try waitForOneOpenMenu()
     }
@@ -356,7 +356,7 @@ struct NotificationCenterUI {
     func choose(_ title: String, of root: NotificationRoot, sampleIs expected: SampleStateAtPress) throws {
         _ = try element(root)
         let item = try menuItem(title)
-        try pressInCenter(item, root: root, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
+        try pressInCenter(item, root: root, press: .menuItem, kind: { _ = try self.element(root); _ = try self.menuItem(title); return .menuItem },
                           sampleIs: expected, name: "menu item \(title)")
     }
 
@@ -419,6 +419,40 @@ struct NotificationCenterUI {
         try checkCenterInFront(name: "reply Return")
         again.typeKey(XCUIKeyboardKey.return.rawValue, modifierFlags: [])
         try session.checkInterruption()
+    }
+
+    /// U-30 `mac26-reply`: Notification Center's windows in front of the sample's window, frames only (no title).
+    private func centerWindowsInFront() throws -> [CGRect] {
+        let windows = try OverlayCheck.readWindows()
+        let sampleIndex = windows.firstIndex { $0.owner == SystemLabels.sampleBundleIdentifier } ?? windows.count
+        return windows[..<sampleIndex].filter { $0.owner == SystemLabels.notificationCenterBundleIdentifier }.map(\.bounds)
+    }
+
+    /// U-30 `mac26-reply` (`MacQualificationProbeTests`): presses `Reply` of the menu the root's `Options` opened, as
+    /// N24 does, and says from the windows and the reply fields whether the list opened (`ReplyStateRule`; nothing of
+    /// a label is read). A root that cannot be found again afterwards is `unknown`.
+    func replyStateAfterChoosingReply(of root: NotificationRoot, sampleIs expected: SampleStateAtPress,
+                                      margin: CGFloat) throws -> ReplyState {
+        let rootBefore = try element(root).frame
+        let before = try centerWindowsInFront()
+        try choose(SampleNotification.replyTitle, of: root, sampleIs: expected)
+        Thread.sleep(forTimeInterval: 2)
+        let after = try centerWindowsInFront()
+        guard let fields = try? element(root).textViews.allElementsBoundByIndex.map({
+            ReplyField(inRoot: true, focused: sample.hasKeyboardFocus($0) == true)
+        }) else {
+            return .unknown
+        }
+        return ReplyStateRule.classify(rootBefore: rootBefore, windowsBefore: before, windowsAfter: after,
+                                       fieldsAfter: fields, margin: margin)
+    }
+
+    /// After `replyStateAfterChoosingReply`: Escape closes the field and the grown banner; the root must go.
+    func escapeReply(of root: NotificationRoot) throws {
+        try checkCenterInFront(name: "reply Escape")
+        center.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        try session.checkInterruption()
+        try waitRootGone(root, timeout: Self.menuTimeout * 3)
     }
 
     /// No permission prompt of the sample for `seconds` (N2, NP2. U-14 (a)). Reads only.
@@ -492,7 +526,7 @@ struct NotificationCenterUI {
         }
         let options = try exactlyOne(optionsQuery(in: try promptElement(prompt)), "Options of the prompt",
                                      step: .permissionPrompt)
-        try pressInCenter(options, root: prompt, kind: { .banner(rootFrame: try self.promptElement(prompt).frame) },
+        try pressInCenter(options, root: prompt, press: .promptOptions, kind: { .banner(rootFrame: try self.promptElement(prompt).frame) },
                           sampleIs: nil, name: "Options of the permission prompt")
         try waitForOneOpenMenu()
         let titles = allow ? SystemLabels.permissionAllow : SystemLabels.permissionDontAllow
@@ -506,7 +540,7 @@ struct NotificationCenterUI {
             throw SampleUITestError(.permissionPrompt, "\(items.count) items \(titles[0]) in the prompt's menu")
         }
         _ = try promptElement(prompt)
-        try pressInCenter(item, root: prompt, kind: { .menuItem }, sampleIs: nil, name: "permission item \(titles[0])")
+        try pressInCenter(item, root: prompt, press: .promptAnswer, kind: { .menuItem }, sampleIs: nil, name: "permission item \(titles[0])")
     }
 
     // MARK: Checks (design 5.0)
@@ -521,7 +555,8 @@ struct NotificationCenterUI {
     /// went elsewhere can also make that event not come; that does not hold for every click (Options, the
     /// permission prompt's items; Codex runner review v7 C-2). UI tests therefore never run on this Mac (D-21
     /// revised 2026-11-28; Codex presscenter review v1 A-1).
-    private func pressInCenter(_ element: XCUIElement, root: NotificationRoot, kind: () throws -> NotificationPressKind,
+    private func pressInCenter(_ element: XCUIElement, root: NotificationRoot, press: CenterPressContext.Press,
+                               kind: () throws -> NotificationPressKind,
                                sampleIs expected: SampleStateAtPress?, name: String) throws {
         let atCheck = try NotificationCenterRead.groups()
         try checkBeforePress(element, kind: kind, sampleIs: expected, name: name)
@@ -531,7 +566,9 @@ struct NotificationCenterUI {
         }
         element.click()
         let afterPress = try NotificationCenterRead.groups()
-        switch CenterLayoutRule.afterClick(beforeClick: beforePress, afterClick: afterPress, pressedRoot: root.groupIdentifier) {
+        let context = CenterPressContext(press: press, osMajor: SampleUITestCase.osMajorVersion)
+        switch CenterLayoutRule.afterClick(beforeClick: beforePress, afterClick: afterPress, pressedRoot: root.groupIdentifier,
+                                           context: context) {
         case .clear:
             break
         case .arrived:

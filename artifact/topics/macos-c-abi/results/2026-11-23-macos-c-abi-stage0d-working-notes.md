@@ -696,3 +696,15 @@ U-30 `mac26` の段: `MacQualificationProbeTests` を書いた（Q1 窓の持ち
 - ハーネスの変異の全件（26 の VM の写しでは、足した 6 個をまだ流していない）
 
 直した後の全件（3 回目。今の形）: 単体テスト 328 件は通った。UI テストは 119 件のうち 113 件が通り、6 件が落ちた: CB2〜CB6（貼り付けのプライバシー。上の未解決）と NP2（`Don’t Allow` の後の比べが `.cannotTell`。1 回目と VM の写しでは通った。2 回目の NP3 と同じ、26 の問い合わせの揺れ。読みはまだ取っていない）。本文のクリック（N21・N22・NC1）、保留を解いた 6 件（N20・N23・NC2・CB1・S2・S4）、パネル、D15、I1d は通った。基準は取っていない。結果のバンドルは読んで消した
+
+## 26. 26 の残り（2026-11-28。26 の VM だけ。15 は起こしていない。コミットしていない）
+
+1. **貼り付けのプライバシー（CB2〜CB6）**: 26 の「ほかのアプリからのペースト」は TCC の `kTCCServicePasteboard`（tccd とシステム設定のプライバシーの拡張にある名前）で、サンプルの項目は TCC.db に無かった。VM の写しで読むと、サンプルの `EnablePasteboardPrivacyDeveloperPreview` が無いと access behavior は `alwaysAllow`、有ると最初の答えの前は `default`、答えた後は `ask`。`default` からでも確認が出て CB4 が通った。26 だけ、前提とする access behavior を `ask` か `default` にした（15 は `ask` のまま）。TCC.db は書き換えていない
+2. **NP2・NP3 の揺れ**: VM の写しで許可の段を 4 回流すと、NP3 が 3 回、NP2 が 1 回落ちた（8 回の答えのうち 4 回）。どれも答えの後に一覧が畳まれ、残った通知の高さが 171.9965〜171.9993（一覧は 172）で、動きの途中で読まれていた。26 でだけ、`CenterLayoutRule` の例外の枠の比べに 0.01 pt の幅を持たせた（15 は完全一致）。0.02 pt 違うものは `.cannotTell`
+3. **U-30 `mac26-reply`**: `ReplyStateRule`（ランナーの `classify_reply_state` と同じ規則を Swift に写し、同じ例を `SupportRuleTests` で照らす）と、`MacQualificationProbeTests/testR1_replyStaysInTheBanner`（N24 と同じく `Options` → `Reply` を押し、通知センターの窓と返信の欄で判定。`banner` のときだけ通る）を足した。`--where vm26 --qualification mac26-reply` の結果は **`unknown`**（26 でも通知センターはバナーを 1 つの大きい窓に描くので、「バナーの大きさの窓が 1 つ」の前提が成り立たない）。設計どおり N24・NC3 は保留のまま（`replyInBanner` は `MAC_VERIFIED_TARGETS` に入れない）
+4. Codex の 26 の直しのレビュー v1 の直し（`reviews/2026-11-28-macos-c-abi-vm26-review-v1.md`）: 例外は OS と押下の種類で絞り、強調の移動は記録した遷移だけ、許可の戻しは読めないと「無い」を分けた
+5. 列挙と `otool` の fixture は、この形の 26 の VM のビルドから取り直した（違いは足した 2 件）
+6. **全件を 2 回**（基準は取っていない。単体テスト 328 件は 2 回とも通った）: UI テストは 120 件（保留の N24・NC3 と段の確かめ 5 件を除いた）。
+   - 1 回目: 119 件が通り、N12 が「10 秒で根が出ない」で落ちた（揺れ）。CB2〜CB6、NP1〜NP3、本文のクリック、保留を解いた 6 件は通った
+   - 2 回目: 117 件が通り、3 件が落ちた。NP1 は `Allow` の後の比べが `.cannotTell`（今の例外に当たらない別の形。読みはまだ取っていない）。D8・D10 は、fixture の項目の上に通知センターの窓が残った（`NTK-STEP:notificationOverlay`。NP1 が途中で落ちて、問い合わせかバナーが右上に残ったと見ている。確かめていない）
+   - 残り: 26 の許可の段の答えの後の形はまだ揺れている。落ちた回の読みを VM の写しで取り、例外に当たるかを見る。VM の写し `~/ntk/probe26` は調べのために残した（終わったら消す）
