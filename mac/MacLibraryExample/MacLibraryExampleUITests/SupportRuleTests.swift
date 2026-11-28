@@ -548,6 +548,28 @@ final class SupportRuleTests: SampleUITestCase {
         XCTAssertEqual(after(others + [l, r3, t], others + [Self.g("T", 658, 42, 350, 171.98)], press: .promptAnswer, os: 26),
                        .cannotTell)                                                                            // 0.02 off
 
+        // NP1, NP2, NP3 with a banner of the sample below the prompt: that banner read over its own frame and the
+        // prompt's; and a frame larger by a rounding only.
+        let l4 = Self.g(Self.list, 658, 42, 350, 251), p4 = Self.g("P", 658, 42, 350, 77, in: Self.list)
+        let e4 = Self.g("E", 664, 125, 344, 73, in: Self.list), f4 = Self.g("F", 664, 204, 344, 89, in: Self.list)
+        let union = others + [l4, Self.g("E", 658, 42, 350, 156, in: Self.list), f4]
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], union, root: "P", press: .promptAnswer, os: 26), .clear)
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], union, root: "P", press: .promptAnswer, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], union, root: "P", press: .body, os: 26), .cannotTell)
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, Self.g("E", 658, 42, 350, 157, in: Self.list), f4],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // not the union
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, p4, Self.g("E", 658, 42, 350, 156, in: Self.list), f4],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // the root stays
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, Self.g("E", 658, 42, 350, 156, in: Self.list),
+                                                                    Self.g("F", 658, 42, 350, 251, in: Self.list)],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // two
+        let rounding = others + [Self.g(Self.list, 658, 42, 350, 250.998), Self.g("E", 664, 124.998, 344, 73.00000000000001, in: Self.list),
+                                 Self.g("F", 664, 203.998, 344, 89, in: Self.list)]
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], rounding, root: "P", press: .promptAnswer, os: 26), .clear)
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], rounding, root: "P", press: .promptAnswer, os: 15), .cannotTell)
+        XCTAssertEqual(after(others + [l4, p4, e4, f4], others + [l4, Self.g("E", 664, 125, 344, 73.02, in: Self.list), f4],
+                             root: "P", press: .promptAnswer, os: 26), .cannotTell)                            // 0.02 more
+
         // N22 (body): the list went and the last banner took the list's frame, drawn 6 points wider by its highlight.
         let l22 = Self.g(Self.list, 664, 46, 344, 168), t22 = Self.g("T", 664, 46, 344, 89, in: Self.list)
         let r22 = Self.g("R", 664, 141, 344, 73, in: Self.list)

@@ -186,7 +186,7 @@ BASE_FILE = "Support/SampleUITestCase.swift"
 TRUSTED_FILES = {
     "Support/NotificationCenterUI.swift": "3ab6e11299eecdb417301d7c1a303ae9fcd9d0457dc79d2aff7362a71b4d3901",
     "Support/NotificationCleanup.swift": "0b176bdde9c83566af5d3e653a0ad4f4e73312dd9f941036bf4205033eea0840",
-    "Support/NotificationRules.swift": "ed2bd96cd2420244e00ff3f766fdd25e7974f07a76137004663434bd5edbe30b",
+    "Support/NotificationRules.swift": "a288d780f1f97478221286cd4230cdfaa799d5b57cb375396cf199a94868a7ea",
     "Support/NotificationScreen.swift": "ed0c28a531f60df8bcc7c3d83c2ef2e9893cd0450ff8e874eb27b57fd3b86af1",
     "Support/OtherApps.swift": "165dfc696861f02159cc53a1fddeaacf156124a5929dd492936a524bd7bc56dc",
     "Support/Panels.swift": "04a858f6e6aae1ca4b5d4cc61bc09c2a340b7c358b686ae9f7db3d58161917e3",

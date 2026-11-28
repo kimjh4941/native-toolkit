@@ -18,9 +18,8 @@ Codex A-1, B-4). The `--in-vm` path cannot be narrowed by PATH (it starts again 
 harness runs these tests in the VM only (scripts/tests/mac_ui_runner_mutations.py).
 
 The fixtures in fixtures/mac_ui_runner/ are real output of Xcode 26.3 in the VM (macOS 15.8.3), stage
-0d (2026-11-23), with the VM's home folder replaced by <home>. enumeration.json and the otool files were taken
-again on 2026-11-28 in the 26 VM (macOS 26.6.2, Xcode 26.6) with MacQualificationProbeTests; take them again in the
-15 VM:
+0d (2026-11-23; enumeration.json and the otool files taken again on 2026-11-28 in the 15 VM with the U-30 probes
+and the rule tests), with the VM's home folder replaced by <home>:
   enumeration.json        -enumerate-tests -test-enumeration-style flat -test-enumeration-format json
                           (the UI tests and MacLibraryExampleTests)
   unit-enumeration.json   the same for the MacLibrary scheme (MacLibraryTests)
@@ -645,7 +644,9 @@ class TwoVMs(unittest.TestCase):
         self.assertIn('p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")', reset)   # 15 unchanged
         self.assertIn('if ! defaults read com.apple.ncprefs apps 2>/dev/null | grep -qF "${SAMPLE_ID}"; then', reset)
         prepare = function_body(text, "vm_prepare")
-        self.assertIn('vm_nc_group dnd-off || {', prepare)
+        self.assertIn('  if [[ "$(vm_os_major)" -ge 26 ]]; then\n    vm_nc_group dnd-off || {', prepare)
+        self.assertEqual(function_body(SCRIPT.read_text(), "vm_os_major").strip(),
+                         "/usr/bin/sw_vers -productVersion | /usr/bin/cut -d. -f1")
         self.assertIn('p = os.path.expanduser("~/Library/Preferences/com.apple.ncprefs.plist")', prepare)
 
     def test_a_qualification_stage_needs_no_watch(self):

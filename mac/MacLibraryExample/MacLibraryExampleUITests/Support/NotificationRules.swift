@@ -361,10 +361,34 @@ enum CenterLayoutRule {
             highlightTaken = true
             return true
         }
+        // 26.6.2 (2026-11-28, NP1, NP2 and NP3 in the 26 VM, 6 of 15 answers): answering the prompt with a banner of
+        // the sample below it, that banner was read covering exactly its own frame and the prompt's (the list closing
+        // the gap, half way). Taken on 26, for an answer to the prompt, once: the root was in the list and is gone, the
+        // banner was below it in the same list, and its frame is the union of the two frames before.
+        var absorbTaken = false
+        func absorbedTheRoot(_ identifier: String, _ groups: [CenterGroup]) -> Bool {
+            guard on26, context.press == .promptAnswer, !absorbTaken, groups.count == 1, before[identifier]?.count == 1,
+                  let old = before[identifier]?.first, let list = old.parent, isList(list), groups[0].parent == list,
+                  before[pressedRoot]?.count == 1, after[pressedRoot] == nil, let root = before[pressedRoot]?.first,
+                  root.parent == list, old.frame.minY > root.frame.minY,
+                  close(groups[0].frame, old.frame.union(root.frame)) else {
+                return false
+            }
+            absorbTaken = true
+            return true
+        }
+        // On 26 a frame read half way through an animation can be larger by a rounding (73.00000000000001 for 73); a
+        // growth there is more than `frameTolerance` on a side. On 15 any growth of the area counts.
+        func grew(_ identifier: String, _ own: [CenterGroup]) -> Bool {
+            if on26, own.count == 1, before[identifier]?.count == 1, let old = before[identifier]?.first {
+                return own[0].frame.width - old.frame.width > frameTolerance || own[0].frame.height - old.frame.height > frameTolerance
+            }
+            return own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
+        }
         for (identifier, groups) in after where identifier != pressedRoot && !isList(identifier) {
             let own = groups.filter { !partOfRoot($0) }
-            let grown = own.map { area($0.frame) }.reduce(0, +) > (before[identifier] ?? []).map { area($0.frame) }.reduce(0, +)
-            if grown && !collapsedOnto(identifier, own) && !highlightMovedFromRoot(identifier, own) {
+            if grew(identifier, own) && !collapsedOnto(identifier, own) && !highlightMovedFromRoot(identifier, own) &&
+                !absorbedTheRoot(identifier, own) {
                 return .cannotTell
             }
         }
